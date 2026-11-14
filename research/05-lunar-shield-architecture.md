@@ -121,8 +121,10 @@ stateDiagram-v2
 
 - **Effective flux** = measured or forecast flux × asset shielding factor. The real product replaces this factor with a
   response model per part class (dose and single-event-effect rate vs. spectrum) [estimate].
-- **Hysteresis** stops flapping: in the prototype the drill rig has 6 state changes without hysteresis and 2 with it
-  [computed, synthetic event, `prototypes/lunar-shield-ux`]. The cost is more offline hours; the customer sets that trade-off.
+- **Hysteresis** stops flapping. Backtest on 6 real events (GOES ≥10 MeV via ISWA HAPI, `prototypes/lunar-shield-backtest/hyst2.py`)
+  [computed]: restarting as soon as flux < 10 pfu gives 21 premature restarts (red again within 24 h); a 1 h hold gives 6;
+  hysteresis of 6 h below 5 pfu gives 2, at +27 % downtime. The 2 left were new injections that DONKI signalled first
+  (hindcast). The customer sets this trade-off (`04-feasibility-lunar-shield-v2.md`).
 - **Second-CME hold:** a new Earth/Moon-directed CME in DONKI blocks restarts until its window passes. Anomaly rates peak
   4–5 days after onset [paper] (`02-lunar-shield-science.md`).
 
