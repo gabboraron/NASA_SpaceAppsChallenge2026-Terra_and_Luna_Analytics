@@ -1,58 +1,79 @@
+/* Placement (floating over the map or under it) is set by the parent. */
 .slider {
-  --thumb: 22px;
-  position: absolute;
-  right: 3.5rem;
-  bottom: 2.2rem;
-  left: 1rem;
-  padding: 0.6rem 1rem 0.4rem;
+  --thumb: 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  padding: 0.8rem 1.1rem 0.5rem;
   background: white;
-  border-radius: 0.75rem;
-  box-shadow: 0 2px 12px rgb(25 43 36 / 18%);
+  border-radius: 12px;
+  box-shadow: 0 6px 24px rgb(28 25 18 / 20%);
+  color: var(--ink);
 }
 .head {
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
-  gap: 0.75rem;
+  gap: 0.25rem 0.85rem;
 }
-.head p {
+.title {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 0 0.5rem;
   margin: 0;
+}
+.title strong {
+  font-family: var(--font-display);
+  font-size: 1.125rem;
+  font-weight: 600;
+}
+.title span {
+  font-size: 0.875rem;
+  color: var(--muted);
+}
+.season {
+  margin-left: auto;
+  font-size: 0.8125rem;
+  color: var(--muted);
 }
 .play {
   flex: none;
-  width: 44px;
-  height: 44px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
   border: 0;
   border-radius: 50%;
   background: var(--ink);
-  color: var(--paper);
-  font-size: 0.9rem;
+  color: white;
   cursor: pointer;
 }
-.play:focus-visible,
-.rail input:focus-visible {
-  outline: 3px solid var(--focus);
-  outline-offset: 2px;
+.play:hover {
+  background: var(--ink-raised);
 }
 .rail {
   position: relative;
-  padding-top: 14px;
+  padding-top: 8px;
 }
+/* Bloom histogram: a quiet hint of where the season peaks. */
 .strip span {
   position: absolute;
   top: 0;
-  width: calc((100% - var(--thumb)) / var(--weeks));
-  height: 10px;
+  width: calc((100% - var(--thumb)) / var(--weeks) - 2px);
+  height: 6px;
   transform: translateX(-50%);
   border-radius: 2px;
 }
 .strip [data-state="bloom"] {
-  background: var(--bloom);
+  background: var(--honey);
 }
 .strip [data-state="low"] {
   background: repeating-linear-gradient(
     -45deg,
     var(--drought) 0 2px,
-    var(--bloom) 2px 5px
+    var(--honey) 2px 5px
   );
 }
 .strip [data-state="none"] {
@@ -80,7 +101,7 @@
 .rail input::-webkit-slider-thumb {
   width: var(--thumb);
   height: var(--thumb);
-  margin-top: -9px;
+  margin-top: -8px;
   border: 3px solid white;
   border-radius: 50%;
   background: var(--ink);
@@ -98,7 +119,7 @@
 }
 .months {
   position: relative;
-  height: 1.2rem;
+  height: 1.1rem;
   font-size: 0.75rem;
   color: var(--muted);
 }
@@ -107,12 +128,63 @@
   top: 0;
   padding-left: 3px;
   border-left: 1px solid var(--line);
+  line-height: 1.1rem;
 }
-@media (max-width: 720px) {
+/* Tablet and phone: smaller date, no season note, header on one line. */
+@media (width < 1100px) {
+  .head {
+    flex-wrap: nowrap;
+  }
+  .title span {
+    font-size: 0.75rem;
+  }
+  .season {
+    display: none;
+  }
+}
+/* Tablet: one compact row so the card covers less of the shorter map. */
+@media (760px <= width < 1100px) {
   .slider {
-    right: 0.5rem;
-    bottom: 1.8rem;
-    left: 0.5rem;
-    padding: 0.5rem 0.75rem 0.3rem;
+    flex-direction: row;
+    align-items: center;
+    gap: 1rem;
+    padding: 0.6rem 1rem 0.3rem;
+  }
+  .head {
+    flex: none;
+  }
+  .title {
+    flex-direction: column;
+    gap: 0;
+  }
+  .rail {
+    flex: 1;
+    min-width: 0;
+  }
+}
+/* Phone: a flat full-width bar under the map. */
+@media (width < 760px) {
+  .slider {
+    gap: 0.1rem;
+    padding: 0.6rem 0.75rem 0.35rem;
+    border-bottom: 1px solid var(--line);
+    border-radius: 0;
+    box-shadow: none;
+  }
+  .head {
+    gap: 0.65rem;
+  }
+  .title {
+    flex: 1;
+    justify-content: space-between;
+    gap: 0;
+  }
+  .title strong {
+    font-size: 1rem;
+    font-weight: 500;
+  }
+  .play {
+    width: 36px;
+    height: 36px;
   }
 }

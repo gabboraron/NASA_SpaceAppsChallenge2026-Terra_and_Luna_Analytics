@@ -1,0 +1,29 @@
+.footer {
+  width: 100%;
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(15rem, 1fr));
+  gap: 2rem;
+  max-width: 80rem;
+  margin: 0 auto;
+  padding: 3rem 2.5rem 3.5rem;
+  border-top: 3px solid var(--ink);
+  font-size: 0.875rem;
+  color: var(--body-ink);
+}
+.footer span {
+  font-size: 0.75rem;
+  letter-spacing: 0.06em;
+  color: var(--muted);
+}
+.footer p {
+  margin: 0.4rem 0 0;
+}
+.footer a {
+  color: var(--ink);
+  text-underline-offset: 3px;
+}
+@media (width < 760px) {
+  .footer {
+    padding: 2.5rem 1rem 3rem;
+  }
+}

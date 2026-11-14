@@ -1,22 +1,14 @@
 .panel {
-  display: flex;
-  flex-direction: column;
+  composes: panel from "../panel.module.css";
   gap: 1.1rem;
   padding: 1.25rem 1.5rem 2rem;
-  border-left: 1px solid var(--line);
-  background: white;
-  overflow-y: auto;
-}
-.panel h2 {
-  margin: 0.1rem 0 0;
-  font-size: 1.5rem;
 }
 .panel h3,
 .panel legend {
   margin: 0 0 0.5rem;
   padding: 0;
-  font-size: 0.8rem;
-  font-weight: 700;
+  font-size: 0.75rem;
+  font-weight: 600;
   letter-spacing: 0.06em;
   text-transform: uppercase;
   color: var(--muted);
@@ -27,16 +19,11 @@
 }
 .panel button {
   font: inherit;
-  cursor: pointer;
   color: var(--ink);
+  cursor: pointer;
 }
 .panel button:disabled {
   cursor: not-allowed;
-}
-.panel button:focus-visible,
-.panel input:focus-visible {
-  outline: 3px solid var(--focus);
-  outline-offset: 2px;
 }
 .panel fieldset {
   margin: 0;
@@ -53,17 +40,11 @@
   flex: 1;
 }
 .head small {
-  font-size: 0.82rem;
+  font-family: var(--font-mono);
+  font-size: 0.75rem;
 }
 .icon {
-  display: grid;
-  place-items: center;
-  flex: none;
-  width: 44px;
-  height: 44px;
-  border: 1px solid var(--line);
-  border-radius: 10px;
-  background: white;
+  composes: iconButton from "../panel.module.css";
 }
 .note {
   margin: 0;
@@ -71,31 +52,17 @@
   font-size: 0.85rem;
 }
 .alert {
-  display: flex;
-  flex-direction: column;
-  gap: 0.4rem;
-  padding: 0.75rem 0.9rem;
-  border-radius: 10px;
-  outline: 2px solid var(--drought);
-}
-.alert button {
-  align-self: flex-start;
-  min-height: 44px;
-  padding: 0 1rem;
-  border: 1.5px solid var(--ink);
-  border-radius: 8px;
-  background: white;
-  font-weight: 600;
+  composes: alert from "../panel.module.css";
 }
 .honey {
   display: flex;
   flex-direction: column;
   gap: 0.2rem;
   padding: 0.8rem 1rem;
-  border-radius: 12px;
-  border: 2px solid #c88a12;
-  background: #fdf3dc;
-  color: #5c3d00;
+  border-radius: 8px;
+  border: 1.5px solid var(--honey-deep);
+  background: var(--warn-wash);
+  color: var(--warn-ink);
 }
 .verdict {
   display: flex;
@@ -103,28 +70,36 @@
   gap: 0.15rem;
   padding: 1rem 1.1rem;
   border-radius: 12px;
-  border: 2px solid var(--natura);
-  background: #e3ede6;
-  color: #1d3d2d;
+  border: 1.5px solid var(--natura);
+  border-left-width: 6px;
+  background: var(--good-wash);
+  color: var(--good-ink);
   transition: opacity 0.15s;
 }
 .verdict[data-verdict="do_not_move"] {
   border-color: var(--drought);
-  background: #fbe9e7;
-  color: #6e231c;
+  background: var(--alert-wash);
+  color: var(--drought-ink);
 }
 .verdict[data-pending="true"] {
   opacity: 0.6;
 }
 .verdict > strong {
-  font-size: 2.1rem;
+  font-family: var(--font-mono);
+  font-size: 2rem;
+  font-weight: 500;
   line-height: 1.15;
   font-variant-numeric: tabular-nums;
 }
+.verdict > span:last-child {
+  font-family: var(--font-mono);
+  font-size: 0.82rem;
+}
 .kicker {
+  font-family: var(--font-display);
   font-size: 0.85rem;
-  font-weight: 700;
-  letter-spacing: 0.04em;
+  font-weight: 600;
+  letter-spacing: 0.06em;
   text-transform: uppercase;
 }
 .bars {
@@ -149,14 +124,15 @@
 }
 .bars li > span:last-child {
   text-align: right;
-  font-weight: 700;
+  font-family: var(--font-mono);
+  font-weight: 500;
   font-variant-numeric: tabular-nums;
 }
 .track {
   position: relative;
   height: 22px;
   border-radius: 4px;
-  background: #f3f4f1;
+  background: var(--wash);
 }
 .track::after {
   content: "";
@@ -177,10 +153,10 @@
   opacity: 0.6;
 }
 [data-sign="pos"] {
-  color: #234836;
+  color: var(--good-ink);
 }
 [data-sign="neg"] {
-  color: #8f2f27;
+  color: var(--drought-ink);
 }
 .track > span[data-sign="pos"] {
   left: 50%;
@@ -193,8 +169,11 @@
 .table {
   width: 100%;
   border-collapse: collapse;
-  font-size: 0.9rem;
+  font-size: 0.85rem;
   font-variant-numeric: tabular-nums;
+}
+.table td {
+  font-family: var(--font-mono);
 }
 .table th,
 .table td {
@@ -213,11 +192,11 @@
 }
 .table th:nth-child(3),
 .table td:nth-child(3) {
-  background: #f6f7f3;
+  background: var(--card);
   color: var(--ink);
 }
 .table tr[data-total="true"] {
-  border-top: 1px solid var(--line);
+  border-top: 1px solid var(--line-strong);
   font-weight: 700;
 }
 .table tr[data-total="true"] th {
@@ -239,12 +218,15 @@
   flex: 1;
 }
 .inputsHead button {
-  min-height: 36px;
+  min-height: 44px;
   padding: 0 0.75rem;
   border: 1.5px solid var(--ink);
   border-radius: 8px;
   background: white;
   font-weight: 600;
+}
+.inputsHead button:hover:not(:disabled) {
+  background: var(--wash);
 }
 .inputsHead button:disabled {
   opacity: 0.45;
@@ -261,13 +243,6 @@
   height: 28px;
   margin: 0.3rem 0;
   accent-color: var(--ink);
-}
-.colonies .field > label {
-  position: absolute;
-  width: 1px;
-  height: 1px;
-  overflow: hidden;
-  clip: rect(0 0 0 0);
 }
 .grid {
   display: grid;
@@ -288,20 +263,24 @@
   display: flex;
   align-items: center;
   gap: 0.4rem;
-  min-height: 42px;
+  min-height: 44px;
   padding: 0 0.6rem;
-  border: 1.5px solid #c5ccc2;
+  border: 1px solid var(--line-strong);
   border-radius: 8px;
+  background: white;
 }
+/* Edited values: ink border on a honey-pale wash, so changes stand out. */
 .field[data-edited="true"] .box {
-  border-color: var(--ink);
+  border: 1.5px solid var(--ink);
+  background: var(--warn-wash);
 }
 .box[data-invalid="true"] {
   border: 2px solid var(--drought);
 }
+/* The input itself has no outline, so the box carries the standard ring. */
 .box:focus-within {
-  outline: 3px solid var(--focus);
-  outline-offset: 1px;
+  outline: 2px solid var(--focus);
+  outline-offset: 2px;
 }
 .box input {
   flex: 1;
@@ -311,29 +290,20 @@
   outline: 0;
   background: transparent;
   font: inherit;
+  font-family: var(--font-mono);
   font-variant-numeric: tabular-nums;
 }
 .box span {
-  font-size: 0.82rem;
+  font-family: var(--font-mono);
+  font-size: 0.78rem;
   color: var(--muted);
   white-space: nowrap;
 }
 .panel .error {
-  color: #8f2f27;
+  color: var(--drought-ink);
   font-weight: 600;
 }
-@media (max-width: 720px) {
-  .panel {
-    position: fixed;
-    inset: 12dvh 0 0;
-    z-index: 10;
-    padding: 1rem;
-    border-left: 0;
-    border-radius: 18px 18px 0 0;
-    box-shadow: 0 -4px 18px rgb(25 43 36 / 20%);
-  }
-}
-@media (max-width: 420px) {
+@media (width <= 420px) {
   .grid {
     grid-template-columns: 1fr;
   }

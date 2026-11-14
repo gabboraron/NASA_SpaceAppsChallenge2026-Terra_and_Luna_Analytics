@@ -6,18 +6,30 @@ import type {
   MatchCard,
   Parcel,
   ParcelWeek,
-  Season,
   Timeline,
 } from "../../api/client";
+import { WEEKS, isHighBloomLowNectar } from "../../domain/season";
+
+export {
+  CROP_NAMES,
+  WEEKS,
+  cropName,
+  indexWeeks,
+  isHighBloomLowNectar,
+  monthTicks,
+  weekLabel,
+  weekStart,
+} from "../../domain/season";
 
 export type LayerId =
   "parcels" | "natura" | "smap" | "buffers" | "beekeepers" | "imagery";
 
+// Season-atlas palette: beeswax neutral → pale honey → honey → spent wax.
 export const BLOOM_COLORS = {
-  none: "#e7ebe2",
-  pre_bloom: "#f6e7b0",
-  blooming: "#ebbc43",
-  post_bloom: "#b9a27a",
+  none: "#ebe3cc",
+  pre_bloom: "#f2dc94",
+  blooming: "#e3a92b",
+  post_bloom: "#bfa77a",
   missing: "#ffffff",
 } as const;
 
@@ -28,19 +40,11 @@ export const CROP_COLORS: Record<string, string> = {
   sour_cherry: "#6d1d38",
 };
 export const OTHER_CROP = "#6b7068";
-export const CROP_NAMES: Record<string, string> = {
-  sunflower: "Sunflower",
-  black_locust: "Black locust",
-  apple: "Apple",
-  sour_cherry: "Sour cherry",
-  grassland: "Grassland",
-};
-/** Display name of a parcel's crop, falling back to the raw code. */
-export const cropName = (crop: string): string => CROP_NAMES[crop] ?? crop;
-
-export const DROUGHT = "#ae4036";
-export const NATURA = "#315e48";
-export const INK = "#192b24";
+export const DROUGHT = "#b03a2e";
+export const NATURA = "#2f6b4f";
+export const INK = "#1c1912";
+export const HONEY = "#e3a92b";
+export const PAPER = "#f7f0de";
 
 export const BLOOM_LABELS: Record<ParcelWeek["bloom_state"], string> = {
   none: "Not in bloom",
@@ -54,64 +58,11 @@ export const NECTAR_LABELS: Record<ParcelWeek["nectar_state"], string> = {
   unknown: "Nectar unknown",
 };
 
-/** Index a season once: week → parcel id → row, so a week change is a lookup. */
-export function indexWeeks(
-  timeline: Timeline | null,
-): Map<number, Map<string, ParcelWeek>> {
-  const index = new Map<number, Map<string, ParcelWeek>>();
-  for (const row of timeline?.parcel_weeks ?? []) {
-    const week = index.get(row.week) ?? new Map<string, ParcelWeek>();
-    week.set(row.parcel_id, row);
-    index.set(row.week, week);
-  }
-  return index;
-}
-
-export const WEEKS = 26;
-const DAY_MS = 86_400_000;
-const MONTH = new Intl.DateTimeFormat("en-GB", {
-  month: "long",
-  timeZone: "UTC",
-});
-const MONTH_SHORT = new Intl.DateTimeFormat("en-GB", {
-  month: "short",
-  timeZone: "UTC",
-});
-
-/** First day of a timeline week; weeks run 1–26 from 1 March. */
-export const weekStart = (year: Season, week: number): Date =>
-  new Date(Date.UTC(year, 2, 1 + (week - 1) * 7));
-
-/** e.g. "12–18 July". */
-export function weekLabel(year: Season, week: number): string {
-  const start = weekStart(year, week);
-  const end = new Date(start.getTime() + 6 * DAY_MS);
-  const [a, b] = [MONTH.format(start), MONTH.format(end)];
-  return a === b
-    ? `${start.getUTCDate()}–${end.getUTCDate()} ${b}`
-    : `${start.getUTCDate()} ${a} – ${end.getUTCDate()} ${b}`;
-}
-
-/** Month names placed at the week in which each month starts (March–August). */
-export function monthTicks(year: Season): { label: string; week: number }[] {
-  return [2, 3, 4, 5, 6, 7].map((m) => {
-    const first = new Date(Date.UTC(year, m, 1));
-    return {
-      label: MONTH_SHORT.format(first),
-      week: 1 + (first.getTime() - weekStart(year, 1).getTime()) / DAY_MS / 7,
-    };
-  });
-}
-
 /** True when the week's bloom or indices are gap-filled, not observed (D4). */
 export const isInterpolated = (row: ParcelWeek): boolean =>
   row.bloom_provenance.interpolated ||
   row.ndvi.provenance.interpolated ||
   row.ndyi.provenance.interpolated;
-
-/** The demo's headline state: in flower, but the soil is too dry for nectar. */
-export const isHighBloomLowNectar = (row: ParcelWeek): boolean =>
-  row.bloom_state === "blooming" && row.nectar_state === "low_nectar";
 
 /** One-line state of a parcel week, shared by the hover card and the detail panel. */
 export function weekStateText(row?: ParcelWeek): string {

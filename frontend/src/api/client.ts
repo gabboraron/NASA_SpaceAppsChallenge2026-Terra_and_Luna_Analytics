@@ -27,31 +27,53 @@ async function get<T>(path: string, init?: RequestInit): Promise<T> {
   return response.json() as Promise<T>;
 }
 
-export const getParcels = (signal: AbortSignal) =>
-  useMocks
-    ? Promise.resolve(mocks.parcels)
-    : get<Parcel[]>("/parcels", { signal });
+// Static GETs are shared between pages for the whole session (landing → explorer),
+// so callers' abort signals only stop their own state updates, not the request.
+const cache = new Map<string, Promise<unknown>>();
+function cached<T>(key: string, load: () => Promise<T>): Promise<T> {
+  let hit = cache.get(key) as Promise<T> | undefined;
+  if (!hit) {
+    hit = load();
+    hit.catch(() => cache.delete(key));
+    cache.set(key, hit);
+  }
+  return hit;
+}
 
-export const getNatura = (signal: AbortSignal) =>
-  useMocks
-    ? Promise.resolve(mocks.natura)
-    : get<Natura>("/natura2000", { signal });
+export const getParcels = () =>
+  cached("parcels", () =>
+    useMocks ? Promise.resolve(mocks.parcels) : get<Parcel[]>("/parcels"),
+  );
 
-export const getActors = (signal: AbortSignal) =>
-  useMocks ? Promise.resolve(mocks.actors) : get<Actors>("/actors", { signal });
+export const getNatura = () =>
+  cached("natura", () =>
+    useMocks ? Promise.resolve(mocks.natura) : get<Natura>("/natura2000"),
+  );
 
-export const getTimeline = (year: Season, signal?: AbortSignal) =>
-  useMocks
-    ? Promise.resolve(mocks.timeline(year))
-    : get<Timeline>(`/timeline?year=${year}`, { signal });
+export const getActors = () =>
+  cached("actors", () =>
+    useMocks ? Promise.resolve(mocks.actors) : get<Actors>("/actors"),
+  );
+
+export const getTimeline = (year: Season) =>
+  cached(`timeline:${year}`, () =>
+    useMocks
+      ? Promise.resolve(mocks.timeline(year))
+      : get<Timeline>(`/timeline?year=${year}`),
+  );
 
 /** Simulated grower field photo (D16): the parcel's blooming weeks become Observed. */
-export const verifyParcel = (id: string) =>
-  useMocks
-    ? Promise.resolve(mocks.verify(id))
-    : get<Provenance>(`/parcels/${encodeURIComponent(id)}/verify`, {
+export const verifyParcel = async (id: string) => {
+  const provenance = useMocks
+    ? mocks.verify(id)
+    : await get<Provenance>(`/parcels/${encodeURIComponent(id)}/verify`, {
         method: "POST",
       });
+  // The server rewrote this parcel's weeks: drop both seasons' cached timelines.
+  for (const key of [...cache.keys()])
+    if (key.startsWith("timeline:")) cache.delete(key);
+  return provenance;
+};
 
 export const getMatches = (
   beekeeperId: string,

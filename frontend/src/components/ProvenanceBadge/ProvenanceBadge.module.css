@@ -1,48 +1,31 @@
 .badge {
-  --tone: var(--muted);
   display: flex;
   flex-direction: column;
-  gap: 0.1rem;
-  font-size: 0.78rem;
-  line-height: 1.3;
+  gap: 0.15rem;
+  font-family: var(--font-mono);
+  font-size: 0.75rem;
+  line-height: 1.35;
   color: var(--muted);
-}
-.badge[data-kind="Observed"] {
-  --tone: var(--natura);
-}
-.badge[data-kind="Estimated"] {
-  --tone: #8a5a00;
-}
-.badge[data-kind="Reported"] {
-  --tone: var(--focus);
 }
 .line {
   display: flex;
   flex-wrap: wrap;
   align-items: baseline;
-  gap: 0.15rem 0.4rem;
+  gap: 0.2rem 0.45rem;
 }
-.kind,
+/* The kind label is the global .kind-chip (styles/tokens.css).
+   Gap-filled weeks: honey dashed, never presented as an observation. */
 .gap {
-  padding: 0.05rem 0.45rem;
-  border-radius: 999px;
+  padding: 0 0.45rem;
   font-size: 0.72rem;
-  font-weight: 700;
-  letter-spacing: 0.02em;
-}
-.kind {
-  color: white;
-  background: var(--tone);
-}
-.badge[data-kind="Missing"] .kind {
-  color: var(--muted);
-  background: transparent;
-  border: 1.5px dashed var(--muted);
-}
-.gap {
+  font-weight: 500;
+  letter-spacing: 0.01em;
+  white-space: nowrap;
   color: var(--ink);
-  border: 1.5px dashed var(--ink);
+  background: var(--wash);
+  border: 1px dashed var(--honey-deep);
 }
 .badge small {
-  font-size: 0.75rem;
+  font-size: 0.72rem;
+  color: var(--muted);
 }

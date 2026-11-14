@@ -1,22 +1,107 @@
+/* Season-atlas theme: beeswax paper, honey amber, near-black ink.
+   Breakpoints (use range syntax, viewport queries only in page/shell CSS):
+   phone (width < 760px), tablet (760px <= width < 1100px), desktop (width >= 1100px).
+   Reading pages also stack their two-column content at width < 980px. */
 :root {
-  --ink: #192b24;
-  --paper: #faf9f4;
-  --line: #d7ddd4;
-  --bloom: #ebbc43;
+  --ink: #1c1912;
+  --paper: #f7f0de;
+  --card: #fcf8ec;
+  --line: #d6c9a4;
+  --line-strong: #c3b78f;
+  --honey: #e3a92b;
+  --honey-pale: #f0d898;
+  --honey-deep: #8a5a0b;
+  --bloom: var(--honey);
   --orchard: #e5a5b4;
-  --drought: #ae4036;
-  --natura: #315e48;
-  --muted: #526659;
-  --wash: #eef1ea;
-  --focus: #2f5d8a;
+  --drought: #b03a2e;
+  --drought-ink: #8a2f25;
+  --natura: #2f6b4f;
+  --muted: #6a5d3f;
+  --body-ink: #4a4232;
+  --wash: #f3e9cc;
+  --focus: #1f5f8b;
+  /* Dark surfaces (app bar, dark buttons). */
+  --ink-raised: #3a3324;
+  --on-ink: #e6dcc2;
+  /* Tinted message boxes. */
+  --warn-wash: #fbf3dc;
+  --warn-ink: #4a3a0c;
+  --alert-wash: #fbefec;
+  --missing-wash: #f1dcd8;
+  --good-wash: #e8efe6;
+  --good-ink: #1d3d2d;
+  /* Bloom states; keep in step with BLOOM_COLORS in MapCanvas/layers.ts (MapLibre needs literals). */
+  --bloom-none: #ebe3cc;
+  --bloom-pre: #f2dc94;
+  --bloom-full: #e3a92b;
+  --bloom-post: #bfa77a;
+  --link: #1f5f8b;
   --step: 0.5rem;
   --body: 1rem;
   --title: 1.5rem;
-  font-family: "Source Sans 3", system-ui, sans-serif;
+  --font-body: Inter, system-ui, sans-serif;
+  --font-display: "Space Grotesk", Inter, system-ui, sans-serif;
+  --font-mono: "IBM Plex Mono", ui-monospace, monospace;
+  --hex: polygon(50% 0, 100% 25%, 100% 75%, 50% 100%, 0 75%, 0 25%);
+  font-family: var(--font-body);
   font-size: var(--body);
+  line-height: 1.5;
   color: var(--ink);
   background: var(--paper);
 }
 * {
   box-sizing: border-box;
+}
+body {
+  margin: 0;
+}
+:focus-visible {
+  outline: 2px solid var(--focus);
+  outline-offset: 2px;
+}
+.mono {
+  font-family: var(--font-mono);
+}
+.hex {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  clip-path: var(--hex);
+}
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  margin: -1px;
+  padding: 0;
+  border: 0;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+/* Provenance chip, shared by ProvenanceBadge and the landing legend. */
+.kind-chip {
+  display: inline-block;
+  padding: 0 0.55rem;
+  border: 1px solid transparent;
+  border-radius: 999px;
+  font-family: var(--font-mono);
+  font-size: 0.8125rem;
+  line-height: 1.6;
+  color: var(--ink);
+}
+.kind-chip[data-kind="Observed"] {
+  background: var(--ink);
+  color: var(--paper);
+}
+.kind-chip[data-kind="Estimated"] {
+  border: 1px dashed var(--ink);
+}
+.kind-chip[data-kind="Reported"] {
+  border: 1.5px solid var(--link);
+  color: var(--link);
+}
+.kind-chip[data-kind="Missing"] {
+  background: var(--missing-wash);
+  color: var(--drought-ink);
 }

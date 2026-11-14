@@ -28,9 +28,11 @@ export const formatDate = (iso: string) => DAY.format(new Date(iso));
 export function ProvenanceBadge({ provenance }: { provenance: Provenance }) {
   const { kind, source, observed_at, interpolated, note } = provenance;
   return (
-    <span className={styles.badge} data-kind={kind}>
+    <span className={styles.badge}>
       <span className={styles.line}>
-        <strong className={styles.kind}>{kind}</strong>
+        <strong className="kind-chip" data-kind={kind}>
+          {kind}
+        </strong>
         {interpolated && <span className={styles.gap}>Gap-filled</span>}
         <span>
           {source}

@@ -1,4 +1,4 @@
-import type { Season } from "../../api/client";
+import { Link, ROUTES } from "../../site/router";
 import {
   BLOOM_COLORS,
   BLOOM_LABELS,
@@ -40,33 +40,14 @@ const LAYER_ROWS: { id: LayerId; label: string; caption: string }[] = [
 ];
 
 type Props = {
-  year: Season;
   visible: Record<LayerId, boolean>;
-  onYear: (year: Season) => void;
   onToggle: (id: LayerId) => void;
 };
 
-/** Season switch, layer toggles and legend. */
-export function LayerPanel({ year, visible, onYear, onToggle }: Props) {
+/** Layer toggles, legend and a short reading note. */
+export function LayerPanel({ visible, onToggle }: Props) {
   return (
-    <aside className={styles.panel}>
-      <section aria-labelledby="season-h">
-        <h2 id="season-h">Season</h2>
-        <div role="group" aria-label="Season" className={styles.segment}>
-          {([2022, 2024] as const).map((y) => (
-            <button
-              key={y}
-              type="button"
-              aria-pressed={year === y}
-              onClick={() => onYear(y)}
-            >
-              {y}
-              <small>{y === 2022 ? "drought year" : "comparison"}</small>
-            </button>
-          ))}
-        </div>
-      </section>
-
+    <aside className={styles.panel} aria-label="Layers and legend">
       <section aria-labelledby="layers-h">
         <h2 id="layers-h">Layers</h2>
         {LAYER_ROWS.map((row) => (
@@ -125,7 +106,10 @@ export function LayerPanel({ year, visible, onYear, onToggle }: Props) {
             No data
           </li>
         </ul>
-        <h2>Parcel outline: crop</h2>
+      </section>
+
+      <section aria-labelledby="crop-h">
+        <h2 id="crop-h">Parcel outline: crop</h2>
         <ul className={styles.legend}>
           {[...Object.entries(CROP_COLORS), ["other", OTHER_CROP]].map(
             ([crop, color]) => (
@@ -139,12 +123,18 @@ export function LayerPanel({ year, visible, onYear, onToggle }: Props) {
             ),
           )}
         </ul>
-        <p className={styles.note}>
-          Low nectar is a labelled heuristic: blooming while root-zone soil
-          moisture is below the 20th percentile for that week. Parcels are
-          illustrative; beekeepers are synthetic.
-        </p>
       </section>
+
+      <div className={styles.note}>
+        <strong>Reading the map</strong>
+        <p>
+          A dashed outline marks a gap-filled week between satellite passes,
+          never an observation. Low nectar is a labelled heuristic: blooming
+          while root-zone soil moisture is below the 20th percentile for that
+          week. Parcels are illustrative; beekeepers are synthetic.
+        </p>
+        <Link to={ROUTES.guide}>Open the guide</Link>
+      </div>
     </aside>
   );
 }

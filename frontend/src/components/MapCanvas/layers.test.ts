@@ -34,11 +34,11 @@ function km([lon1, lat1]: number[], [lon2, lat2]: number[]): number {
 
 describe("weekLabel", () => {
   it("counts weeks from 1 March", () => {
-    expect(weekLabel(2024, 1)).toBe("1–7 March");
-    expect(weekLabel(2024, 20)).toBe("12–18 July");
+    expect(weekLabel(2024, 1)).toBe("1 to 7 March");
+    expect(weekLabel(2024, 20)).toBe("12 to 18 July");
   });
   it("names both months when a week spans two", () => {
-    expect(weekLabel(2022, 5)).toBe("29 March – 4 April");
+    expect(weekLabel(2022, 5)).toBe("29 March to 4 April");
   });
 });
 

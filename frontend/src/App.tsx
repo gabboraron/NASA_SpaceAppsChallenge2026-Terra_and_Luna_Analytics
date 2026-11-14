@@ -36,7 +36,10 @@ import {
 import { MatchPanel } from "./components/MatchPanel/MatchPanel";
 import { MoveCalculator } from "./components/MoveCalculator/MoveCalculator";
 import { TimeSlider } from "./components/TimeSlider/TimeSlider";
+import { SEASONS, WEEKS, isSeason } from "./domain/season";
+import { useEscape } from "./hooks/useEscape";
 import { useMatches } from "./hooks/useMatches";
+import { SiteHeader } from "./site/SiteHeader";
 import styles from "./App.module.css";
 
 // Week 20 = mid-July, sunflower bloom: the demo's opening view.
@@ -50,6 +53,24 @@ const ALL_ON: Record<LayerId, boolean> = {
   imagery: false,
 };
 
+type Sheet = "matches" | "parcel" | "layers";
+const SHEETS: { id: Sheet; label: string }[] = [
+  { id: "matches", label: "Matches" },
+  { id: "parcel", label: "Parcel" },
+  { id: "layers", label: "Layers" },
+];
+
+/** Optional deep link `?year=2022|2024&week=1..26`; bad values are ignored. */
+function linkedView(): { year: Season; week: number } {
+  const query = new URLSearchParams(window.location.search);
+  const y = Number(query.get("year"));
+  const w = Number(query.get("week"));
+  return {
+    year: isSeason(y) ? y : 2024,
+    week: Number.isInteger(w) && w >= 1 && w <= WEEKS ? w : START_WEEK,
+  };
+}
+
 type Base = { parcels: Parcel[]; natura: Natura; actors: Actors };
 type Load<T> = { data?: T; error?: string };
 
@@ -60,12 +81,15 @@ export function App() {
   const [timelines, setTimelines] = useState<
     Partial<Record<Season, Load<Timeline>>>
   >({});
-  const [year, setYear] = useState<Season>(2024);
+  const [year, setYear] = useState<Season>(() => linkedView().year);
   const [visible, setVisible] = useState(ALL_ON);
   const [selected, setSelected] = useState("");
   const [hovered, setHovered] = useState("");
   const [attempt, setAttempt] = useState(0);
-  const [week, setWeek] = useState(START_WEEK);
+  const [week, setWeek] = useState(() => linkedView().week);
+  // Which side panel shows (and the phone tab); kept in step with the selection.
+  const [sheet, setSheet] = useState<Sheet>("matches");
+  const [layersOpen, setLayersOpen] = useState(false);
   const [verifyState, setVerifyState] = useState<VerifyState>("idle");
   const [planning, setPlanning] = useState(false);
   const [keeperId, setKeeperId] = useState("B1");
@@ -74,30 +98,36 @@ export function App() {
     new Set(),
   );
 
+  // `stale` drops a late failure from an effect that has since been replaced.
   useEffect(() => {
-    const controller = new AbortController();
-    const { signal } = controller;
-    Promise.all([getParcels(signal), getNatura(signal), getActors(signal)])
+    let stale = false;
+    Promise.all([getParcels(), getNatura(), getActors()])
       .then(([parcels, natura, actors]) =>
         setBase({ data: { parcels, natura, actors } }),
       )
       .catch(() => {
-        if (!signal.aborted)
+        if (!stale)
           setBase({
             error: "Could not load parcels. Check that the API is running.",
           });
       });
-    return () => controller.abort();
+    return () => {
+      stale = true;
+    };
   }, [attempt]);
+
+  // Escape closes the tablet layers popover.
+  const closeLayers = useCallback(() => setLayersOpen(false), []);
+  useEscape(closeLayers);
 
   const current = timelines[year];
   useEffect(() => {
     if (current?.data) return;
-    const controller = new AbortController();
-    getTimeline(year, controller.signal)
+    let stale = false;
+    getTimeline(year)
       .then((data) => setTimelines((t) => ({ ...t, [year]: { data } })))
       .catch(() => {
-        if (!controller.signal.aborted)
+        if (!stale)
           setTimelines((t) => ({
             ...t,
             [year]: {
@@ -106,7 +136,9 @@ export function App() {
             },
           }));
       });
-    return () => controller.abort();
+    return () => {
+      stale = true;
+    };
   }, [year, attempt, current?.data]);
 
   const timeline = current?.data ?? null;
@@ -177,15 +209,20 @@ export function App() {
     (id: LayerId) => setVisible((v) => ({ ...v, [id]: !v[id] })),
     [],
   );
+  // Touch has no mouseleave, so selection changes also clear the hover outline.
   const closeDetail = useCallback(() => {
     setSelected("");
+    setHovered("");
     setPlanning(false);
+    setSheet("matches");
   }, []);
   const closePlan = useCallback(() => setPlanning(false), []);
   const select = useCallback((id: string) => {
     setSelected(id);
+    setHovered("");
     setVerifyState("idle");
     setPlanning(false);
+    setSheet(id ? "parcel" : "matches");
   }, []);
   // Open the calculator with a beekeeper whose goal fits the parcel's service.
   const planMove = (parcel: Parcel) => {
@@ -230,29 +267,48 @@ export function App() {
     : undefined;
 
   return (
-    <main className={styles.page}>
-      <header>
-        <h1>Pollination map</h1>
-        <p>
-          Where crops bloom, where nectar is short, and where hives must not go
-        </p>
-        <span className={styles.chips}>
-          <span>Illustrative parcels</span>
-          <span>Synthetic beekeepers</span>
-          {useMocks && <span>Mock data</span>}
-        </span>
-      </header>
-      <div
+    <div className={styles.page}>
+      <SiteHeader variant="app">
+        <div className={styles.bar}>
+          <span className={`${styles.chip} ${styles.demo} mono`}>
+            Demo · synthetic actors
+          </span>
+          {useMocks && <span className={`${styles.chip} mono`}>Mock data</span>}
+          <button
+            type="button"
+            className={styles.layersButton}
+            aria-expanded={layersOpen}
+            aria-controls="layers-panel"
+            onClick={() => setLayersOpen((o) => !o)}
+          >
+            Layers
+          </button>
+          <div role="group" aria-label="Season" className={styles.season}>
+            {SEASONS.map((y) => (
+              <button
+                key={y}
+                type="button"
+                aria-pressed={year === y}
+                title={y === 2022 ? "Drought year" : "Comparison year"}
+                onClick={() => setYear(y)}
+              >
+                {y}
+                <span className="sr-only">
+                  {y === 2022 ? ", drought year" : ", comparison year"}
+                </span>
+              </button>
+            ))}
+          </div>
+        </div>
+      </SiteHeader>
+      <main
         className={styles.workspace}
         data-plan={!!selectedParcel && planning}
+        data-layers={layersOpen}
+        data-sheet={sheet}
       >
-        <LayerPanel
-          year={year}
-          visible={visible}
-          onYear={setYear}
-          onToggle={toggle}
-        />
-        <section className={styles.panel} aria-label="Map">
+        <h1 className="sr-only">Explorer</h1>
+        <section className={styles.map} aria-label="Map">
           <MapCanvas
             parcels={layers.parcels}
             parcelDots={layers.dots}
@@ -277,7 +333,7 @@ export function App() {
                 </button>
               </div>
             ) : !current?.data ? (
-              <div role="status" className={styles.card}>
+              <div role="status" className={`${styles.card} ${styles.busy}`}>
                 <strong>Fetching the {year} season from NASA…</strong>
                 <span>
                   Parcels show as No data until the timeline arrives; a cold
@@ -286,7 +342,7 @@ export function App() {
               </div>
             ) : null}
             {timeline && visible.smap && timeline.smap_cells.length === 0 && (
-              <div role="status" className={styles.card}>
+              <div role="status" className={`${styles.card} ${styles.warn}`}>
                 <strong>Soil moisture not available</strong>
                 <span>
                   No SMAP cells for {year} yet, so nectar shows as unknown on
@@ -304,60 +360,94 @@ export function App() {
               </div>
             )}
           </div>
+        </section>
+        <div className={styles.week}>
           <TimeSlider
             year={year}
             week={week}
             summary={summary}
             onWeek={setWeek}
           />
-        </section>
-        {!selectedParcel && (
-          <MatchPanel
-            beekeepers={beekeepers}
-            keeperId={activeKeeperId}
-            onKeeper={setKeeperId}
-            year={year}
-            week={week}
-            matches={matches}
-            parcels={parcels}
-            weekRows={weekRows}
-            hovered={hovered}
-            onHover={setHovered}
-            onSelect={select}
-            onPlan={planMatch}
-          />
-        )}
-        {selectedParcel && planning && (
-          <MoveCalculator
-            parcel={selectedParcel}
-            beekeepers={beekeepers}
-            keeperId={activeKeeperId}
-            onKeeper={setKeeperId}
-            year={year}
-            week={week}
-            onBack={closePlan}
-            onClose={closeDetail}
-          />
-        )}
-        {selectedParcel && !planning && (
-          <ParcelDetail
-            parcel={selectedParcel}
-            grower={base.data?.actors.growers.find(
-              (g) => g.id === selectedParcel.grower_id,
-            )}
-            year={year}
-            week={week}
-            row={selectedRow}
-            smap={selectedSmap}
-            estimate={estimate}
-            verified={verifiedIds.has(selectedParcel.id)}
-            verifyState={verifyState}
-            onVerify={() => verify(selectedParcel.id)}
-            onPlanMove={() => planMove(selectedParcel)}
-            onClose={closeDetail}
-          />
-        )}
-      </div>
-    </main>
+        </div>
+        <div role="group" aria-label="Panel" className={styles.tabs}>
+          {SHEETS.map((t) => (
+            <button
+              key={t.id}
+              type="button"
+              aria-pressed={sheet === t.id}
+              onClick={() => setSheet(t.id)}
+            >
+              {t.label}
+            </button>
+          ))}
+        </div>
+        <div id="layers-panel" className={styles.rail}>
+          <LayerPanel visible={visible} onToggle={toggle} />
+        </div>
+        {/* Keyed by the panel shown, so a new panel starts scrolled to the top. */}
+        <div
+          key={
+            sheet !== "parcel"
+              ? "matches"
+              : !selectedParcel
+                ? "empty"
+                : planning
+                  ? "plan"
+                  : "detail"
+          }
+          className={styles.side}
+        >
+          {sheet !== "parcel" ? (
+            <MatchPanel
+              beekeepers={beekeepers}
+              keeperId={activeKeeperId}
+              onKeeper={setKeeperId}
+              year={year}
+              week={week}
+              matches={matches}
+              parcels={parcels}
+              weekRows={weekRows}
+              hovered={hovered}
+              onHover={setHovered}
+              onSelect={select}
+              onPlan={planMatch}
+            />
+          ) : !selectedParcel ? (
+            <p className={styles.empty}>
+              Select a parcel on the map, or a match, to see its bloom, nectar
+              and where each value comes from.
+            </p>
+          ) : planning ? (
+            <MoveCalculator
+              parcel={selectedParcel}
+              beekeepers={beekeepers}
+              keeperId={activeKeeperId}
+              onKeeper={setKeeperId}
+              year={year}
+              week={week}
+              onBack={closePlan}
+              onClose={closeDetail}
+            />
+          ) : (
+            <ParcelDetail
+              parcel={selectedParcel}
+              grower={base.data?.actors.growers.find(
+                (g) => g.id === selectedParcel.grower_id,
+              )}
+              year={year}
+              week={week}
+              row={selectedRow}
+              smap={selectedSmap}
+              estimate={estimate}
+              verified={verifiedIds.has(selectedParcel.id)}
+              verifyState={verifyState}
+              onVerify={() => verify(selectedParcel.id)}
+              onPlanMove={() => planMove(selectedParcel)}
+              onClose={closeDetail}
+            />
+          )}
+        </div>
+      </main>
+    </div>
   );
 }
