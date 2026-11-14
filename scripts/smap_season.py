@@ -1,7 +1,8 @@
 """Real-data check for WP8: SMAP root-zone percentiles of 2022 against 2024.
 
-Needs Earthdata credentials in ``.env``. The first run reads about 260 granules
-(about 27 s each, four in parallel); a rerun is served from the cache. Expect the
+Needs ``EARTHDATA_TOKEN`` in ``.env``. The first run makes about 260 OPeNDAP
+requests (a few seconds each, four in parallel, about 6 minutes); a rerun is
+served from the cache. Expect the
 2022 summer weeks (June-August, weeks 14-26) to sit at clearly lower percentiles
 than 2024. Run with ``uv run python scripts/smap_season.py``.
 """
