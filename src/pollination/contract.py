@@ -1,33 +1,58 @@
-"""WP2 contract fixtures. Real clients and engine calculations arrive in WP13."""
+"""API routes.
 
-from datetime import date, timedelta
+Parcels, Natura 2000 and the timeline are real; the rest are WP2 fixtures until
+WP12/WP13.
+"""
 
-from fastapi import APIRouter, HTTPException
+from datetime import date
+from functools import cache
+from typing import Annotated
+
+from fastapi import APIRouter, Depends, HTTPException
 
 from pollination import models as m
+from pollination import state
+from pollination.config import Settings
+from pollination.datafiles import Catalog, load_catalog
 from pollination.engine import calculator
+from pollination.engine.timeline import SeasonInputs, build_timeline, fetch_inputs
 
 router = APIRouter()
+
+
+@cache
+def catalog() -> Catalog:
+    """Load and validate ``data/`` on first use."""
+    return load_catalog(Settings())
+
+
+_inputs_by_year: dict[m.Season, SeasonInputs] = {}
+
+
+def season_inputs(year: m.Season) -> SeasonInputs:
+    """Dependency: the season's NASA inputs (tests override it to stay offline).
+
+    Inputs are kept in memory unless a request failed, so a later call retries.
+    """
+    if year in _inputs_by_year:
+        return _inputs_by_year[year]
+    settings = Settings()
+    inputs = fetch_inputs(
+        year,
+        catalog().parcels,
+        settings.cache_dir,
+        earthdata=settings.earthdata_token is not None,
+    )
+    if not inputs.failed:
+        _inputs_by_year[year] = inputs
+    return inputs
+
+
 SOURCE = "WP2 synthetic example"
 MISSING = m.Provenance(
     kind="Missing", source=SOURCE, observed_at=None, note="No NASA query performed."
 )
 GAP = m.Measurement(value=None, provenance=MISSING)
-SHAPE = m.Polygon(
-    coordinates=[[(22.12, 47.83), (22.13, 47.83), (22.13, 47.84), (22.12, 47.83)]]
-)
-PARCEL = m.Parcel(
-    id="P1",
-    grower_id="G1",
-    crop="sunflower",
-    area_ha=3,
-    geometry=SHAPE,
-    illustrative=True,
-    service_type="pollination",
-    requested_colonies=50,
-    declared_bloom=None,
-    natura_status="clear",
-)
 INPUT = m.CalculatorInput(
     service_type="pollination",
     colonies=50,
@@ -54,13 +79,13 @@ INPUT.provenance = {
 @router.get("/parcels")
 def parcels() -> list[m.Parcel]:
     """Return illustrative parcel listings."""
-    return [PARCEL]
+    return catalog().parcels
 
 
 @router.get("/natura2000")
 def natura2000() -> m.NaturaCollection:
     """Return the protected-area overlay."""
-    return m.NaturaCollection(features=[])
+    return catalog().natura
 
 
 @router.get("/actors")
@@ -84,26 +109,14 @@ def actors() -> m.Actors:
 
 
 @router.get("/timeline")
-def timeline(year: m.Season) -> m.TimelineResponse:
-    """Return weekly example shapes for the requested season."""
-    weeks = [
-        m.ParcelWeek(
-            parcel_id=PARCEL.id,
-            week=week,
-            starts_on=date(year, 3, 1) + timedelta(weeks=week - 1),
-            bloom_state="none",
-            bloom_provenance=MISSING,
-            nectar_state="unknown",
-            nectar_provenance=MISSING,
-            estimated_bloom=None,
-            ndvi=GAP,
-            ndyi=GAP,
-            gdd=GAP,
-            smap_cell_id=None,
-        )
-        for week in range(1, 27)
-    ]
-    return m.TimelineResponse(year=year, parcel_weeks=weeks, smap_cells=[])
+def timeline(
+    year: m.Season, inputs: Annotated[SeasonInputs, Depends(season_inputs)]
+) -> m.TimelineResponse:
+    """Return weekly bloom, nectar and evidence for every parcel in a season."""
+    data = catalog()
+    return build_timeline(
+        year, data.parcels, data.phenology, inputs, state.verifications
+    )
 
 
 @router.get("/matches")
@@ -114,7 +127,7 @@ def matches(beekeeper_id: str, year: m.Season, week: m.Week) -> list[m.MatchCard
     return [
         m.MatchCard(
             beekeeper_id=beekeeper_id,
-            parcel_id=PARCEL.id,
+            parcel_id=catalog().parcels[0].id,
             rank=1,
             blocked=False,
             reasons=[f"Synthetic example for {year.value}, week {week}"],
@@ -138,7 +151,7 @@ def calculate(inputs: m.CalculatorInput) -> m.CalculatorResult:
 @router.post("/parcels/{id}/verify")
 def verify(id: str) -> m.Provenance:
     """Return a simulated verification example without recording state."""
-    if id != PARCEL.id:
+    if id not in {p.id for p in catalog().parcels}:
         raise HTTPException(status_code=404, detail="Unknown parcel")
     return m.Provenance(
         kind="Observed",

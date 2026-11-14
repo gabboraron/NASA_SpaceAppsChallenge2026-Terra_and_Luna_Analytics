@@ -73,7 +73,7 @@ export interface paths {
         };
         /**
          * Timeline
-         * @description Return weekly example shapes for the requested season.
+         * @description Return weekly bloom, nectar and evidence for every parcel in a season.
          */
         get: operations["timeline_timeline_get"];
         put?: never;
@@ -115,7 +115,7 @@ export interface paths {
         put?: never;
         /**
          * Calculate
-         * @description Return the result shape; example numbers are independent of the inputs.
+         * @description Return low, base and high scenarios for a move.
          */
         post: operations["calculate_calculate_post"];
         delete?: never;
@@ -436,6 +436,8 @@ export interface components {
             /** Requested Colonies */
             requested_colonies: number | null;
             declared_bloom: components["schemas"]["Window"] | null;
+            /** Irrigated */
+            irrigated: boolean;
             /**
              * Natura Status
              * @enum {string}

@@ -157,6 +157,8 @@ def test_phenology_has_every_crop_and_no_unsourced_numbers() -> None:
         ]
         if any(v is not None for v in numeric):
             assert entry.source, f"{crop}: values set without a source"
+        if entry.gdd_bloom_start is not None:  # thresholds need their start day
+            assert entry.gdd_start, f"{crop}: GDD thresholds without gdd_start"
 
 
 def test_ranking_weights_sum_to_one() -> None:

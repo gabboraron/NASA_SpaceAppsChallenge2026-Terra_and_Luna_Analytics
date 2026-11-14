@@ -11,6 +11,7 @@ const fixtures: Parcel[] = [
     service_type: "pollination",
     requested_colonies: 50,
     declared_bloom: null,
+    irrigated: false,
     natura_status: "clear",
     geometry: {
       type: "Polygon",

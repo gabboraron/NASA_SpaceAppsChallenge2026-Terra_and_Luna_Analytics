@@ -1,13 +1,31 @@
 """Check the public WP2 contract through its HTTP entry points."""
 
 import asyncio
+from collections.abc import Iterator
 
 import httpx
+import pytest
 
+from pollination import models as m
 from pollination.api import app
+from pollination.contract import season_inputs
+from pollination.engine.timeline import SeasonInputs
+
+
+def offline(year: m.Season) -> SeasonInputs:
+    """Every NASA source missing: the contract must still hold, without network."""
+    return SeasonInputs(power={}, hls="offline test", smap=f"offline {year}")
+
+
+@pytest.fixture(autouse=True)
+def no_nasa() -> Iterator[None]:
+    app.dependency_overrides[season_inputs] = offline
+    yield
+    app.dependency_overrides.clear()
 
 
 def test_contract_click_path() -> None:
+
     async def exercise() -> None:
         async with httpx.AsyncClient(
             transport=httpx.ASGITransport(app=app), base_url="http://test"
@@ -34,6 +52,9 @@ def test_contract_click_path() -> None:
                 timeline = (await client.get("/timeline", params={"year": year})).json()
                 assert timeline["year"] == year
                 assert timeline["parcel_weeks"][0]["parcel_id"] == parcel["id"]
+                assert len(timeline["parcel_weeks"]) == 26 * len(
+                    (await client.get("/parcels")).json()
+                )
             params = {
                 "beekeeper_id": actors["beekeepers"][0]["id"],
                 "year": 2024,
