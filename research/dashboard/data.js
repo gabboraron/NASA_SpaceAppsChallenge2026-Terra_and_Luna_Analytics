@@ -32,6 +32,8 @@ window.DATA = {
     ['../04-feasibility-lunar-solar-farm.md', 'Feasibility: lunar solar-farm heatmap, standalone and as a Slip Day power layer'],
     ['../04-feasibility-ai-datacenter-heat.md', 'Feasibility: GPU smuggling sticky (rejected) and its ch. 2 reframe, AI data-center heat footprint'],
     ['../04-feasibility-moon-salvage.md', 'Feasibility: lunar hardware recovery / Moon Salvage or Museum'],
+    ['../05-lunar-shield-architecture.md', 'Lunar Shield solution architecture: requirements, C4 diagrams, advisory state machine, API, Azure deployment, risks, roadmap'],
+    ['../prototypes/lunar-shield-ux/index.html', 'Lunar Shield UX prototype: ops console replaying a synthetic SEP event, Moon + Earth impacts, API, business model'],
     ['../space-apps-2026-map.html', 'Visual hackathon map (also published as a private Claude artifact)']
   ],
   ideas: [
