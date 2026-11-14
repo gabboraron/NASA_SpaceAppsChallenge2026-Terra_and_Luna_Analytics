@@ -1,5 +1,6 @@
 """Weekly timeline engine on synthetic NASA inputs (no network)."""
 
+from collections.abc import Callable
 from datetime import date, timedelta
 from pathlib import Path
 
@@ -77,28 +78,82 @@ def test_week_numbering_starts_on_1_march() -> None:
     assert tl.week_of(2024, date(2024, 8, 30)) is None  # after week 26
 
 
-def test_gdd_window_drives_locust_bloom() -> None:
-    # base 5, mean 15 -> 10 GDD/day from 1 Mar; 365 on day 37 (6 Apr), 520 on day 52.
-    weeks = weeks_of(parcel())
-    blooming = [w for w in weeks if w.bloom_state == "blooming"]
-    assert (
-        blooming[0].starts_on
-        <= date(2024, 4, 6)
-        <= blooming[0].starts_on + timedelta(6)
+def weather(
+    first: date, last: date, temps: Callable[[date], tuple[float, float]]
+) -> PowerDaily:
+    """Daily (Tmax, Tmin) from ``temps`` for every day from ``first`` to ``last``."""
+    days = [first + timedelta(days=i) for i in range((last - first).days + 1)]
+    pairs = [temps(d) for d in days]
+    tmax: list[float | None] = [hi for hi, _ in pairs]
+    tmin: list[float | None] = [lo for _, lo in pairs]
+    return PowerDaily(
+        lat=48.0, lon=21.875, days=days, values={"T2M_MAX": tmax, "T2M_MIN": tmin}
     )
-    assert blooming[-1].starts_on <= date(2024, 4, 21)
-    assert weeks[0].bloom_state == "pre_bloom"
-    assert weeks[-1].bloom_state == "post_bloom"
+
+
+def test_gdd_window_drives_sour_cherry_bloom() -> None:
+    # base 2, mean 15 -> 13 GDD/day from 1 Mar: 250.7 on day 20, 390 on day 30.
+    weeks = weeks_of(parcel("sour_cherry"))
+    blooming = [w for w in weeks if w.bloom_state == "blooming"]
     first = blooming[0]
     assert first.estimated_bloom == m.Window(
-        start=date(2024, 4, 6), end=date(2024, 4, 21)
+        start=date(2024, 3, 20), end=date(2024, 3, 30)
     )
+    assert first.starts_on <= date(2024, 3, 20) <= first.starts_on + timedelta(6)
+    assert weeks[0].bloom_state == "pre_bloom"
+    assert weeks[-1].bloom_state == "post_bloom"
     assert first.bloom_provenance.kind == "Estimated"
-    assert "AI estimate" in first.bloom_provenance.note  # honest about thresholds
+    assert "doi:10.1007/s00484-013-0651-1" in first.bloom_provenance.note
     assert first.gdd.value == pytest.approx(
-        10.0 * ((first.starts_on - date(2024, 3, 1)).days + 7)
+        13.0 * ((first.starts_on - date(2024, 3, 1)).days + 7)
     )
+    assert "growing degree days" in (first.gdd.provenance.note or "").lower()
     assert first.smap_cell_id == smap_cell(centroid(SHAPE)).id
+
+
+def test_sigmoid_forcing_drives_apple_bloom() -> None:
+    # Cold to March (mean <= 3.3 °C adds nothing), then mean 15 °C:
+    # 28.4 / (1 + exp(-0.185 * (15 - 3.3 - 18.4))) = 6.38 FU/day, 143 on day 23.
+    daily = weather(
+        date(2024, 1, 1),
+        date(2024, 8, 31),
+        lambda d: (20.0, 10.0) if d >= date(2024, 3, 1) else (4.0, 0.0),
+    )
+    weeks = weeks_of(parcel("apple"), daily=daily)
+    window = weeks[0].estimated_bloom
+    assert window == m.Window(start=date(2024, 3, 23), end=date(2024, 4, 7))
+    assert "Forcing units (Chmielewski" in (weeks[5].gdd.provenance.note or "")
+
+
+def locust_weather(first: date) -> PowerDaily:
+    # Autumn Tmax 8 / Tmin 0 (below TB 8.88): chill -4 °D/day, C* -138.95 on day 35.
+    # From 1 March Tmin 15 > TB: forcing 20 - 8.88 = 11.12 °D/day, F* 247.73 on day 23.
+    return weather(
+        first,
+        date(2024, 8, 31),
+        lambda d: (25.0, 15.0) if date(2024, 3, 1) <= d else (8.0, 0.0),
+    )
+
+
+def test_chill_days_model_drives_locust_full_bloom() -> None:
+    weeks = weeks_of(parcel(), daily=locust_weather(date(2023, 10, 1)))
+    window = weeks[0].estimated_bloom
+    # Full bloom on 23 March; 10 bloom days centred on it.
+    assert window == m.Window(start=date(2024, 3, 18), end=date(2024, 3, 28))
+    assert weeks[2].bloom_state == "blooming"
+    assert "full bloom" in weeks[2].bloom_provenance.note
+    # Chilling met on 4 November; week 1 (to 7 March) holds 7 forcing days.
+    assert weeks[0].gdd.value == pytest.approx(7 * 11.12)
+    assert "from 04 Nov 2023" in (weeks[0].gdd.provenance.note or "")
+
+
+def test_chill_model_without_autumn_data_falls_back_to_declared() -> None:
+    weeks = weeks_of(parcel(), daily=locust_weather(date(2024, 1, 1)))
+    july = next(w for w in weeks if w.starts_on == date(2024, 7, 5))
+    assert july.bloom_state == "blooming"
+    assert july.bloom_provenance.kind == "Reported"
+    assert "2023-10-01" in july.bloom_provenance.note
+    assert july.gdd.provenance.kind == "Missing"
 
 
 def test_missing_power_falls_back_to_declared_window_of_that_year() -> None:
@@ -262,7 +317,7 @@ def test_done_when_drought_year_flags_low_nectar_in_july() -> None:
 
 
 def test_verification_marks_only_blooming_weeks() -> None:
-    p = parcel()
+    p = parcel("sour_cherry")
     verified = m.Provenance(
         kind="Observed", source="Grower field photo", observed_at=date(2026, 11, 14)
     )
@@ -294,3 +349,52 @@ def test_fetch_inputs_turns_failures_into_reasons(
     assert isinstance(inputs.hls, str)
     assert "token" in inputs.hls
     assert isinstance(inputs.smap, str)
+
+
+def power_payload(first: date, last: date) -> dict[str, object]:
+    """A minimal POWER daily response with constant values."""
+    keys = [
+        f"{first + timedelta(days=i):%Y%m%d}" for i in range((last - first).days + 1)
+    ]
+    names = ("T2M_MAX", "T2M_MIN", "PRECTOTCORR", "WS2M")
+    return {"properties": {"parameter": {n: dict.fromkeys(keys, 5.0) for n in names}}}
+
+
+def test_fetch_inputs_adds_the_previous_autumn_for_chill_crops(
+    httpx_mock: HTTPXMock, tmp_path: Path
+) -> None:
+    httpx_mock.add_response(json=power_payload(date(2024, 1, 1), date(2024, 8, 31)))
+    httpx_mock.add_response(json=power_payload(date(2023, 10, 1), date(2023, 12, 31)))
+    inputs = tl.fetch_inputs(
+        2024, [parcel()], tmp_path, earthdata=False, phenology=PHENOLOGY
+    )
+    series = inputs.power["P1"]
+    assert not isinstance(series, str)
+    assert series.days[0] == date(2023, 10, 1)
+    assert series.days[-1] == date(2024, 8, 31)
+    assert len(series.values["T2M_MAX"]) == len(series.days)
+    starts = [r.url.params["start"] for r in httpx_mock.get_requests()]
+    assert starts == ["20240101", "20231001"]  # season request unchanged (cache key)
+    assert not inputs.failed
+
+
+def test_failed_autumn_request_keeps_the_season(
+    httpx_mock: HTTPXMock, tmp_path: Path
+) -> None:
+    httpx_mock.add_response(json=power_payload(date(2024, 1, 1), date(2024, 8, 31)))
+    httpx_mock.add_response(status_code=503)
+    inputs = tl.fetch_inputs(
+        2024, [parcel()], tmp_path, earthdata=False, phenology=PHENOLOGY
+    )
+    series = inputs.power["P1"]
+    assert not isinstance(series, str)
+    assert series.days[0] == date(2024, 1, 1)
+    assert inputs.failed  # retried on the next request
+
+
+def test_orchards_need_no_autumn_request(httpx_mock: HTTPXMock, tmp_path: Path) -> None:
+    httpx_mock.add_response(json=power_payload(date(2024, 1, 1), date(2024, 8, 31)))
+    tl.fetch_inputs(
+        2024, [parcel("apple")], tmp_path, earthdata=False, phenology=PHENOLOGY
+    )
+    assert len(httpx_mock.get_requests()) == 1

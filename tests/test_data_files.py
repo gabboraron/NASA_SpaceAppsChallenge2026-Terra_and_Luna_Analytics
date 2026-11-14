@@ -150,15 +150,31 @@ def test_phenology_has_every_crop_and_no_unsourced_numbers() -> None:
     for crop, entry in entries.items():
         numeric = [
             entry.base_temp_c,
-            entry.gdd_bloom_start,
-            entry.gdd_bloom_end,
+            entry.chill_requirement,
+            entry.heat_threshold,
+            entry.heat_bloom_end,
+            entry.bloom_days,
             entry.uncertainty_days,
             entry.ndyi_bloom_threshold,
         ]
         if any(v is not None for v in numeric):
             assert entry.source, f"{crop}: values set without a source"
-        if entry.gdd_bloom_start is not None:  # thresholds need their start day
-            assert entry.gdd_start, f"{crop}: GDD thresholds without gdd_start"
+        if entry.heat_threshold is not None:  # a threshold needs its start and end
+            start = (
+                entry.chill_start if entry.method == "chill_days" else entry.gdd_start
+            )
+            assert start, f"{crop}: heat threshold without its start day"
+            assert entry.heat_bloom_end or entry.bloom_days, f"{crop}: no bloom end"
+
+
+@pytest.mark.parametrize("crop", ["apple", "sour_cherry", "black_locust"])
+def test_tree_bloom_models_are_cited_not_estimated(crop: str) -> None:
+    """Issue #35: the tree parameters come from read sources, not AI estimates."""
+    entry = load_phenology(DATA)[crop]
+    assert entry.source
+    assert "doi:" in entry.source
+    assert "AI estimate" not in entry.source + entry.status
+    assert entry.heat_threshold is not None
 
 
 def test_ranking_weights_sum_to_one() -> None:

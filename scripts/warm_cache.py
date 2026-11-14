@@ -21,7 +21,7 @@ from collections.abc import Callable
 from concurrent.futures import ThreadPoolExecutor
 
 from pollination.config import Settings
-from pollination.datafiles import load_catalog
+from pollination.datafiles import load_catalog, load_phenology
 from pollination.engine.timeline import fetch_inputs
 from pollination.models import Parcel
 from pollination.nasa import smap
@@ -41,7 +41,13 @@ def entries(settings: Settings) -> dict[str, int]:
 
 def warm_inputs(year: int, settings: Settings, parcels: list[Parcel]) -> list[str]:
     """Fetch POWER and HLS for one season exactly as the API does; list problems."""
-    inputs = fetch_inputs(year, parcels, settings.cache_dir, earthdata=True)
+    inputs = fetch_inputs(
+        year,
+        parcels,
+        settings.cache_dir,
+        earthdata=True,
+        phenology=load_phenology(settings.data_dir),
+    )
     problems = [
         f"{year} POWER {pid}: {v}"
         for pid, v in inputs.power.items()
