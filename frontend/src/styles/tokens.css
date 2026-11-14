@@ -6,10 +6,14 @@
   --orchard: #e5a5b4;
   --drought: #ae4036;
   --natura: #315e48;
+  --muted: #526659;
+  --wash: #eef1ea;
+  --focus: #2f5d8a;
   --step: 0.5rem;
   --body: 1rem;
   --title: 1.5rem;
   font-family: "Source Sans 3", system-ui, sans-serif;
+  font-size: var(--body);
   color: var(--ink);
   background: var(--paper);
 }
