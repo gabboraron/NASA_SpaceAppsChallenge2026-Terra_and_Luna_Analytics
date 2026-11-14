@@ -14,6 +14,7 @@ from pollination.nasa.hls import (
     BandWindow,
     Obs,
     Scene,
+    dedupe_overlaps,
     latest_for_polygon,
     normalized_difference,
     parcel_indices,
@@ -136,11 +137,17 @@ def test_scene_day_from_granule_name() -> None:
     assert scene_day("HLS.S30.T34TFT.2024186T094031.v2.0") == date(2024, 7, 4)
 
 
+def hls_id(short: str) -> str:
+    """Realistic granule id for a short test name like ``S_05`` (July day 05)."""
+    return f"HLS.S30.T34TET.20241{int(short[-2:]) + 82:02d}T0940{short[-2:]}.v2.0"
+
+
 class Fakes:
     """Counts calls to the fake search and reader."""
 
     def __init__(self, windows: dict[str, BandWindow | None]) -> None:
         self.windows = windows
+        self.by_id = {hls_id(sid): win for sid, win in windows.items()}
         self.reads = 0
         self._lock = threading.Lock()
 
@@ -150,7 +157,7 @@ class Fakes:
         """Return the scenes of ``windows``, dated from the scene id suffix."""
         del bbox, start, end
         return [
-            Scene(id=sid, day=date(2024, 7, int(sid[-2:])), urls={})
+            Scene(id=hls_id(sid), day=date(2024, 7, int(sid[-2:])), urls={})
             for sid in self.windows
         ]
 
@@ -159,7 +166,7 @@ class Fakes:
         del polygon
         with self._lock:
             self.reads += 1
-        return self.windows[scene.id]
+        return self.by_id[scene.id]
 
 
 def test_parcel_indices_orders_and_drops_unusable_scenes(tmp_path: Path) -> None:
@@ -232,3 +239,35 @@ def test_latest_for_polygon_missing_explains_why(tmp_path: Path) -> None:
     assert response.ndvi.value is None
     assert response.ndvi.provenance.kind == "Missing"
     assert response.ndvi.provenance.note
+
+
+def obs(scene_id: str, valid: float, ndyi: float = 0.3) -> Obs:
+    """Build an observation for the dedupe tests."""
+    return Obs(
+        day=date(2024, 7, 5),
+        ndvi=0.7,
+        ndyi=ndyi,
+        valid_fraction=valid,
+        scene_id=scene_id,
+    )
+
+
+def test_dedupe_keeps_best_of_the_same_overpass_in_overlapping_tiles() -> None:
+    """One overpass seen through two tiles counts once, with the most valid pixels."""
+    result = dedupe_overlaps(
+        [
+            obs("HLS.S30.T34TET.2024189T094041.v2.0", 0.8),
+            obs("HLS.S30.T34UEU.2024189T094041.v2.0", 1.0),
+        ]
+    )
+    assert [o.scene_id for o in result] == ["HLS.S30.T34UEU.2024189T094041.v2.0"]
+
+
+def test_dedupe_keeps_different_overpasses_and_sensors() -> None:
+    """Another time or another sensor on the same day is a separate observation."""
+    kept = [
+        obs("HLS.S30.T34TET.2024189T094041.v2.0", 1.0),
+        obs("HLS.S30.T34TET.2024189T094141.v2.0", 1.0),
+        obs("HLS.L30.T34TET.2024189T092620.v2.0", 1.0),
+    ]
+    assert dedupe_overlaps(kept) == kept

@@ -146,6 +146,32 @@ def summarize(win: BandWindow) -> tuple[float, float, float] | None:
     return float(ndvi.mean()), float(ndyi.mean()), valid_fraction
 
 
+def dedupe_overlaps(observations: Sequence[Obs]) -> list[Obs]:
+    """Collapse one overpass seen through overlapping tiles into a single value.
+
+    HLS tiles overlap, so the same sensor pass over a parcel can come back from two
+    tiles that differ only in the tile id. Keep the one with the most valid pixels.
+
+    Args:
+        observations: Observations of one parcel.
+
+    Returns:
+        Observations in their original order, one per sensor and acquisition time.
+    """
+    best: dict[tuple[str, str], Obs] = {}
+    for obs in observations:
+        key = _overpass(obs)
+        if key not in best or obs.valid_fraction > best[key].valid_fraction:
+            best[key] = obs
+    return [o for o in observations if best[_overpass(o)] is o]
+
+
+def _overpass(obs: Obs) -> tuple[str, str]:
+    """Return ``(sensor, acquisition timestamp)`` of an observation's scene id."""
+    _, sensor, _, stamp, *_ = obs.scene_id.split(".")
+    return sensor, stamp
+
+
 def _geometry_hash(polygon: Polygon) -> str:
     """Stable hash of a polygon's rounded coordinates, for cache keys."""
     coords = [
@@ -208,7 +234,9 @@ def _indices(
             )
             found = pool.map(observe, scenes)
             observations = [obs for obs in found if obs is not None]
-        result[pid] = sorted(observations, key=lambda o: (o.day, o.scene_id))
+        result[pid] = sorted(
+            dedupe_overlaps(observations), key=lambda o: (o.day, o.scene_id)
+        )
     return result
 
 
