@@ -17,6 +17,8 @@ export type SoilMoistureWeek = Schemas["SoilMoistureWeek"];
 export type MatchCard = Schemas["MatchCard"];
 export type CalculatorInput = Schemas["CalculatorInput"];
 export type CalculatorResult = Schemas["CalculatorResult"];
+export type PowerResponse = Schemas["PowerResponse"];
+export type HlsResponse = Schemas["HlsResponse"];
 
 export const useMocks = import.meta.env.VITE_USE_MOCKS !== "false";
 
@@ -92,9 +94,27 @@ export const getMatches = (
 export const calculate = (input: CalculatorInput, signal: AbortSignal) =>
   useMocks
     ? Promise.resolve(mocks.calculate(input))
-    : get<CalculatorResult>("/calculate", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(input),
-        signal,
-      });
+    : get<CalculatorResult>("/calculate", post(input, signal));
+
+const post = (body: unknown, signal: AbortSignal): RequestInit => ({
+  method: "POST",
+  headers: { "Content-Type": "application/json" },
+  body: JSON.stringify(body),
+  signal,
+});
+
+/** Live POWER heat units, rain and flight weather under a drawn polygon. */
+export const getPolygonPower = (
+  polygon: Polygon,
+  year: Season,
+  signal: AbortSignal,
+) =>
+  useMocks
+    ? Promise.resolve(mocks.polygonPower(year))
+    : get<PowerResponse>(`/polygon/power?year=${year}`, post(polygon, signal));
+
+/** Latest usable HLS scene of a drawn polygon; slow on a cold cache. */
+export const getPolygonHls = (polygon: Polygon, signal: AbortSignal) =>
+  useMocks
+    ? Promise.resolve(mocks.polygonHls())
+    : get<HlsResponse>("/polygon/hls", post(polygon, signal));

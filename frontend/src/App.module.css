@@ -163,6 +163,25 @@
 .busy {
   border-left: 4px solid var(--honey);
 }
+.draw {
+  align-self: flex-start;
+  min-height: 44px;
+  padding: 0 1rem;
+  border: 1.5px solid var(--ink);
+  border-radius: 8px;
+  background: white;
+  box-shadow: 0 2px 10px rgb(28 25 18 / 16%);
+  color: var(--ink);
+  font: inherit;
+  font-size: 0.875rem;
+  font-weight: 600;
+  cursor: pointer;
+  pointer-events: auto;
+}
+.draw[aria-pressed="true"] {
+  background: var(--ink);
+  color: white;
+}
 .warn,
 .alert {
   border-left: 4px solid var(--drought);
