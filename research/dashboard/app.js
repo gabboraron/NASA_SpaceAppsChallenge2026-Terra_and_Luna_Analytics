@@ -79,10 +79,11 @@
       return `
       <section>
         <h2>Pros and cons</h2>
-        ${table(['Idea', 'Pros', 'Cons', 'Score', 'Verdict'], D.ideas.map(i => [link(i),
+        ${table(['Idea', 'Pros', 'Cons', 'Score', 'Verdict', 'Evidence'], D.ideas.map(i => [link(i),
           `<ul style="margin:0;padding-left:16px">${i.pros.map(p => `<li>${esc(p)}</li>`).join('')}</ul>`,
           `<ul style="margin:0;padding-left:16px">${i.cons.map(p => `<li>${esc(p)}</li>`).join('')}</ul>`,
-          `<b class="num">${decision(i)}</b>`, verdictPill(i.verdict)]))}
+          `<b class="num">${decision(i)}</b>`, verdictPill(i.verdict),
+          `<ul class="links" style="padding-left:16px">${(i.sources || []).map(s => `<li><a href="${esc(s[1])}" target="_blank" rel="noopener">${esc(s[0])}</a></li>`).join('')}</ul>`]))}
       </section>
       <section>
         <h2>Decision matrix</h2>
@@ -151,7 +152,8 @@
     </div></section>
     <section><h3>Prior art & competition</h3><div class="panel"><ul style="margin:0;padding-left:18px;display:grid;gap:4px">${i.prior.map(p => `<li>${esc(p)}</li>`).join('')}</ul></div></section>
     <section><h3>Risks</h3>${table(['Risk', 'Mitigation'], i.risks.map(r => r.map(esc)))}</section>
-    <section><div class="callout"><h3>Recommendation</h3><p>${esc(i.recommendation)}</p><p class="small muted">Full report: <a href="${esc(i.report)}">${esc(i.report.replace('../', ''))}</a></p></div></section>`;
+    <section><h3>Evidence: check these first</h3><div class="panel"><p class="small muted" style="margin-bottom:6px">Sources behind the main claims on this page. Scores and person-hours are AI estimates; see the methodology note.</p><ul class="links">${(i.sources || []).map(s => `<li><a href="${esc(s[1])}" target="_blank" rel="noopener">${esc(s[0])}</a></li>`).join('')}</ul></div></section>
+    <section><div class="callout"><h3>Recommendation: ${esc(i.verdict)}</h3><p>${esc(i.scoreWhy)}</p><p class="small muted">Full report: <a href="${esc(i.report)}">${esc(i.report.replace('../', ''))}</a> · Method: <a href="../00-methodology.md">00-methodology.md</a></p></div></section>`;
   }
 
   const link = i => `<a href="#idea-${i.id}">${esc(i.name)}</a>`;

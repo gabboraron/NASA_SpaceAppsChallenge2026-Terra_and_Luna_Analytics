@@ -27,3 +27,4 @@ Pollen & Bee, lunar hardware) before the research started. AI was used to assess
 | Date | Tool | What | Reviewed by |
 |---|---|---|---|
 | 2026-11-14 | Claude Code | `research/` reports, hackathon map, decision dashboard, README and CLAUDE.md drafts | _team_ |
+| 2026-11-14 | Claude Code + Miro MCP | Miro "Idea review" section (ranking table, idea cards with sources, method notes); `research/00-methodology.md`; evidence lists in the dashboard | _team_ |

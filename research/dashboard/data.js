@@ -19,6 +19,7 @@ window.DATA = {
     { key: 'video', label: 'Strong 30 s video moment' }
   ],
   reports: [
+    ['../00-methodology.md', 'How the research was produced, kinds of claims (tested / paper / computed / estimate), how scores were made, limitations'],
     ['../01-hackathon-map.md', 'Full hackathon map: dates, rules, judging, awards, Budapest event, all 14 challenges with resources, sponsor offers'],
     ['../02-lunar-shield-science.md', 'Lunar Shield deep research: radiation physics, existing forecasting systems, safe-mode practice, gaps, 15 must-read sources'],
     ['../02b-lunar-shield-data.md', 'Lunar Shield data inventory: live-verified space-weather, lunar and terrain endpoints, repos, 48 h stack'],
@@ -34,7 +35,7 @@ window.DATA = {
   ideas: [
     /* ---------------------------------------------------------------- */
     {
-      id: 'twin', short: 'Earth Twin', name: "Earth's Twin Finder", family: 'Earth ↔ Moon/Mars', chNum: '9',
+      id: 'twin', sources: [["Challenge 9 brief", "https://www.spaceappschallenge.org/2026/challenges/permanent-moon-base-locations-and-mars/"], ["USGS known analog sites (validation set)", "https://www.usgs.gov/data/known-terrestrial-analog-sites-planetary-science"], ["Closest prior ML work: Meng et al. 2024", "https://arxiv.org/abs/2501.08584"], ["2025 global winners (none on analogs)", "https://www.nasa.gov/learning-resources/stem-engagement-at-nasa/nasa-announces-2025-international-space-apps-challenge-global-winners/"]], short: 'Earth Twin', name: "Earth's Twin Finder", family: 'Earth ↔ Moon/Mars', chNum: '9',
       challenge: 'Identify Earth Locations that Analog the Permanent Moon Base Locations and Mars',
       summary: 'Global 0.05° Earth grid scored against a Moon-base rim and Jezero on slope, roughness, albedo, thermal inertia proxy, diurnal ΔT, aridity and mineral class; every hit opens a radar chart of where the analogy holds and where it breaks.',
       scores: { impact: 4, creativity: 5, validity: 4, relevance: 5, presentation: 5 },
@@ -66,7 +67,7 @@ window.DATA = {
     },
     /* ---------------------------------------------------------------- */
     {
-      id: 'navigator', short: 'Navigator', name: 'Earth Science Research Navigator', family: 'Earth observation', chNum: '2',
+      id: 'navigator', sources: [["Challenge 2 brief", "https://www.spaceappschallenge.org/2026/challenges/earth-system-trend-detective/"], ["NASA POWER API (tested 0.84 s)", "https://power.larc.nasa.gov/docs/services/api/temporal/"], ["Competitor: Microsoft/NASA Earth Copilot", "https://github.com/microsoft/Earth-Copilot"], ["FDR for trend maps: Wilks 2016", "https://doi.org/10.1175/BAMS-D-15-00267.1"]], short: 'Navigator', name: 'Earth Science Research Navigator', family: 'Earth observation', chNum: '2',
       challenge: 'Be An Earth System Trend Detective!',
       summary: '"Is southern Peru getting drier?" → AI picks variables from a curated catalogue with why/limitation cards → significance-tested trend maps (corrected Mann-Kendall, Sen slope, FDR) → reproducible export.',
       scores: { impact: 5, creativity: 4, validity: 4, relevance: 5, presentation: 5 },
@@ -98,7 +99,7 @@ window.DATA = {
     },
     /* ---------------------------------------------------------------- */
     {
-      id: 'trail', short: 'Marswalk', name: 'Trailbreaker Marswalk Planner', family: 'Mars', chNum: '10',
+      id: 'trail', sources: [["Challenge 10 brief", "https://www.spaceappschallenge.org/2026/challenges/interplanetary-survival-guide-martian-map/"], ["Gale 1 m DEM ImageServer (tested)", "https://trek.nasa.gov/mars/trekarcgis/rest/services/Gale_DEM_SMG_1m/ImageServer"], ["Curiosity traverse with tilt", "https://mars.nasa.gov/mmgis-maps/MSL/Layers/json/MSL_traverse.json"], ["Prior art: Perseverance ENav", "https://arxiv.org/abs/2011.06022"]], short: 'Marswalk', name: 'Trailbreaker Marswalk Planner', family: 'Mars', chNum: '10',
       challenge: 'Interplanetary Survival Guide: Martian Map',
       summary: 'Layered map of a 3×3 km area around Curiosity at Mount Sharp: 1 m HiRISE DEM slope, THEMIS sand/rock proxy, weather; least-cost routes plus 1,000 Monte Carlo walkers that show how dust storms narrow the safe corridor.',
       scores: { impact: 4, creativity: 4, validity: 4, relevance: 5, presentation: 4 },
@@ -130,7 +131,7 @@ window.DATA = {
     },
     /* ---------------------------------------------------------------- */
     {
-      id: 'salvage', short: 'Moon Salvage', name: 'Moon Salvage or Museum?', family: 'Moon · storytelling', chNum: '1',
+      id: 'salvage', sources: [["Challenge 1 brief", "https://www.spaceappschallenge.org/2026/challenges/nasas-discarded-equipment-storytelling/"], ["LROC human-made objects (71, parsed)", "https://data.lroc.im-ldi.com/lroc/view_rdr/SHAPEFILE_ANTHROPOGENIC_OBJECTS"], ["Prior art: Patil et al. 2026", "https://doi.org/10.1016/j.jik.2026.101049"], ["One Small Step Act 2020", "https://www.congress.gov/116/plaws/publ275/PLAW-116publ275.htm"]], short: 'Moon Salvage', name: 'Moon Salvage or Museum?', family: 'Moon · storytelling', chNum: '1',
       challenge: "Abandoned but not Forgotten: NASA's Discarded Equipment",
       summary: '3D Moon with all 71 human-made objects from the LROC catalogue; 12–15 hero cards; a kids\' story loop: "It\'s 2040 and your base needs aluminium. Recycle or preserve?" grounded in the Artemis Accords heritage clause.',
       scores: { impact: 4, creativity: 4, validity: 4, relevance: 5, presentation: 4 },
@@ -162,7 +163,7 @@ window.DATA = {
     },
     /* ---------------------------------------------------------------- */
     {
-      id: 'ground', short: 'Ground Motion', name: 'Budapest Ground-Motion Explorer', family: 'Earth observation · SAR', chNum: '5',
+      id: 'ground', sources: [["Challenge 5 brief", "https://www.spaceappschallenge.org/2026/challenges/dancing-with-the-sars/"], ["NISAR data user guide", "https://nisar-docs.asf.alaska.edu/"], ["EGMS ground motion service", "https://egms.land.copernicus.eu/"], ["Prior art: ESA RailSAT", "https://business.esa.int/projects/railsat"]], short: 'Ground Motion', name: 'Budapest Ground-Motion Explorer', family: 'Earth observation · SAR', chNum: '5',
       challenge: 'Dancing with the SARs',
       summary: 'Railways and buildings in Budapest: NISAR L-band interferograms (66 pairs over the city, Jun–Oct 2026) as the hero visual, EGMS 2020–2024 Sentinel-1 velocities for the long-term trend, hotspot ranking along rail line 1.',
       scores: { impact: 4, creativity: 4, validity: 4, relevance: 4, presentation: 4 },
@@ -194,7 +195,7 @@ window.DATA = {
     },
     /* ---------------------------------------------------------------- */
     {
-      id: 'pollen', short: 'Pollen', name: 'Pollen & Bee EO Monitor', family: 'Earth observation', chNum: '5',
+      id: 'pollen', sources: [["Radar flowering only shown for rapeseed: Han et al. 2021", "https://doi.org/10.3390/rs13010105"], ["CAMS pollen via Open-Meteo", "https://open-meteo.com/en/docs/air-quality-api"], ["Challenge 5 brief", "https://www.spaceappschallenge.org/2026/challenges/dancing-with-the-sars/"]], short: 'Pollen', name: 'Pollen & Bee EO Monitor', family: 'Earth observation', chNum: '5',
       challenge: 'Dancing with the SARs (Field Shift fits poorly)',
       summary: 'Hyperlocal pollen-source activity + wind dispersion map. Only defensible form today: an August 2026 ragweed season replay using NISAR to flag stubble/fallow fields as ragweed habitat.',
       scores: { impact: 4, creativity: 4, validity: 2, relevance: 3, presentation: 4 },
@@ -225,7 +226,7 @@ window.DATA = {
     },
     /* ---------------------------------------------------------------- */
     {
-      id: 'shield-solo', short: 'Shield API', name: 'Lunar Shield API (standalone)', family: 'Moon · space weather', chNum: '11',
+      id: 'shield-solo', sources: [["SRAG 2026 SEP model validation", "https://ntrs.nasa.gov/citations/20260000463"], ["CCMC SEP Scoreboard", "https://ccmc.gsfc.nasa.gov/scoreboards/sep/"], ["CLEAR center (Artemis II)", "https://clear.engin.umich.edu/"], ["DONKI new host (tested)", "https://ccmc.gsfc.nasa.gov/DONKI-API/get/SEP"]], short: 'Shield API', name: 'Lunar Shield API (standalone)', family: 'Moon · space weather', chNum: '11',
       challenge: 'Lunar Landing Site Navigator',
       summary: 'Machine-to-machine service turning NOAA/NASA space-weather data into per-asset green/yellow/red risk, safe-mode actions and a restart window with hysteresis for lunar surface hardware.',
       scores: { impact: 4, creativity: 4, validity: 3, relevance: 2, presentation: 4 },
@@ -257,7 +258,7 @@ window.DATA = {
     ,
     /* ---------------------------------------------------------------- */
     {
-      id: 'slipday', short: 'Slip Day', name: 'Slip Day', family: 'Moon · mission planning', chNum: '11',
+      id: 'slipday', sources: [["Challenge 11 brief", "https://www.spaceappschallenge.org/2026/challenges/lunar-landing-site-navigator/"], ["LOLA polar DEM used", "http://imbrium.mit.edu/DATA/LOLA_GDR/POLAR/IMG/"], ["Illumination maps (validation, r = 0.977)", "http://imbrium.mit.edu/EXTRAS/ILLUMINATION/"], ["IM-2 landing site (LROC)", "https://www.lroc.asu.edu/images/1401"]], short: 'Slip Day', name: 'Slip Day', family: 'Moon · mission planning', chNum: '11',
       challenge: 'Lunar Landing Site Navigator',
       summary: 'Every south-pole site × every day: sunlit %, longest darkness, Earth-visible hours, time to sunset/Earthset, slope and power from a LOLA horizon mask + SPICE ephemeris. GO / MARGINAL / NO-GO with ensemble confidence; "launch slipped N days" re-ranks instantly.',
       scores: { impact: 3, creativity: 3, validity: 5, relevance: 5, presentation: 4 },
@@ -289,7 +290,7 @@ window.DATA = {
     },
     /* ---------------------------------------------------------------- */
     {
-      id: 'slipday-shield', short: 'Slip Day + Shield', name: 'Slip Day + Lunar Shield layer', family: 'Moon · mission planning', chNum: '11',
+      id: 'slipday-shield', sources: [["Terrain dose maps: Phipps et al. LPSC 2024", "https://www.hou.usra.edu/meetings/lpsc2024/pdf/1513.pdf"], ["LOLA sky-visibility map", "http://imbrium.mit.edu/DATA/LOLA_GDR/POLAR/IMG/"], ["NOAA GOES protons JSON", "https://services.swpc.noaa.gov/json/goes/primary/integral-protons-7-day.json"]], short: 'Slip Day + Shield', name: 'Slip Day + Lunar Shield layer', family: 'Moon · mission planning', chNum: '11',
       challenge: 'Lunar Landing Site Navigator',
       summary: 'Slip Day plus a terrain open-sky fraction column and a "today\'s space weather" panel from NOAA GOES protons, optionally a safe-mode / restart rule backtested on a historic event.',
       scores: { impact: 3, creativity: 4, validity: 3, relevance: 4, presentation: 3 },
@@ -320,7 +321,7 @@ window.DATA = {
     },
     /* ---------------------------------------------------------------- */
     {
-      id: 'shield-game', short: 'Shield Game', name: 'Lunar Shield outpost game', family: 'Moon · education', chNum: '3',
+      id: 'shield-game', sources: [["Challenge 3 brief (lists DONKI, RadLab)", "https://www.spaceappschallenge.org/2026/challenges/junior-astronaut-mission-trainer/"], ["RadLab dosimetry API", "https://visualization.osdr.nasa.gov/radlab/gui/data-api/"], ["Past winners 2021 to 2025", "https://www.spaceappschallenge.org/awards/"]], short: 'Shield Game', name: 'Lunar Shield outpost game', family: 'Moon · education', chNum: '3',
       challenge: 'Build a Junior Astronaut Mission Trainer',
       summary: 'Browser game for kids: run a lunar outpost with power, life support and shielding; real historic DONKI events trigger radiation storms; "this really happened" cards at the end.',
       scores: { impact: 3, creativity: 3, validity: 3, relevance: 4, presentation: 4 },

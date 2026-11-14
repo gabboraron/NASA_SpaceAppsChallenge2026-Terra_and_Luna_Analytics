@@ -43,7 +43,7 @@ This repository holds our research, our decisions, and the solution we submit fo
 
 ## Candidate ideas
 
-The scores are our own research estimates. Each of the five judging criteria (Impact, Creativity, Validity, Relevance,
+The scores are research estimates made with AI agents; [`research/00-methodology.md`](research/00-methodology.md) explains how, and each idea in the decision board lists its sources. Each of the five judging criteria (Impact, Creativity, Validity, Relevance,
 Presentation) is rated from 1 to 5. The [decision board](#quick-start) lets you explore and re-weight them.
 
 | Idea | Challenge | Est. score | Verdict |
@@ -83,6 +83,7 @@ The decision board in `research/dashboard/` is a single HTML/JS page that runs w
 ├── AI_USAGE.md            ← AI ("SI") usage disclosure required by Space Apps
 ├── LICENSE                ← Mozilla Public License 2.0
 ├── research/
+│   ├── 00-methodology.md              how the research was done and how to verify it
 │   ├── 01-hackathon-map.md            rules, judging, awards, all 14 challenges + resources
 │   ├── 02-lunar-shield-science.md     radiation physics, existing systems, gaps
 │   ├── 02b-lunar-shield-data.md       live-verified space-weather & lunar data endpoints

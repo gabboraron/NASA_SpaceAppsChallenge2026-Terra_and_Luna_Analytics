@@ -9,14 +9,14 @@ Shared git repo for the team (GitHub, private). Phase 1 = research ideas → Pha
 (log it in `DECISIONS.md`) → Phase 3 = implement in `src/`. Until the decision is logged, do research, not code.
 
 - **GitHub repo (team):** https://github.com/gabboraron/NASA_SpaceAppsChallange2026-Terra_and_Luna_Analytics
-  (team name: Terra and Luna Analytics). Do NOT add the remote or push until the user explicitly gives the sign.
+  (team name: Terra and Luna Analytics). Connected as `origin` (main). Commit freely; push only when the user asks.
 - **Miro board (team):** https://miro.com/app/board/uXjVEO-aRlU=/ (Miro MCP server added at user scope; needs `/mcp` login).
 
 ## Folder layout
 - `README.md` — repo overview & collaboration rules. `DECISIONS.md` — decisions log.
 - `research/dashboard/index.html` — local interactive decision board (data in `data.js`, `data-hackathon.js`).
 - `research/prototypes/slip-day/` — Slip Day prototype scripts (need spiceypy + LOLA DEM + NAIF kernels; data not in git).
-- `research/` — Markdown research reports: `01-hackathon-map.md`, `02-lunar-shield-science.md`,
+- `research/` — Markdown research reports: `00-methodology.md` (how findings were made, how to verify), `01-hackathon-map.md`, `02-lunar-shield-science.md`,
   `03-past-winners.md` (patterns in 2021–2025 global winners), feasibility reports per idea (`04-*`).
 - `hackathon/` — official/hackathon material (e.g. global winners 2021–2025 CSV).
 - spacestatsonline.com was checked: launch statistics only, no API/licence. Not useful.
@@ -177,6 +177,12 @@ Puli Space's instrument. Artemis III is now an Earth-orbit test, so say "Artemis
 - License: Mozilla Public License 2.0 (`LICENSE`, chosen by the repo owner; OSI-approved, so it satisfies the Space Apps rule). Third-party data keeps its own licence; list it in the README.
 
 ## Working conventions
+- **Explainability (team request, 14 Nov):** every finding Claude gives the team must carry its source URL and a label:
+  tested (fetched today), paper/official page, computed (reproducible from repo code), estimate (AI judgement), or unverified.
+  Never present an estimate as a fact. Method and labels: `research/00-methodology.md`. Keep the per-idea `sources`
+  in `research/dashboard/data.js` and the Miro idea cards in sync when findings change.
+- Miro "Idea review" section (right of NISAR_Ideas): ranking table, idea cards with sources + dot vote,
+  "How to check our findings", "Open questions".
 - Cite a source URL for every dataset/claim used in the pitch.
 - Prefer verified NASA/NOAA endpoints; mark unverified ones.
 - Keep scratch work out of `ideas/`.
