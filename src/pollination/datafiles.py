@@ -8,22 +8,46 @@ from datetime import date
 from pathlib import Path
 from typing import Annotated, Any, Literal
 
-from pydantic import BaseModel, Field, NonNegativeFloat, NonNegativeInt, PositiveFloat
+from pydantic import (
+    BaseModel,
+    Field,
+    NonNegativeFloat,
+    NonNegativeInt,
+    NonPositiveFloat,
+    PositiveFloat,
+    PositiveInt,
+    model_validator,
+)
 
 from pollination.config import Settings
 from pollination.geo import NaturaIndex
 from pollination.models import Actors, NaturaCollection, Parcel, Polygon
 
+MonthDay = Annotated[str, Field(pattern=r"^\d{2}-\d{2}$")]
+
 
 class PhenologyEntry(BaseModel):
-    """Per-crop bloom parameters; every numeric field stays None until sourced."""
+    """Per-crop bloom model and parameters; every number needs a cited source.
 
-    method: Literal["gdd", "ndyi"]
+    ``method`` picks the heat series (``engine/phenology.py``): ``gdd`` (linear
+    degree days from ``gdd_start``), ``sigmoid`` (Chmielewski forcing units from
+    ``gdd_start``), ``chill_days`` (Cesaraccio forcing after chilling, which starts
+    on ``chill_start`` of the previous year) or ``ndyi`` (HLS, sunflower).
+    ``heat_threshold`` is the heat sum at ``threshold_stage``. The window ends at
+    ``heat_bloom_end`` if set, else after ``bloom_days`` (centred on the threshold
+    day when it marks full bloom).
+    """
+
+    method: Literal["gdd", "sigmoid", "chill_days", "ndyi"]
     base_temp_c: float | None
-    # First day of GDD accumulation (MM-DD); the thresholds are only valid with it.
-    gdd_start: Annotated[str, Field(pattern=r"^\d{2}-\d{2}$")] | None
-    gdd_bloom_start: NonNegativeFloat | None
-    gdd_bloom_end: NonNegativeFloat | None
+    # First day of heat accumulation (MM-DD); the thresholds are only valid with it.
+    gdd_start: MonthDay | None
+    chill_start: MonthDay | None = None
+    chill_requirement: NonPositiveFloat | None = None
+    heat_threshold: NonNegativeFloat | None
+    threshold_stage: Literal["bloom_start", "full_bloom"] = "bloom_start"
+    heat_bloom_end: NonNegativeFloat | None = None
+    bloom_days: PositiveInt | None = None
     uncertainty_days: NonNegativeFloat | None
     ndyi_bloom_threshold: float | None
     source: str | None
@@ -31,12 +55,28 @@ class PhenologyEntry(BaseModel):
     leads: list[str]
     note: str
 
+    @model_validator(mode="after")
+    def _window_has_an_end(self) -> PhenologyEntry:
+        if self.heat_threshold is not None and (
+            (self.heat_bloom_end is None) == (self.bloom_days is None)
+        ):
+            raise ValueError("set exactly one of heat_bloom_end and bloom_days")
+        return self
+
     def gdd_start_in(self, year: int) -> date | None:
-        """The day GDD accumulation starts in ``year``, if set."""
-        if self.gdd_start is None:
-            return None
-        month, day = (int(x) for x in self.gdd_start.split("-"))
-        return date(year, month, day)
+        """The day heat accumulation starts in ``year``, if set."""
+        return _on(self.gdd_start, year)
+
+    def chill_start_in(self, year: int) -> date | None:
+        """The day chilling starts for the ``year`` season (in the previous year)."""
+        return _on(self.chill_start, year - 1)
+
+
+def _on(month_day: str | None, year: int) -> date | None:
+    if month_day is None:
+        return None
+    month, day = (int(x) for x in month_day.split("-"))
+    return date(year, month, day)
 
 
 class RankingWeights(BaseModel):

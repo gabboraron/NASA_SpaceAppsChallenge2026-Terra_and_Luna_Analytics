@@ -64,6 +64,7 @@ def season_inputs(year: m.Season) -> SeasonInputs:
         catalog().parcels,
         settings.cache_dir,
         earthdata=settings.has_earthdata,
+        phenology=catalog().phenology,
     )
     if not inputs.failed:
         _inputs_by_year[year] = inputs
