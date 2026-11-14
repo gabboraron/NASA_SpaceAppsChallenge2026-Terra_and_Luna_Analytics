@@ -14,7 +14,7 @@
 [![NASA Open Data](https://img.shields.io/badge/data-NASA%20open%20data-0B3D91?style=flat-square)](#data-and-citations)
 [![AI use disclosed](https://img.shields.io/badge/AI%20use-disclosed-8A2BE2?style=flat-square)](AI_USAGE.md)
 
-[About](#about) · [Run it](#run-it) · [Repo layout](#repository-layout) · [Data](#data-and-citations) · [Ideas we considered](#ideas-we-considered) · [Team](#team)
+[About](#about) · [Run it](#run-it) · [Repo layout](#repository-layout) · [Data](#data-and-citations) · [Team](#team)
 
 </div>
 
@@ -99,20 +99,6 @@ Checks (same as CI): `uv run ruff check . && uv run ruff format --check . && uv 
 | [OpenFreeMap](https://openfreemap.org/) | Basemap tiles | OSM data, ODbL |
 
 Beekeepers and growers in `data/actors.json` are **synthetic**. Parcels are **illustrative**, not real holdings.
-
-## Ideas we considered
-
-We picked the pollination marketplace after a research phase on several ideas. The research files were removed from
-the working tree to keep the repo focused, and they remain in the git history.
-
-| Idea | Proposed by | Outcome |
-|---|---|---|
-| Pollen & Bee EO Monitor → **Nyírség Pollination Marketplace** | Team | **Chosen** |
-| Lunar Shield API (space-weather safe-mode and restart windows for lunar assets) | Sándor Burian | Not pursued |
-| Slip Day (lunar landing site × day go/no-go) | Team | Not pursued |
-| Trailbreaker (Mars traverse hazard verdicts) | Team | Not pursued |
-| Earth's Twin Finder (Earth analogs for Moon/Mars sites) | Team | Not pursued |
-| Earth Science Research Navigator (trend detection) | Team | Not pursued |
 
 ## Team
 

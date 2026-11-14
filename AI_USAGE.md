@@ -13,8 +13,7 @@ watermark, and AI-generated code, data and audio must be acknowledged in text an
 
 ## Where the ideas came from
 
-Team members wrote the candidate ideas before the research started (see "Ideas we considered" in the README); AI was
-used to assess them, not to invent them. The chosen solution grew out of the team's Pollen & Bee EO Monitor idea.
+The team came up with the solution idea; AI was used to assess and build it, not to invent it.
 
 ## Labelling rules for this repo
 
