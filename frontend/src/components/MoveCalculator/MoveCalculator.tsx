@@ -205,7 +205,13 @@ export function MoveCalculator({
     const provenance = shownInput?.provenance?.[f.key];
     return (
       <div key={f.key} className={styles.field} data-edited={changed(f.key)}>
-        <label htmlFor={id}>{f.label}</label>
+        {/* The colonies slider above carries the visible label. */}
+        <label
+          htmlFor={id}
+          className={f.key === "colonies" ? "sr-only" : undefined}
+        >
+          {f.label}
+        </label>
         <div className={styles.box} data-invalid={!!error}>
           <input
             id={id}

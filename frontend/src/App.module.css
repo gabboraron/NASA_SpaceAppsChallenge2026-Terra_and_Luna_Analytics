@@ -1,54 +1,139 @@
+/* Explorer shell (breakpoints in styles/tokens.css). Desktop: layers rail | map |
+   side panel, exactly one viewport tall (panels scroll inside). Tablet: map on
+   top, side panel below, layers in a popover. Phone: map, week bar, then a
+   bottom sheet with Matches / Parcel / Layers buttons. */
 .page {
   display: flex;
   flex-direction: column;
   height: 100dvh;
+  overflow: hidden;
+  background: var(--paper);
 }
-.page header {
+
+/* App bar extras: status chips, tablet layers button, season switch. */
+.bar {
   display: flex;
   flex-wrap: wrap;
-  align-items: baseline;
-  gap: 0.5rem 1.5rem;
-  padding: 0.9rem 1.5rem;
-  border-bottom: 1px solid var(--line);
+  align-items: center;
+  justify-content: flex-end;
+  gap: 0.5rem 0.75rem;
+  min-width: 0;
 }
-.page h1 {
-  font-size: var(--title);
-  margin: 0;
-}
-.page header p {
-  margin: 0;
-  color: var(--muted);
-}
-.chips {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 0.5rem;
-  margin-left: auto;
-}
-.chips span {
-  padding: 0.2rem 0.65rem;
+.chip {
+  padding: 3px 10px;
+  border: 1px solid var(--muted);
   border-radius: 999px;
-  background: var(--wash);
-  font-size: 0.82rem;
+  font-size: 0.75rem;
+  color: var(--on-ink);
+  white-space: nowrap;
 }
+.season {
+  display: flex;
+  padding: 3px;
+  border-radius: 8px;
+  background: var(--ink-raised);
+}
+.season button,
+.layersButton {
+  min-height: 34px;
+  padding: 0 0.75rem;
+  border: 0;
+  border-radius: 6px;
+  background: transparent;
+  color: var(--on-ink);
+  font: inherit;
+  font-size: 0.875rem;
+  cursor: pointer;
+}
+.season button[aria-pressed="true"] {
+  background: var(--honey);
+  color: var(--ink);
+  font-weight: 600;
+}
+.layersButton {
+  display: none;
+  border: 1px solid var(--muted);
+  border-radius: 8px;
+}
+.layersButton[aria-expanded="true"] {
+  background: var(--ink-raised);
+  color: #fff;
+}
+/* On the dark app bar the standard focus blue would not show. */
+.season button:focus-visible,
+.layersButton:focus-visible {
+  outline: 2px solid var(--honey-pale);
+  outline-offset: 2px;
+}
+
 .workspace {
+  --side-w: 384px;
   flex: 1;
   min-height: 0;
   display: grid;
-  grid-template-columns: minmax(15rem, 19rem) 1fr minmax(21rem, 26rem);
+  grid-template-columns: 272px minmax(0, 1fr) var(--side-w);
+  grid-template-rows: minmax(0, 1fr);
+  grid-template-areas: "rail map side";
 }
 .workspace[data-plan="true"] {
-  grid-template-columns: minmax(15rem, 18rem) 1fr minmax(26rem, 36rem);
+  --side-w: clamp(24rem, 36vw, 36rem);
 }
-.panel {
+.map {
+  grid-area: map;
   position: relative;
-  min-height: 60dvh;
-  background: #e6ebe3;
+  min-width: 0;
+  min-height: 0;
+  overflow: hidden;
+  background: #e6e2cf;
 }
+/* Floats over the bottom of the map, clear of the scale bar and attribution. */
+.week {
+  grid-area: map;
+  align-self: end;
+  z-index: 2;
+  min-width: 0;
+  margin: 0 1rem 2.4rem;
+}
+.rail {
+  grid-area: rail;
+  position: relative;
+  min-height: 0;
+  overflow-y: auto;
+  background: white;
+  border-right: 1px solid var(--line);
+}
+/* The side owns the panel chrome (divider, background, scrolling); the panels
+   inside only lay out their content. position: relative keeps visually hidden
+   (absolute) children inside the scroll box instead of stretching the page. */
+.side {
+  grid-area: side;
+  position: relative;
+  min-width: 0;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  overflow-y: auto;
+  border-left: 1px solid var(--line);
+  background: white;
+}
+.side > * {
+  flex: 1 0 auto;
+}
+.tabs {
+  display: none;
+}
+.empty {
+  margin: 0;
+  padding: 1.25rem;
+  color: var(--muted);
+}
+
+/* Status cards over the map. */
 .cards {
   position: absolute;
   top: 1rem;
   left: 1rem;
+  z-index: 1;
   display: flex;
   flex-direction: column;
   gap: 0.6rem;
@@ -58,43 +143,157 @@
 .card {
   display: flex;
   flex-direction: column;
-  gap: 0.25rem;
+  gap: 0.2rem;
   padding: 0.75rem 0.9rem;
+  border: 1px solid var(--line);
+  border-radius: 12px;
   background: white;
-  border-radius: 0.6rem;
-  box-shadow: 0 2px 10px rgb(25 43 36 / 16%);
+  box-shadow: 0 2px 10px rgb(28 25 18 / 16%);
+  color: var(--ink);
+  font-size: 0.875rem;
   pointer-events: auto;
+}
+.card strong {
+  font-weight: 600;
 }
 .card small,
 .card span {
   color: var(--muted);
 }
+.busy {
+  border-left: 4px solid var(--honey);
+}
+.warn,
 .alert {
-  outline: 2px solid var(--drought);
+  border-left: 4px solid var(--drought);
 }
 .alert button {
   align-self: flex-start;
   min-height: 44px;
   margin-top: 0.4rem;
   padding: 0 1rem;
-  border: 1.5px solid var(--ink);
-  border-radius: 0.5rem;
-  background: white;
+  border: 0;
+  border-radius: 8px;
+  background: var(--ink);
+  color: white;
   font: inherit;
   font-weight: 600;
   cursor: pointer;
 }
-@media (max-width: 720px) {
+
+/* Tablet and phone: the page scrolls, map on top, the side panel below at full width. */
+@media (width < 1100px) {
   .page {
     height: auto;
     min-height: 100dvh;
+    overflow: visible;
   }
-  .workspace,
-  .workspace[data-plan="true"] {
-    grid-template-columns: 1fr;
+  .workspace {
+    --map-h: clamp(380px, 60vh, 560px);
+    position: relative;
+    grid-template-columns: minmax(0, 1fr);
+    grid-template-rows: auto;
+    grid-template-areas: "map" "side";
   }
-  .workspace > aside {
-    order: 2;
+  .map {
+    height: var(--map-h);
+  }
+  .side {
+    overflow: visible;
+    border-left: 0;
+  }
+  .season button {
+    min-height: 40px;
+  }
+}
+
+/* Tablet: layers in a popover over the map, opened from the app bar. */
+@media (760px <= width < 1100px) {
+  .layersButton {
+    display: inline-flex;
+    align-items: center;
+    min-height: 40px;
+  }
+  .rail {
+    display: none;
+    position: absolute;
+    top: 0.75rem;
+    left: 0.75rem;
+    z-index: 5;
+    width: min(20rem, calc(100% - 1.5rem));
+    max-height: calc(var(--map-h) - 1.5rem);
+    border: 1px solid var(--line);
+    border-radius: 12px;
+    box-shadow: 0 6px 24px rgb(28 25 18 / 22%);
+  }
+  .workspace[data-layers="true"] .rail {
+    display: block;
+  }
+}
+
+/* Phone: map, week bar, then a bottom sheet showing one panel at a time.
+   The picker already tags each beekeeper Synthetic, so the demo chip goes. */
+@media (width < 760px) {
+  .demo {
+    display: none;
+  }
+  .workspace {
+    --map-h: 340px;
+    grid-template-areas: "map" "week" "tabs" "panel";
+  }
+  .week {
+    grid-area: week;
+    align-self: auto;
+    margin: 0;
+  }
+  .tabs {
+    grid-area: tabs;
+    position: relative;
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    margin-top: 0.5rem;
+    padding: 0.9rem 1rem 0;
+    border-bottom: 1px solid var(--line);
+    border-radius: 16px 16px 0 0;
+    background: white;
+  }
+  .tabs::before {
+    content: "";
+    position: absolute;
+    top: 0.4rem;
+    left: 50%;
+    width: 40px;
+    height: 4px;
+    margin-left: -20px;
+    border-radius: 2px;
+    background: var(--line-strong);
+  }
+  .tabs button {
+    min-height: 44px;
+    border: 0;
+    border-bottom: 2.5px solid transparent;
+    background: transparent;
+    color: var(--muted);
+    font: inherit;
+    cursor: pointer;
+  }
+  .tabs button[aria-pressed="true"] {
+    border-bottom-color: var(--ink);
+    color: var(--ink);
+    font-weight: 600;
+  }
+  .rail,
+  .side {
+    grid-area: panel;
+  }
+  .rail {
+    display: none;
     border-right: 0;
+  }
+  .workspace[data-sheet="layers"] .rail {
+    display: block;
+  }
+  .workspace[data-sheet="layers"] .side {
+    display: none;
   }
 }

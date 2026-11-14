@@ -7,8 +7,8 @@
 .picker legend {
   margin: 0 0 0.5rem;
   padding: 0;
-  font-size: 0.8rem;
-  font-weight: 700;
+  font-size: 0.75rem;
+  font-weight: 600;
   letter-spacing: 0.06em;
   text-transform: uppercase;
   color: var(--muted);
@@ -16,38 +16,49 @@
 .picker > div {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 0.5rem;
+  gap: 0.4rem;
 }
 .picker button {
   display: flex;
   flex-direction: column;
   gap: 0.1rem;
-  min-height: 64px;
-  padding: 0.5rem 0.65rem;
+  min-height: 56px;
+  padding: 0.45rem 0.6rem;
   text-align: left;
   font: inherit;
   color: var(--ink);
-  border: 1.5px solid #c5ccc2;
-  border-radius: 10px;
+  border: 1px solid var(--line-strong);
+  border-radius: 8px;
   background: white;
   cursor: pointer;
+  transition:
+    border-color 0.12s,
+    background 0.12s;
+}
+.picker button:hover:not(:disabled) {
+  border-color: var(--ink);
 }
 .picker button[aria-pressed="true"] {
   border-color: var(--ink);
-  box-shadow: inset 0 0 0 1px var(--ink);
+  box-shadow: inset 0 0 0 0.5px var(--ink);
   background: var(--wash);
 }
 .picker button:disabled {
-  opacity: 0.55;
+  opacity: 0.5;
   cursor: not-allowed;
 }
-.picker button:focus-visible {
-  outline: 3px solid var(--focus);
-  outline-offset: 2px;
+.picker button > strong {
+  font-family: var(--font-display);
+  font-weight: 600;
 }
 .picker button > span {
-  font-size: 0.82rem;
+  font-size: 0.78rem;
+  line-height: 1.3;
   color: var(--muted);
+}
+.picker button > span:last-child {
+  font-family: var(--font-mono);
+  font-size: 0.72rem;
 }
 .picker small {
   display: block;
@@ -56,10 +67,11 @@
   color: var(--muted);
 }
 .tag {
-  padding: 0.05rem 0.4rem;
-  border-radius: 999px;
-  background: var(--wash);
+  padding: 0 0.35rem;
+  border: 1px dashed var(--muted);
   color: var(--muted);
-  font-size: 0.7rem;
-  font-weight: 700;
+  font-family: var(--font-mono);
+  font-size: 0.66rem;
+  font-weight: 500;
+  vertical-align: 0.1em;
 }

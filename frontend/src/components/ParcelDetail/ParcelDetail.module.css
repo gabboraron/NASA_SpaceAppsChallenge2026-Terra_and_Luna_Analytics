@@ -1,20 +1,12 @@
 .panel {
-  display: flex;
-  flex-direction: column;
+  composes: panel from "../panel.module.css";
   gap: 1rem;
   padding: 1.25rem;
-  border-left: 1px solid var(--line);
-  background: white;
-  overflow-y: auto;
-}
-.panel h2 {
-  margin: 0.1rem 0 0;
-  font-size: 1.5rem;
 }
 .panel h3 {
   margin: 0 0 0.5rem;
-  font-size: 0.8rem;
-  font-weight: 700;
+  font-size: 0.75rem;
+  font-weight: 600;
   letter-spacing: 0.06em;
   text-transform: uppercase;
   color: var(--muted);
@@ -26,11 +18,8 @@
 }
 .panel button {
   font: inherit;
+  color: var(--ink);
   cursor: pointer;
-}
-.panel button:focus-visible {
-  outline: 3px solid var(--focus);
-  outline-offset: 2px;
 }
 .head {
   display: flex;
@@ -40,62 +29,70 @@
 .head > div {
   flex: 1;
 }
+.head small {
+  font-family: var(--font-mono);
+  font-size: 0.75rem;
+}
 .close {
-  display: grid;
-  place-items: center;
-  width: 44px;
-  height: 44px;
-  border: 1px solid var(--line);
-  border-radius: 10px;
-  background: white;
-  color: var(--ink);
+  composes: iconButton from "../panel.module.css";
 }
 .natura {
   padding: 0.75rem 0.9rem;
-  border-radius: 10px;
-  border: 2px solid;
+  border-radius: 8px;
+  border: 1.5px solid;
 }
 .natura p {
   margin: 0.3rem 0 0;
   font-size: 0.9rem;
 }
 .block {
-  background: #fbe9e7;
+  background: var(--alert-wash);
   border-color: var(--drought);
-  color: #6e231c;
+  color: var(--drought-ink);
 }
 .warn {
-  background: #fdf3dc;
-  border-color: #c88a12;
-  color: #5c3d00;
+  background: var(--warn-wash);
+  border-color: var(--honey-deep);
+  color: var(--warn-ink);
 }
 .week {
   display: flex;
   flex-direction: column;
   gap: 0.3rem;
-  padding: 0.75rem 0.9rem;
-  border-radius: 10px;
-  background: #f6efe0;
+  padding: 0.8rem 0.9rem;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  background: var(--card);
 }
 .week[data-empty="true"] {
-  background: #f3f4f1;
+  background: var(--paper);
+  border-style: dashed;
+}
+.week > small {
+  font-family: var(--font-mono);
+  font-size: 0.75rem;
 }
 .week > strong {
+  font-family: var(--font-display);
   font-size: 1.25rem;
+  font-weight: 600;
+  line-height: 1.25;
 }
 .highLow {
-  color: #8f2f27;
+  color: var(--drought-ink);
 }
 .label {
   margin-top: 0.3rem;
-  font-size: 0.75rem;
-  font-weight: 700;
+  font-size: 0.7rem;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
   color: var(--muted);
 }
 .gapNote {
   margin: 0.3rem 0 0;
   padding-top: 0.4rem;
-  border-top: 1.5px dashed var(--ink);
+  border-top: 1px dashed var(--honey-deep);
   font-size: 0.82rem;
 }
 .metrics {
@@ -108,8 +105,10 @@
   margin: 0;
 }
 .value {
-  font-size: 1.25rem;
-  font-weight: 700;
+  font-family: var(--font-mono);
+  font-size: 1.15rem;
+  font-weight: 500;
+  font-variant-numeric: tabular-nums;
 }
 .listing {
   display: grid;
@@ -123,13 +122,15 @@
 .listing dd {
   margin: 0;
   text-align: right;
+  font-variant-numeric: tabular-nums;
 }
 .tag {
   margin-left: 0.4rem;
-  padding: 0.05rem 0.5rem;
-  border-radius: 999px;
-  background: var(--wash);
-  font-size: 0.75rem;
+  padding: 0 0.35rem;
+  border: 1px dashed var(--muted);
+  color: var(--muted);
+  font-family: var(--font-mono);
+  font-size: 0.68rem;
 }
 .plan {
   display: flex;
@@ -144,10 +145,13 @@
 .plan button {
   min-height: 48px;
   border: 1.5px solid var(--ink);
-  border-radius: 10px;
+  border-radius: 8px;
   background: white;
   color: var(--ink);
-  font-weight: 700;
+  font-weight: 600;
+}
+.plan button:hover {
+  background: var(--wash);
 }
 .verify {
   display: flex;
@@ -160,10 +164,13 @@
 .verify button {
   min-height: 48px;
   border: 0;
-  border-radius: 10px;
+  border-radius: 8px;
   background: var(--ink);
   color: var(--paper);
-  font-weight: 700;
+  font-weight: 600;
+}
+.verify button:hover:not(:disabled) {
+  background: var(--ink-raised);
 }
 .verify button:disabled {
   opacity: 0.6;
@@ -173,24 +180,14 @@
   display: flex;
   flex-direction: column;
   padding: 0.6rem 0.75rem;
-  border-radius: 10px;
-  background: #e3ede6;
-  color: #234836;
+  border-left: 3px solid var(--natura);
+  border-radius: 4px;
+  background: var(--good-wash);
+  color: var(--good-ink);
 }
 .done span {
   font-size: 0.85rem;
 }
 .panel .error {
-  color: var(--drought);
-}
-@media (max-width: 720px) {
-  .panel {
-    position: fixed;
-    inset: auto 0 0;
-    z-index: 10;
-    max-height: 60dvh;
-    border-left: 0;
-    border-radius: 18px 18px 0 0;
-    box-shadow: 0 -4px 18px rgb(25 43 36 / 20%);
-  }
+  color: var(--drought-ink);
 }

@@ -1,0 +1,626 @@
+/* Landing page: hero with the honeycomb calendar (Fig. 1), chapters 01–04, legend. */
+
+/* ---- hero ---- */
+.hero {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: 2.5rem;
+  padding-top: 3.5rem;
+  padding-bottom: 4.5rem;
+}
+.flight {
+  position: absolute;
+  top: 20px;
+  left: 0;
+  width: 100%;
+  height: 260px;
+  color: var(--ink);
+  pointer-events: none;
+}
+.heroGrid {
+  position: relative;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 300px;
+  gap: 2.5rem;
+  align-items: end;
+}
+.headline {
+  margin: 0;
+  font-family: var(--font-display);
+  font-weight: 500;
+  font-size: clamp(2.75rem, 7.4vw, 7rem);
+  line-height: 0.95;
+  letter-spacing: -0.04em;
+}
+.heroText {
+  margin: 0;
+  color: var(--body-ink);
+}
+
+/* ---- Fig. 1 ---- */
+.fig1 {
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.875rem;
+}
+.figHead {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0.75rem 1.25rem;
+  padding-bottom: 0.75rem;
+  border-bottom: 1px solid var(--line);
+}
+.figLabel {
+  font-family: var(--font-mono);
+  font-size: 0.8125rem;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+.seasons {
+  display: flex;
+  gap: 4px;
+  margin-left: auto;
+}
+.seasons button,
+.calError button {
+  min-height: 44px;
+  padding: 0 14px;
+  border: 1px solid var(--ink);
+  background: transparent;
+  color: var(--ink);
+  font-family: var(--font-mono);
+  font-size: 0.875rem;
+  cursor: pointer;
+}
+.seasons button[aria-pressed="true"] {
+  background: var(--ink);
+  color: var(--paper);
+}
+.calBody {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 260px;
+  gap: 2rem;
+  align-items: start;
+}
+.calScroll {
+  overflow-x: auto;
+  /* Room for focus outlines and the half-cell honeycomb offset. */
+  padding: 4px 2px;
+}
+.cal {
+  --cell-h: 40px;
+  --label-w: 168px;
+  display: grid;
+  grid-template-columns: var(--label-w) repeat(26, minmax(0, 1fr));
+  gap: 4px 2px;
+  padding-bottom: calc(var(--cell-h) / 2);
+}
+.calRow {
+  display: contents;
+}
+.rowLabel {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  padding-right: 0.75rem;
+  line-height: 1.2;
+}
+.rowLabel strong {
+  font-weight: 600;
+  font-size: 0.9375rem;
+}
+.rowLabel span {
+  font-size: 0.6875rem;
+  color: var(--muted);
+}
+.skelText {
+  display: block;
+  width: 70%;
+  height: 0.9rem;
+  background: var(--wash);
+}
+.cell {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 24px;
+  height: var(--cell-h);
+  clip-path: var(--hex);
+  background: var(--bloom-none);
+  cursor: pointer;
+}
+/* Label is child 1, so odd children are the even weeks: drop them half a cell. */
+.calRow > .cell:nth-child(odd) {
+  transform: translateY(calc(var(--cell-h) / 2));
+}
+.cell[data-state="edge"] {
+  background: var(--bloom-pre);
+}
+.cell[data-state="full"] {
+  background: var(--bloom-full);
+}
+.cell[data-state="low"] {
+  background: var(--drought);
+}
+.cell[data-state="missing"] {
+  background: repeating-linear-gradient(
+    45deg,
+    var(--card) 0 4px,
+    var(--line) 4px 6px
+  );
+}
+.cell[data-selected="true"] {
+  background: var(--ink);
+}
+.cell[data-selected="true"][data-state="none"],
+.cell[data-selected="true"][data-state="missing"] {
+  background: #a8987a;
+}
+.cell[data-skeleton] {
+  cursor: default;
+  background: var(--wash);
+}
+.tick {
+  padding-top: 0.625rem;
+  font-size: 0.6875rem;
+  color: var(--muted);
+  white-space: nowrap;
+}
+.tick[data-month="true"] {
+  padding-left: 3px;
+  border-left: 1px solid var(--ink);
+}
+.tick[data-selected="true"] {
+  color: var(--ink);
+}
+/* Week slider: keyboard and screen-reader control for the honeycomb. The
+   inline margins centre the 20px thumb on the first and last week columns. */
+.rangeLabel {
+  align-self: center;
+  font-size: 0.6875rem;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+.range {
+  grid-column: 2 / -1;
+  height: 28px;
+  margin: 0.25rem calc(100% / 52 - 10px) 0;
+  background: transparent;
+  cursor: pointer;
+  appearance: none;
+}
+.range::-webkit-slider-runnable-track {
+  height: 2px;
+  background: var(--line-strong);
+}
+.range::-moz-range-track {
+  height: 2px;
+  background: var(--line-strong);
+}
+.range::-webkit-slider-thumb {
+  width: 20px;
+  height: 23px;
+  margin-top: -10.5px;
+  border: 0;
+  clip-path: var(--hex);
+  background: var(--ink);
+  appearance: none;
+}
+.range::-moz-range-thumb {
+  width: 20px;
+  height: 23px;
+  border: 0;
+  border-radius: 0;
+  clip-path: var(--hex);
+  background: var(--ink);
+}
+.calError {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 0.75rem;
+  padding: 1.5rem;
+  border: 1px solid var(--drought);
+  background: var(--card);
+}
+.calError p {
+  margin: 0;
+  color: var(--drought-ink);
+}
+.readout {
+  display: flex;
+  flex-direction: column;
+  gap: 0.625rem;
+  padding-left: 1.25rem;
+  border-left: 2px solid var(--ink);
+  font-size: 0.9375rem;
+}
+.readoutWeek {
+  font-size: 0.8125rem;
+  color: var(--muted);
+}
+.readout strong {
+  font-family: var(--font-display);
+  font-size: 1.875rem;
+  font-weight: 500;
+  line-height: 1.05;
+  letter-spacing: -0.02em;
+}
+.readoutText {
+  color: var(--body-ink);
+}
+.readout a {
+  font-weight: 500;
+}
+.calCaption {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem 1.25rem;
+  font-size: 0.8125rem;
+  color: var(--muted);
+}
+.key {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem 1.25rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.key li {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.key li::before {
+  content: "";
+  width: 14px;
+  height: 14px;
+  border-radius: 2px;
+  background: var(--bloom-none);
+}
+.key li[data-state="full"]::before {
+  background: var(--bloom-full);
+}
+.key li[data-state="edge"]::before {
+  background: var(--bloom-pre);
+}
+.key li[data-state="low"]::before {
+  background: var(--drought);
+}
+.key li[data-state="missing"]::before {
+  background: repeating-linear-gradient(
+    45deg,
+    var(--card) 0 4px,
+    var(--line) 4px 6px
+  );
+  outline: 1px solid var(--line);
+}
+.key li[data-state="selected"]::before {
+  background: var(--ink);
+}
+.swipe {
+  display: none;
+}
+
+/* ---- chapters ---- */
+.chapters {
+  display: flex;
+  flex-direction: column;
+}
+.ch {
+  display: grid;
+  grid-template-columns: 200px minmax(0, 1fr) minmax(0, 1fr);
+  grid-template-rows: auto 1fr;
+  grid-template-areas:
+    "num text fig"
+    "src text fig";
+  gap: 6px 2.5rem;
+  padding: 4.5rem 0;
+  border-top: 1px solid var(--ink);
+}
+.numeral {
+  --hex-w: 84px;
+  --hex-fs: 1.875rem;
+  grid-area: num;
+  font-weight: 500;
+}
+.source {
+  grid-area: src;
+  font-size: 0.8125rem;
+  color: var(--muted);
+}
+.text {
+  grid-area: text;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 0.875rem;
+}
+.text p {
+  margin: 0;
+  color: var(--body-ink);
+}
+.try {
+  display: inline-flex;
+  align-items: center;
+  min-height: 44px;
+  font-weight: 500;
+}
+.fig,
+.legend {
+  grid-area: fig;
+}
+.fig {
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.625rem;
+}
+.fig figcaption {
+  font-size: 0.8125rem;
+  color: var(--muted);
+}
+.swatches,
+.swatchLabels {
+  display: grid;
+  grid-template-columns: repeat(6, minmax(0, 1fr));
+  gap: 6px;
+}
+.swatches span {
+  aspect-ratio: 1;
+}
+.swatches span:nth-child(1) {
+  background: #7f9a6a;
+}
+.swatches span:nth-child(2) {
+  background: #8fa064;
+}
+.swatches span:nth-child(3) {
+  background: #b7a94e;
+}
+.swatches span:nth-child(4) {
+  background: #d9b23c;
+}
+.swatches span:nth-child(5) {
+  background: #e8b52f;
+}
+.swatches span:nth-child(6) {
+  background: #b9a35a;
+  outline: 1.5px dashed var(--ink);
+  outline-offset: -4px;
+}
+.swatchLabels {
+  font-size: 0.6875rem;
+  color: var(--muted);
+}
+.diagram {
+  display: block;
+  color: var(--ink);
+  width: 100%;
+  height: auto;
+  background: var(--card);
+  border: 1px solid var(--line);
+}
+.diagram text {
+  font-family: var(--font-mono);
+  font-size: 11px;
+}
+.receipt {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  padding: 1.375rem;
+  background: var(--card);
+  border: 1px solid var(--line);
+  font-size: 0.875rem;
+}
+.receiptHead {
+  font-size: 0.75rem;
+  color: var(--muted);
+}
+.line {
+  display: flex;
+  justify-content: space-between;
+  gap: 1rem;
+}
+.line > span:last-child {
+  white-space: nowrap;
+}
+.total {
+  padding-top: 0.625rem;
+  border-top: 1px dashed var(--ink);
+  font-weight: 500;
+}
+.receiptNote {
+  font-size: 0.75rem;
+  color: var(--muted);
+}
+.legend {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  gap: 14px 18px;
+  align-content: start;
+  margin: 0;
+  font-size: 0.9375rem;
+}
+.legend dt {
+  align-self: start;
+}
+.legend dd {
+  margin: 0;
+  color: var(--body-ink);
+}
+.cta {
+  display: none;
+}
+
+/* ---- SVG paint (presentation attributes cannot take tokens) ---- */
+.fCard {
+  fill: var(--card);
+}
+.fHoney {
+  fill: var(--honey);
+}
+.fHoneyDeep {
+  fill: var(--honey-deep);
+}
+.fNone {
+  fill: var(--bloom-none);
+}
+.fPre {
+  fill: var(--bloom-pre);
+}
+.fMuted {
+  fill: var(--muted);
+}
+.fDrought {
+  fill: var(--drought);
+}
+.fDroughtInk {
+  fill: var(--drought-ink);
+}
+.sDrought {
+  stroke: var(--drought);
+}
+.fNatura {
+  fill: var(--natura);
+}
+.sNatura {
+  stroke: var(--natura);
+}
+
+/* ---- tablet: stack the two-column content ---- */
+@media (width < 980px) {
+  .hero {
+    gap: 1.875rem;
+    padding-top: 2rem;
+    padding-bottom: 3rem;
+  }
+  .flight {
+    top: 0;
+    height: 160px;
+  }
+  .heroGrid {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 1.25rem;
+  }
+  .heroText {
+    max-width: 32em;
+    font-size: 1.125rem;
+  }
+  .calBody {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 1rem;
+  }
+  .cal {
+    --cell-h: 36px;
+    --label-w: 110px;
+    min-width: 760px;
+  }
+  .readout {
+    flex-direction: row;
+    flex-wrap: wrap;
+    align-items: baseline;
+    gap: 0.5rem 1.125rem;
+    padding: 0.875rem 1.125rem;
+  }
+  .readout strong {
+    font-size: 1.5rem;
+  }
+  .swipe {
+    display: inline;
+    color: var(--ink);
+  }
+  .ch {
+    grid-template-columns: 84px minmax(0, 1fr);
+    grid-template-rows: auto auto auto;
+    grid-template-areas:
+      "num src"
+      "num text"
+      ". fig";
+    gap: 0.625rem 1.5rem;
+    padding: 3rem 0;
+  }
+  .numeral {
+    --hex-fs: 1.75rem;
+  }
+  .fig,
+  .legend {
+    margin-top: 1rem;
+  }
+  .cta {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.75rem;
+    min-height: 56px;
+    margin-bottom: 3rem;
+    background: var(--ink);
+    font-weight: 600;
+    text-decoration: none;
+  }
+  .chapters a.cta,
+  .chapters a.cta:hover {
+    color: var(--paper);
+  }
+  .cta span {
+    width: 22px;
+    height: 25px;
+    background: var(--honey);
+  }
+}
+
+/* ---- phone ---- */
+@media (width < 760px) {
+  .flight {
+    display: none;
+  }
+  .heroText {
+    font-size: 1rem;
+  }
+  .figLabel {
+    font-size: 0.6875rem;
+  }
+  .seasons {
+    margin-left: 0;
+  }
+  .cal {
+    --cell-h: 30px;
+    --label-w: 84px;
+    min-width: 640px;
+  }
+  .rowLabel strong {
+    font-size: 0.8125rem;
+  }
+  .readout strong {
+    font-size: 1.25rem;
+  }
+  .ch {
+    grid-template-columns: 56px minmax(0, 1fr);
+    grid-template-areas:
+      "num src"
+      "text text"
+      "fig fig";
+    align-items: center;
+    column-gap: 0.875rem;
+    padding: 2.25rem 0;
+  }
+  .numeral {
+    --hex-w: 56px;
+    --hex-fs: 1.125rem;
+  }
+  .numeral svg {
+    width: 28px;
+    height: 28px;
+  }
+  .legend {
+    gap: 10px 14px;
+  }
+}

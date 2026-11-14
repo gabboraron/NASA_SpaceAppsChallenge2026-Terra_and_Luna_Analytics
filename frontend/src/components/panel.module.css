@@ -1,0 +1,50 @@
+/* Identical rules shared by the side panels (matches, parcel detail, move
+   calculator) through `composes`. Only rules no local rule competes with live
+   here, so the result does not depend on the order the CSS is emitted in.
+   The App's side column owns the chrome: divider, background and scrolling. */
+.panel {
+  display: flex;
+  flex-direction: column;
+}
+.panel h2 {
+  margin: 0.1rem 0 0;
+  font-family: var(--font-display);
+  font-size: 1.4rem;
+  font-weight: 600;
+  line-height: 1.2;
+}
+/* 44px icon button in a panel header (back, close). */
+.iconButton {
+  display: grid;
+  place-items: center;
+  flex: none;
+  width: 44px;
+  height: 44px;
+  border: 1px solid var(--line-strong);
+  border-radius: 8px;
+  background: white;
+  color: var(--ink);
+}
+.iconButton:hover {
+  border-color: var(--ink);
+  background: var(--wash);
+}
+.alert {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+  padding: 0.75rem 0.9rem;
+  border-radius: 8px;
+  background: var(--alert-wash);
+  outline: 2px solid var(--drought);
+  color: var(--drought-ink);
+}
+.alert button {
+  align-self: flex-start;
+  min-height: 44px;
+  padding: 0 1rem;
+  border: 1.5px solid var(--ink);
+  border-radius: 8px;
+  background: white;
+  font-weight: 600;
+}

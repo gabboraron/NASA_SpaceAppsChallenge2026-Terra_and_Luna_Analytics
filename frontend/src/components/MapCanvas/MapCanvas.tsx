@@ -12,9 +12,11 @@ import {
   BLOOM_COLORS,
   CROP_COLORS,
   DROUGHT,
+  HONEY,
   INK,
   NATURA,
   OTHER_CROP,
+  PAPER,
   hatch,
   isInterpolated,
   rgba,
@@ -28,6 +30,72 @@ const BASEMAP = "https://tiles.openfreemap.org/styles/liberty";
 const IMAGERY =
   "https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}";
 const EMPTY: FeatureCollection = { type: "FeatureCollection", features: [] };
+
+/** Draw a `width` × `height` px icon on a canvas and return its pixels for `addImage`. */
+function drawIcon(
+  width: number,
+  height: number,
+  draw: (ctx: CanvasRenderingContext2D) => void,
+): ImageData {
+  const canvas = document.createElement("canvas");
+  canvas.width = width;
+  canvas.height = height;
+  const ctx = canvas.getContext("2d");
+  if (!ctx) return new ImageData(width, height);
+  draw(ctx);
+  return ctx.getImageData(0, 0, width, height);
+}
+
+/** Pointy-top hexagon path centred at (cx, cy) with the given apothem. */
+function hexPath(cx: number, cy: number, apothem: number): Path2D {
+  const r = (apothem * 2) / Math.sqrt(3);
+  const path = new Path2D();
+  for (let i = 0; i < 6; i++) {
+    const a = -Math.PI / 2 + (i * Math.PI) / 3;
+    path.lineTo(cx + r * Math.cos(a), cy + r * Math.sin(a));
+  }
+  path.closePath();
+  return path;
+}
+
+/** Rank badge: honey hexagon with an ink `border`, `height` px tall. */
+function hexagon(height: number, border: number): ImageData {
+  const apothem = (height / 2) * (Math.sqrt(3) / 2);
+  const width = Math.ceil(apothem * 2);
+  return drawIcon(width, height, (ctx) => {
+    ctx.fillStyle = INK;
+    ctx.fill(hexPath(width / 2, height / 2, apothem));
+    ctx.fillStyle = HONEY;
+    ctx.fill(hexPath(width / 2, height / 2, apothem - border));
+  });
+}
+
+/** Beekeeper pin: dark rounded hive box with two honey stripes and a thin paper rim. */
+function hive(width: number, height: number, radius: number): ImageData {
+  const rim = Math.max(1, Math.round(width / 22));
+  const stripe = Math.max(1, height / 13);
+  const edge = rim + width * 0.1;
+  return drawIcon(width, height, (ctx) => {
+    ctx.fillStyle = PAPER;
+    ctx.beginPath();
+    ctx.roundRect(0, 0, width, height, radius);
+    ctx.fill();
+    ctx.fillStyle = INK;
+    ctx.beginPath();
+    ctx.roundRect(
+      rim,
+      rim,
+      width - 2 * rim,
+      height - 2 * rim,
+      radius - rim / 2,
+    );
+    ctx.fill();
+    // Stripes at roughly a third and two thirds of the box, as in the design mark.
+    ctx.fillStyle = HONEY;
+    for (const f of [0.36, 0.66])
+      ctx.fillRect(edge, height * f - stripe / 2, width - 2 * edge, stripe);
+  });
+}
 
 const low: ExpressionSpecification = [
   "==",
@@ -203,15 +271,14 @@ const LAYERS: (LayerSpecification & { group: LayerId })[] = [
     // The selected beekeeper's ranks, up and right of each parcel (WP18).
     group: "beekeepers",
     id: "match-badge",
-    type: "circle",
+    type: "symbol",
     source: "match-labels",
-    paint: {
-      "circle-radius": 10,
-      "circle-color": INK,
-      "circle-stroke-color": "#ffffff",
-      "circle-stroke-width": 1.5,
-      "circle-translate": [13, -13],
+    layout: {
+      "icon-image": "rank-hex",
+      "icon-allow-overlap": true,
+      "icon-ignore-placement": true,
     },
+    paint: { "icon-translate": [13, -13] },
   },
   {
     group: "beekeepers",
@@ -225,21 +292,20 @@ const LAYERS: (LayerSpecification & { group: LayerId })[] = [
       "text-allow-overlap": true,
       "text-ignore-placement": true,
     },
-    paint: { "text-color": "#ffffff", "text-translate": [13, -13] },
+    paint: { "text-color": INK, "text-translate": [13, -13] },
   },
   {
     group: "beekeepers",
     id: "bee-pin",
-    type: "circle",
+    type: "symbol",
     source: "beekeepers",
-    paint: {
-      "circle-radius": ["case", ["get", "selected"], 10, 7],
-      "circle-color": INK,
-      "circle-stroke-color": BLOOM_COLORS.blooming,
-      "circle-stroke-width": 3,
-      "circle-opacity": ["case", ["get", "selected"], 1, 0.45],
-      "circle-stroke-opacity": ["case", ["get", "selected"], 1, 0.45],
+    layout: {
+      "icon-image": "hive",
+      "icon-size": ["case", ["get", "selected"], 1, 0.8],
+      "icon-allow-overlap": true,
+      "icon-ignore-placement": true,
     },
+    paint: { "icon-opacity": ["case", ["get", "selected"], 1, 0.45] },
   },
   {
     group: "beekeepers",
@@ -255,7 +321,7 @@ const LAYERS: (LayerSpecification & { group: LayerId })[] = [
     },
     paint: {
       "text-color": INK,
-      "text-halo-color": "#ffffff",
+      "text-halo-color": PAPER,
       "text-halo-width": 1.5,
       "text-opacity": ["case", ["get", "selected"], 1, 0.6],
     },
@@ -334,6 +400,9 @@ export function MapCanvas(props: Props) {
     instance.on("load", () => {
       instance.addImage("natura-hatch", hatch(10, rgba(NATURA, 150), 2));
       instance.addImage("low-hatch", hatch(8, rgba(DROUGHT), 2));
+      // Drawn at 2× for sharp edges on high-density screens.
+      instance.addImage("rank-hex", hexagon(52, 3), { pixelRatio: 2 });
+      instance.addImage("hive", hive(48, 40, 6), { pixelRatio: 2 });
       instance.addSource("imagery", {
         type: "raster",
         tiles: [IMAGERY],

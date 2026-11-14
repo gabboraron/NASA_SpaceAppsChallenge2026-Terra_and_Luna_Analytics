@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import type { Season } from "../../api/client";
-import { WEEKS, monthTicks, weekLabel } from "../MapCanvas/layers";
+import { WEEKS, monthTicks, weekLabel } from "../../domain/season";
 import styles from "./TimeSlider.module.css";
 
 const STEP_MS = 700;
@@ -44,11 +44,22 @@ export function TimeSlider({ year, week, summary, onWeek }: Props) {
             setPlaying(!playing);
           }}
         >
-          <span aria-hidden="true">{playing ? "❚❚" : "▶"}</span>
+          <svg aria-hidden="true" width="14" height="14" viewBox="0 0 14 14">
+            <path
+              fill="currentColor"
+              d={playing ? "M3 2h3v10H3zM8 2h3v10H8z" : "M3 1.5v11l9-5.5z"}
+            />
+          </svg>
         </button>
-        <p>
-          <strong>Week {week}</strong> · {label} {year}
+        <p className={styles.title}>
+          <strong>Week {week}</strong>
+          <span className="mono">
+            {label} {year}
+          </span>
         </p>
+        <span className={styles.season}>
+          Season starts 1 March · {WEEKS} weeks
+        </span>
       </div>
       <div className={styles.rail}>
         <div
@@ -80,7 +91,7 @@ export function TimeSlider({ year, week, summary, onWeek }: Props) {
             onWeek(Number(e.target.value));
           }}
         />
-        <div className={styles.months} aria-hidden="true">
+        <div className={`${styles.months} mono`} aria-hidden="true">
           {ticks.map((t) => (
             <span key={t.label} style={{ left: at(t.week) }}>
               {t.label}
