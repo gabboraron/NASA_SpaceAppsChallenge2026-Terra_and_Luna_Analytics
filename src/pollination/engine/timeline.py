@@ -250,7 +250,7 @@ def _declared(parcel: m.Parcel, year: int, why: str) -> list[_Bloom]:
     if declared is None:
         none = _Bloom("none", _missing(DECLARED_SOURCE, f"{why}; no declared window"))
         return [none for _ in WEEKS]
-    start, end = _in_year(declared.start, year), _in_year(declared.end, year)
+    start, end = in_year(declared.start, year), in_year(declared.end, year)
     window = m.Window(start=start, end=end)
     note = f"{why}; using the grower-declared window"
     if declared.start.year != year:
@@ -261,7 +261,7 @@ def _declared(parcel: m.Parcel, year: int, why: str) -> list[_Bloom]:
     return [_Bloom(_state_in(window, year, w), prov) for w in WEEKS]
 
 
-def _in_year(day: date, year: int) -> date:
+def in_year(day: date, year: int) -> date:
     """The same calendar date in ``year`` (29 Feb becomes 28 Feb)."""
     try:
         return day.replace(year=year)

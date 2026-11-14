@@ -111,8 +111,8 @@ def test_verification_marks_blooming_weeks_observed() -> None:
     asyncio.run(exercise())
 
 
-def test_matches_prefill_the_calculator_per_parcel() -> None:
-    """Until WP12: one card per parcel of the beekeeper's goal, ranked by distance."""
+def test_matches_rank_the_parcels_of_the_beekeepers_goal() -> None:
+    """One card per parcel of the goal: open ones ranked by the engine, blocked last."""
 
     async def exercise() -> None:
         async with httpx.AsyncClient(
@@ -131,8 +131,12 @@ def test_matches_prefill_the_calculator_per_parcel() -> None:
             assert {parcels[c["parcel_id"]]["service_type"] for c in b3} == {"forage"}
             open_b1 = [c for c in b1 if not c["blocked"]]
             assert [c["rank"] for c in open_b1] == list(range(1, len(open_b1) + 1))
-            distances = [c["distance_km"]["value"] for c in open_b1]
-            assert distances == sorted(distances)
+            assert parcels[open_b1[0]["parcel_id"]]["crop"] in {"apple", "sour_cherry"}
+            assert "Blooming in the selected week" in open_b1[0]["reasons"]
+            assert b1[: len(open_b1)] == open_b1
+            params = {"beekeeper_id": "B1", "year": 2024, "week": 26}
+            late = (await client.get("/matches", params=params)).json()
+            assert "Blooming in the selected week" not in late[0]["reasons"]
             for card in b3:
                 inside = parcels[card["parcel_id"]]["natura_status"] == "inside"
                 assert card["blocked"] is inside

@@ -1,8 +1,7 @@
 """API routes.
 
-Parcels, Natura 2000, actors, the timeline, grower verification and the calculator
-are real; matches rank by distance only until WP12; the polygon routes are WP2
-fixtures until WP13.
+Parcels, Natura 2000, actors, the timeline, grower verification, the calculator and
+the matches are real; the polygon routes are WP2 fixtures until WP13.
 """
 
 from datetime import date
@@ -87,13 +86,22 @@ def timeline(
 
 
 @router.get("/matches")
-def matches(beekeeper_id: str, year: m.Season, week: m.Week) -> list[m.MatchCard]:
-    """Return the beekeeper's candidate parcels, ranked by distance until WP12."""
+def matches(
+    beekeeper_id: str,
+    year: m.Season,
+    week: m.Week,
+    inputs: Annotated[SeasonInputs, Depends(season_inputs)],
+) -> list[m.MatchCard]:
+    """Return the beekeeper's candidates for a week: ranked, blocked ones last."""
     data = catalog()
     keeper = next((b for b in data.actors.beekeepers if b.id == beekeeper_id), None)
     if keeper is None:
         return []
-    return match(keeper, data.parcels, data.calculator, f"{year.value}, week {week}")
+    timeline = build_timeline(
+        year, data.parcels, data.phenology, inputs, state.verifications
+    )
+    weeks = {w.parcel_id: w for w in timeline.parcel_weeks if w.week == week}
+    return match(keeper, data.parcels, weeks, data.calculator, data.ranking)
 
 
 @router.post("/calculate")

@@ -15,6 +15,7 @@ from shapely.ops import unary_union
 from pollination.config import Settings
 from pollination.datafiles import (
     load_actors,
+    load_catalog,
     load_natura,
     load_phenology,
     load_ranking,
@@ -172,3 +173,9 @@ def test_ranking_weights_sum_to_one() -> None:
         "Reported",
         "Missing",
     }
+
+
+def test_catalog_carries_the_ranking_weights() -> None:
+    """The matching engine reads its weights from the catalog, not from code."""
+    catalog = load_catalog(Settings())
+    assert sum(catalog.ranking.weights.model_dump().values()) == pytest.approx(1.0)
