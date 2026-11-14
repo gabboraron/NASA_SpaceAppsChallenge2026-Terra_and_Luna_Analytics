@@ -7,15 +7,16 @@ from pathlib import Path
 
 import pytest
 
-from pollination.engine.timeline import SmapSeason, week_mid
 from pollination.geo import SmapCell
 from pollination.nasa.smap import (
+    SmapSeason,
     cells_geojson,
     clean_value,
     parse_dap4_csv,
     percentile_rank,
     season,
 )
+from pollination.weeks import week_mid
 
 BBOX = (21.6, 47.7, 22.4, 48.05)
 FIRST_YEAR = 2015

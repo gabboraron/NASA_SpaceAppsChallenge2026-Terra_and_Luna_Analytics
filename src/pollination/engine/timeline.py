@@ -29,21 +29,24 @@ from pollination.engine.phenology import (
     threshold_window,
     total_on,
 )
-from pollination.geo import SmapCell, centroid, smap_cell
+from pollination.geo import centroid, smap_cell
 from pollination.nasa import hls
-from pollination.nasa.power import (
-    GRID_LAT_DEG,
-    GRID_LON_DEG,
-    PowerDaily,
-    daily_point,
-    snap,
+from pollination.nasa import smap as smap_client
+from pollination.nasa.power import PowerDaily, daily_point, grid_node
+from pollination.nasa.smap import SmapSeason, SmapWeek
+from pollination.weeks import (
+    SEASON_END,
+    SEASON_START,
+    WEEKS,
+    week_end,
+    week_mid,
+    week_of,
+    week_start,
+    window_in_year,
 )
 
 log = logging.getLogger(__name__)
 
-WEEKS = range(1, 27)  # D12: weekly steps from 1 March, March-August
-WEEK_DAYS = 7
-SEASON_END = (8, 31)
 # D13, tightened: blooming and root-zone moisture below this percentile -> low nectar.
 # With a ten-year baseline the mid-rank percentile moves in steps of 10 (5, 15, ...),
 # so "below 10" means the driest same week on record; "below 20" flickered week to
@@ -55,7 +58,6 @@ MAX_INTERPOLATION_GAP_DAYS = 21
 # flow year of the reference hive scales (2024) as low.
 NECTAR_CROPS = frozenset({"sunflower"})
 ORCHARD_CROPS = frozenset({"apple", "sour_cherry"})
-HLS_CROPS = frozenset({"sunflower"})  # NDYI drives bloom only for sunflower (D6)
 
 POWER_SOURCE = "NASA POWER daily (MERRA-2), T2M_MAX/T2M_MIN"
 HEAT_SOURCE = "Heat-unit model: NASA POWER temperature + data/phenology.json"
@@ -72,46 +74,7 @@ NECTAR_SOURCE = "Nectar heuristic (plan D13)"
 SMAP_SOURCE = "NASA SMAP L4 (SPL4SMGP) root-zone soil moisture"
 
 
-def week_start(year: int, week: int) -> date:
-    """First day of timeline week ``week`` (1 = the week starting 1 March)."""
-    return date(year, 3, 1) + timedelta(weeks=week - 1)
-
-
-def week_of(year: int, day: date) -> int | None:
-    """Timeline week containing ``day``, or None outside March-August weeks."""
-    offset = (day - date(year, 3, 1)).days
-    week = offset // WEEK_DAYS + 1
-    return week if offset >= 0 and week in WEEKS else None
-
-
-def week_end(year: int, week: int) -> date:
-    """Last day of timeline week ``week``."""
-    return week_start(year, week) + timedelta(days=WEEK_DAYS - 1)
-
-
-def week_mid(year: int, week: int) -> date:
-    """Middle day of timeline week ``week``."""
-    return week_start(year, week) + timedelta(days=WEEK_DAYS // 2)
-
-
 # --- inputs ----------------------------------------------------------------------
-
-
-@dataclass(frozen=True)
-class SmapWeek:
-    """Root-zone soil moisture of one SMAP cell in one week (output of WP8)."""
-
-    value: float | None  # m3/m3
-    percentile: float | None  # 0-100, against the same week of the baseline years
-    observed_at: date
-
-
-@dataclass(frozen=True)
-class SmapSeason:
-    """SMAP weekly values per cell, with the baseline years used for percentiles."""
-
-    weeks: Mapping[SmapCell, Mapping[int, SmapWeek]]
-    baseline: str  # e.g. "2015-2024"
 
 
 @dataclass(frozen=True)
@@ -134,9 +97,7 @@ class SeasonInputs:
 
 # --- per-week pieces -------------------------------------------------------------
 
-
-def _missing(source: str, note: str) -> m.Provenance:
-    return m.Provenance(kind="Missing", source=source, observed_at=None, note=note)
+_missing = m.Provenance.missing
 
 
 def _state_in(window: m.Window, year: int, week: int) -> m.BloomState:
@@ -212,7 +173,7 @@ def weekly_index(
             f"{MAX_INTERPOLATION_GAP_DAYS} days on both sides (cloud, shadow or no "
             "overpass)"
         )
-        out.append(m.Measurement(value=None, provenance=_missing(hls.SOURCE, note)))
+        out.append(m.Measurement.missing(hls.SOURCE, note))
     return out
 
 
@@ -299,8 +260,7 @@ def _declared(parcel: m.Parcel, year: int, why: str) -> list[_Bloom]:
     if declared is None:
         none = _Bloom("none", _missing(DECLARED_SOURCE, f"{why}; no declared window"))
         return [none for _ in WEEKS]
-    start, end = in_year(declared.start, year), in_year(declared.end, year)
-    window = m.Window(start=start, end=end)
+    window = window_in_year(declared, year)
     note = f"{why}; using the grower-declared window"
     if declared.start.year != year:
         note += f" (declared for {declared.start.year}, same calendar dates)"
@@ -308,14 +268,6 @@ def _declared(parcel: m.Parcel, year: int, why: str) -> list[_Bloom]:
         kind="Reported", source=DECLARED_SOURCE, observed_at=None, note=note
     )
     return [_Bloom(_state_in(window, year, w), prov) for w in WEEKS]
-
-
-def in_year(day: date, year: int) -> date:
-    """The same calendar date in ``year`` (29 Feb becomes 28 Feb)."""
-    try:
-        return day.replace(year=year)
-    except ValueError:
-        return date(year, 2, 28)
 
 
 def _heat_bloom(
@@ -483,7 +435,7 @@ def parcel_weeks(  # noqa: PLR0913  # the parcel's inputs, each from its own sou
         One ``ParcelWeek`` per timeline week.
     """
     if isinstance(observations, str):
-        gap = m.Measurement(value=None, provenance=_missing(hls.SOURCE, observations))
+        gap = m.Measurement.missing(hls.SOURCE, observations)
         ndvi = ndyi = [gap for _ in WEEKS]
     else:
         ndvi = weekly_index(observations, year, lambda o: o.ndvi)
@@ -623,7 +575,11 @@ def build_timeline(
 
 
 def _with_history(
-    season: PowerDaily, node: tuple[float, float], start: date, cache_dir: Path
+    season: PowerDaily,
+    node: tuple[float, float],
+    start: date,
+    client: httpx.Client,
+    cache_dir: Path,
 ) -> PowerDaily:
     """Prepend the days from ``start`` to the season series (a separate request).
 
@@ -633,7 +589,11 @@ def _with_history(
         httpx.HTTPError: The extra request failed.
     """
     before = daily_point(
-        *node, start, season.days[0] - timedelta(days=1), cache_dir=cache_dir
+        *node,
+        start,
+        season.days[0] - timedelta(days=1),
+        client=client,
+        cache_dir=cache_dir,
     )
     values = {k: before.values[k] + v for k, v in season.values.items()}
     return season.model_copy(
@@ -688,34 +648,41 @@ def fetch_inputs(
     at_node: dict[tuple[float, float], list[m.Parcel]] = {}
     for parcel in parcels:
         lon, lat = centroid(parcel.geometry)
-        node = (snap(lat, GRID_LAT_DEG), snap(lon, GRID_LON_DEG))
+        node = grid_node(lat, lon)
         at_node.setdefault(node, []).append(parcel)
     power: dict[str, PowerDaily | str] = {}
-    for node, here in at_node.items():
-        series: PowerDaily | str
-        try:
-            series = daily_point(*node, date(year, 1, 1), end, cache_dir=cache_dir)
-        except httpx.HTTPError as exc:
-            log.warning("POWER request for %s failed: %s", node, exc)
-            series = f"NASA POWER request failed ({type(exc).__name__})"
-            failed = True
-        history = _history_start(here, phenology, year)
-        if history is not None and not isinstance(series, str):
+    with httpx.Client() as client:  # one connection for every grid node
+        for node, here in at_node.items():
+            series: PowerDaily | str
             try:
-                series = _with_history(series, node, history, cache_dir)
-            except httpx.HTTPError as exc:  # season data stays; chilling is Missing
-                log.warning("POWER autumn request for %s failed: %s", node, exc)
+                series = daily_point(
+                    *node, date(year, 1, 1), end, client=client, cache_dir=cache_dir
+                )
+            except httpx.HTTPError as exc:
+                log.warning("POWER request for %s failed: %s", node, exc)
+                series = f"NASA POWER request failed ({type(exc).__name__})"
                 failed = True
-        for parcel in here:
-            power[parcel.id] = series
+            history = _history_start(here, phenology, year)
+            if history is not None and not isinstance(series, str):
+                try:
+                    series = _with_history(series, node, history, client, cache_dir)
+                except httpx.HTTPError as exc:  # season data stays; chilling is Missing
+                    log.warning("POWER autumn request for %s failed: %s", node, exc)
+                    failed = True
+            for parcel in here:
+                power[parcel.id] = series
     observed: Mapping[str, Sequence[hls.Obs]] | str
     if not earthdata:
         observed = "No Earthdata token configured; HLS not queried"
     else:
-        targets = [p for p in parcels if p.crop in HLS_CROPS]
+        targets = [
+            p
+            for p in parcels
+            if (entry := phenology.get(p.crop)) and entry.method == "ndyi"
+        ]
         try:
             observed = hls.parcel_indices(
-                targets, date(year, 3, 1), end, cache_dir=cache_dir
+                targets, date(year, *SEASON_START), end, cache_dir=cache_dir
             )
         except Exception as exc:  # any NASA failure becomes Missing
             log.warning("HLS fetch failed: %s", exc)
@@ -725,9 +692,6 @@ def fetch_inputs(
     if not earthdata:
         smap = "No Earthdata token configured; SMAP not queried"
     else:
-        # Lazy: the SMAP client imports this module for SmapSeason and the weeks.
-        from pollination.nasa import smap as smap_client  # noqa: PLC0415
-
         try:
             smap = smap_client.season(year, cache_dir=cache_dir)
         except Exception as exc:  # any NASA failure becomes Missing

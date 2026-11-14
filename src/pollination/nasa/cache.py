@@ -11,8 +11,8 @@ from typing import Any
 
 from pollination.config import Settings
 
-_FETCHED_AT = "fetched_at"
-_PAYLOAD = "payload"
+FETCHED_AT = "fetched_at"
+PAYLOAD = "payload"
 
 
 def _hash_key(key_parts: dict[str, Any]) -> str:
@@ -27,9 +27,9 @@ def _read(path: Path) -> dict[str, Any] | None:
         entry = json.loads(path.read_text(encoding="utf-8"))
     except (OSError, ValueError):
         return None
-    if not isinstance(entry, dict) or _PAYLOAD not in entry:
+    if not isinstance(entry, dict) or PAYLOAD not in entry:
         return None
-    payload: Any = entry[_PAYLOAD]  # pyright: ignore[reportUnknownVariableType]
+    payload: Any = entry[PAYLOAD]  # pyright: ignore[reportUnknownVariableType]
     return payload if isinstance(payload, dict) else None  # pyright: ignore[reportUnknownVariableType]
 
 
@@ -61,14 +61,18 @@ def get_or_fetch(
 
     payload = fetch_fn()
     path.parent.mkdir(parents=True, exist_ok=True)
-    entry = {_FETCHED_AT: time.time(), _PAYLOAD: payload}
-    # Atomic write so a crash never leaves a half-written entry.
+    entry = {FETCHED_AT: time.time(), PAYLOAD: payload}
+    write_atomic(path, json.dumps(entry).encode())
+    return payload
+
+
+def write_atomic(path: Path, data: bytes) -> None:
+    """Write a file so a crash never leaves a half-written entry."""
     fd, tmp_name = tempfile.mkstemp(dir=path.parent, suffix=".tmp")
     try:
-        with os.fdopen(fd, "w", encoding="utf-8") as tmp:
-            json.dump(entry, tmp)
+        with os.fdopen(fd, "wb") as tmp:
+            tmp.write(data)
         Path(tmp_name).replace(path)
     except BaseException:
         Path(tmp_name).unlink(missing_ok=True)
         raise
-    return payload

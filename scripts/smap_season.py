@@ -10,6 +10,7 @@ than 2024. Run with ``uv run python scripts/smap_season.py``.
 import logging
 from statistics import mean
 
+from pollination.models import Season
 from pollination.nasa.smap import season
 
 log = logging.getLogger(__name__)
@@ -18,7 +19,7 @@ SUMMER_WEEKS = range(14, 27)
 
 def main() -> None:
     """Build both demo seasons and log their summer percentiles."""
-    for year in (2022, 2024):
+    for year in Season:
         result = season(year)
         log.info("%d baseline %s, %d cells", year, result.baseline, len(result.weeks))
         for week in SUMMER_WEEKS:

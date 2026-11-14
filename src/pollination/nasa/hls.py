@@ -16,13 +16,14 @@ from dataclasses import dataclass
 from datetime import date, timedelta
 from functools import partial
 from pathlib import Path
-from typing import Any, cast
+from typing import Any
 
 import numpy as np
 from numpy.typing import NDArray
 from pydantic import BaseModel
-from shapely.geometry import Polygon, shape
+from shapely.geometry import Polygon
 
+from pollination.geo import Bbox, to_shape
 from pollination.models import (
     HlsResponse,
     Measurement,
@@ -41,8 +42,6 @@ _COORD_DECIMALS = 6
 _WORKERS = 4  # parallel remote reads; more got connections reset by the server
 DEFAULT_PER_WEEK = 2  # usable observations kept per parcel and 7-day block
 _UNKNOWN_CLOUD = 100.0
-
-type Bbox = tuple[float, float, float, float]
 
 
 class Obs(BaseModel):
@@ -379,7 +378,7 @@ def parcel_indices(  # noqa: PLR0913  # injectable search/read/cache keep it tes
     Returns:
         Observations keyed by parcel id, sorted by date.
     """
-    polygons = {p.id: cast(Polygon, shape(p.geometry.model_dump())) for p in parcels}
+    polygons = {p.id: to_shape(p.geometry) for p in parcels}
     io = _Io(search, read, cache_dir, per_week)
     return _indices(polygons, (start, end), io)
 
@@ -409,21 +408,16 @@ def latest_for_polygon(  # noqa: PLR0913  # injectable search/read/cache keep it
     """
     end = today or date.today()  # calendar day of the server
     start = end - timedelta(days=days)
-    geom = cast(Polygon, shape(polygon.model_dump()))
+    geom = to_shape(polygon)
     search_fn, read_fn = _backend(search, read)
     scenes = _scenes(search_fn, geom.bounds, (start, end), cache_dir)
     latest = _newest(passes(scenes), geom, read_fn, cache_dir)
     if latest is None:
-        missing = Provenance(
-            kind="Missing",
-            source=SOURCE,
-            observed_at=None,
-            note=(
-                f"No usable observation in the last {days} days: cloud, shadow, "
-                "snow or water masked, or no overpass."
-            ),
+        gap = Measurement.missing(
+            SOURCE,
+            f"No usable observation in the last {days} days: cloud, shadow, "
+            "snow or water masked, or no overpass.",
         )
-        gap = Measurement(value=None, provenance=missing)
         return HlsResponse(observed_at=None, ndvi=gap, ndyi=gap)
     provenance = Provenance(
         kind="Observed",

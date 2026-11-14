@@ -14,15 +14,14 @@ Usage::
 import argparse
 import json
 import logging
-import os
 import re
-import tempfile
 import zipfile
 from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
 
 from pollination.config import Settings
+from pollination.nasa.cache import FETCHED_AT, PAYLOAD, write_atomic
 
 SHARED = ("hls", "power", "smap")
 MANIFEST = "MANIFEST.json"
@@ -82,7 +81,7 @@ def _checked(z: zipfile.ZipFile) -> dict[str, bytes]:
             entry: Any = json.loads(data)
         except ValueError:
             entry = None
-        if not (isinstance(entry, dict) and {"fetched_at", "payload"} <= entry.keys()):  # pyright: ignore[reportUnknownMemberType]
+        if not (isinstance(entry, dict) and {FETCHED_AT, PAYLOAD} <= entry.keys()):  # pyright: ignore[reportUnknownMemberType]
             raise ValueError(f"Not a cache entry: {info.filename!r}")
         members[info.filename] = data
     return members
@@ -110,10 +109,7 @@ def import_cache(archive: Path, cache_dir: Path) -> dict[str, int]:
             skipped += 1
             continue
         path.parent.mkdir(parents=True, exist_ok=True)
-        fd, tmp = tempfile.mkstemp(dir=path.parent, suffix=".tmp")
-        with os.fdopen(fd, "wb") as handle:
-            handle.write(data)
-        Path(tmp).replace(path)  # atomic, like the cache itself
+        write_atomic(path, data)
         imported += 1
     return {"imported": imported, "skipped": skipped}
 

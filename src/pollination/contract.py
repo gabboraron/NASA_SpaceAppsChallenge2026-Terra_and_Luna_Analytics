@@ -9,11 +9,11 @@ import logging
 from collections.abc import Callable
 from datetime import date
 from functools import cache
+from threading import Lock
 from typing import Annotated
 
 import httpx
 from fastapi import APIRouter, Depends, HTTPException
-from shapely.geometry import shape
 
 from pollination import models as m
 from pollination import state
@@ -22,15 +22,11 @@ from pollination.datafiles import Catalog, load_catalog
 from pollination.engine import calculator
 from pollination.engine.matching import match
 from pollination.engine.polygon import BASELINE_YEARS, power_response
-from pollination.engine.timeline import (
-    SEASON_END,
-    SeasonInputs,
-    build_timeline,
-    fetch_inputs,
-)
-from pollination.geo import centroid
+from pollination.engine.timeline import SeasonInputs, build_timeline, fetch_inputs
+from pollination.geo import centroid, to_shape
 from pollination.nasa import hls
 from pollination.nasa.power import PowerDaily, daily_point
+from pollination.weeks import SEASON_END
 
 log = logging.getLogger(__name__)
 router = APIRouter()
@@ -49,26 +45,52 @@ def catalog() -> Catalog:
 
 
 _inputs_by_year: dict[m.Season, SeasonInputs] = {}
+_inputs_lock = Lock()
+_timelines: dict[m.Season, m.TimelineResponse] = {}
+_timelines_lock = Lock()
 
 
 def season_inputs(year: m.Season) -> SeasonInputs:
     """Dependency: the season's NASA inputs (tests override it to stay offline).
 
     Inputs are kept in memory unless a request failed, so a later call retries.
+    Concurrent first requests wait for one fetch instead of each starting one.
     """
-    if year in _inputs_by_year:
-        return _inputs_by_year[year]
-    settings = Settings()
-    inputs = fetch_inputs(
-        year,
-        catalog().parcels,
-        settings.cache_dir,
-        earthdata=settings.has_earthdata,
-        phenology=catalog().phenology,
-    )
-    if not inputs.failed:
-        _inputs_by_year[year] = inputs
-    return inputs
+    with _inputs_lock:
+        if year in _inputs_by_year:
+            return _inputs_by_year[year]
+        settings = Settings()
+        inputs = fetch_inputs(
+            year,
+            catalog().parcels,
+            settings.cache_dir,
+            earthdata=settings.has_earthdata,
+            phenology=catalog().phenology,
+        )
+        if not inputs.failed:
+            _inputs_by_year[year] = inputs
+        return inputs
+
+
+def season_timeline(
+    year: m.Season, inputs: Annotated[SeasonInputs, Depends(season_inputs)]
+) -> m.TimelineResponse:
+    """Dependency: the season's timeline.
+
+    It is kept in memory while it was built from the kept inputs, until the next
+    grower verification.
+    """
+    with _timelines_lock:
+        kept = _inputs_by_year.get(year) is inputs
+        if kept and year in _timelines:
+            return _timelines[year]
+        data = catalog()
+        timeline = build_timeline(
+            year, data.parcels, data.phenology, inputs, state.verifications
+        )
+        if kept:
+            _timelines[year] = timeline
+        return timeline
 
 
 def power_daily() -> PowerFetch:
@@ -111,30 +133,23 @@ def actors() -> m.Actors:
 
 @router.get("/timeline")
 def timeline(
-    year: m.Season, inputs: Annotated[SeasonInputs, Depends(season_inputs)]
+    timeline: Annotated[m.TimelineResponse, Depends(season_timeline)],
 ) -> m.TimelineResponse:
     """Return weekly bloom, nectar and evidence for every parcel in a season."""
-    data = catalog()
-    return build_timeline(
-        year, data.parcels, data.phenology, inputs, state.verifications
-    )
+    return timeline
 
 
 @router.get("/matches")
 def matches(
     beekeeper_id: str,
-    year: m.Season,
     week: m.Week,
-    inputs: Annotated[SeasonInputs, Depends(season_inputs)],
+    timeline: Annotated[m.TimelineResponse, Depends(season_timeline)],
 ) -> list[m.MatchCard]:
     """Return the beekeeper's candidates for a week: ranked, blocked ones last."""
     data = catalog()
     keeper = next((b for b in data.actors.beekeepers if b.id == beekeeper_id), None)
     if keeper is None:
         return []
-    timeline = build_timeline(
-        year, data.parcels, data.phenology, inputs, state.verifications
-    )
     weeks = {w.parcel_id: w for w in timeline.parcel_weeks if w.week == week}
     return match(keeper, data.parcels, weeks, data.calculator, data.ranking)
 
@@ -154,13 +169,15 @@ def verify(id: str) -> m.Provenance:
     """
     if id not in {p.id for p in catalog().parcels}:
         raise HTTPException(status_code=404, detail="Unknown parcel")
-    state.verifications[id] = m.Provenance(
-        kind="Observed",
-        source=state.PHOTO_SOURCE,
-        observed_at=date.today(),
-        note="Simulated in the demo; resets when the server restarts.",
-    )
-    return state.verifications[id]
+    with _timelines_lock:
+        state.verifications[id] = m.Provenance(
+            kind="Observed",
+            source=state.PHOTO_SOURCE,
+            observed_at=date.today(),
+            note="Simulated in the demo; resets when the server restarts.",
+        )
+        _timelines.clear()
+        return state.verifications[id]
 
 
 @router.post("/polygon/power")
@@ -200,10 +217,7 @@ def power(
 
 def _hls_missing(reason: str) -> m.HlsResponse:
     """An HLS response that says why there is no observation."""
-    provenance = m.Provenance(
-        kind="Missing", source=hls.SOURCE, observed_at=None, note=reason
-    )
-    gap = m.Measurement(value=None, provenance=provenance)
+    gap = m.Measurement.missing(hls.SOURCE, reason)
     return m.HlsResponse(observed_at=None, ndvi=gap, ndyi=gap)
 
 
@@ -217,7 +231,7 @@ def hls_latest(
     """
     if not Settings().has_earthdata:
         return _hls_missing("No Earthdata token configured; HLS not queried")
-    west, south, east, north = shape(polygon.model_dump()).bounds
+    west, south, east, north = to_shape(polygon).bounds
     if max(east - west, north - south) > MAX_POLYGON_SPAN_DEG:
         return _hls_missing(
             "Polygon too large for a satellite read; draw one around a single field"
