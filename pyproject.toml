@@ -3,10 +3,35 @@ name = "nasa-spaceapps-2026"
 version = "0.1.0"
 description = "NASA Space Apps Challenge 2026"
 requires-python = ">=3.12"
-dependencies = []
+dependencies = [
+    "fastapi",
+    "uvicorn",
+    "pydantic",
+    "pydantic-settings",
+    "httpx",
+    "shapely",
+    "pyproj",
+    "numpy",
+    "earthaccess>=0.19.0",
+    "rasterio>=1.5.2",
+    "xarray>=2026.9.0",
+    "h5netcdf>=1.8.3",
+    "h5py>=3.16.0",
+]
+
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools]
+package-dir = {"" = "src"}
+py-modules = ["logging_config"]
+
+[tool.setuptools.packages.find]
+where = ["src"]
+include = ["pollination*"]
 
 [tool.uv]
-package = false
 required-version = ">=0.9"
 
 [dependency-groups]
@@ -14,16 +39,19 @@ dev = [
     "ruff",
     "pyright",
     "pytest",
+    "pytest-httpx",
     "pytest-cov",
     "pre-commit",
     "pip-audit>=2.10.1",
     "commitizen>=4.19.3",
+    "types-shapely>=2.1.0.20261030",
 ]
 
 [tool.ruff]
 line-length = 88
 target-version = "py312"
 src = ["src", "tests"]
+extend-exclude = ["frontend"]
 
 [tool.ruff.lint]
 select = [
@@ -53,6 +81,7 @@ convention = "google"
 
 [tool.pyright]
 include = ["src", "tests"]
+exclude = ["frontend", "**/__pycache__", ".venv"]
 typeCheckingMode = "strict"
 pythonVersion = "3.12"
 extraPaths = ["src"]

@@ -1,0 +1,80 @@
+{
+  "growers": [
+    {
+      "id": "G1",
+      "name": "Synthetic grower G1 (orchard)",
+      "synthetic": true
+    },
+    {
+      "id": "G2",
+      "name": "Synthetic grower G2 (orchard)",
+      "synthetic": true
+    },
+    {
+      "id": "G3",
+      "name": "Synthetic grower G3 (sunflower)",
+      "synthetic": true
+    },
+    {
+      "id": "G4",
+      "name": "Synthetic host G4 (locust and grassland, forage)",
+      "synthetic": true
+    }
+  ],
+  "beekeepers": [
+    {
+      "id": "B1",
+      "name": "Synthetic beekeeper B1 (near Nagykallo, about 15 km)",
+      "synthetic": true,
+      "home": [
+        21.85,
+        47.87
+      ],
+      "colonies": 50,
+      "max_distance_km": 40.0,
+      "goal": "pollination",
+      "availability": {
+        "start": "2024-04-01",
+        "end": "2024-08-31"
+      },
+      "vehicle_l_per_100km": 12.0,
+      "alternative_contribution_eur": 400.0
+    },
+    {
+      "id": "B2",
+      "name": "Synthetic beekeeper B2 (Hodmezovasarhely area, about 180 km)",
+      "synthetic": true,
+      "home": [
+        20.33,
+        46.42
+      ],
+      "colonies": 40,
+      "max_distance_km": 250.0,
+      "goal": "pollination",
+      "availability": {
+        "start": "2024-04-01",
+        "end": "2024-08-31"
+      },
+      "vehicle_l_per_100km": 12.0,
+      "alternative_contribution_eur": 400.0
+    },
+    {
+      "id": "B3",
+      "name": "Synthetic beekeeper B3 (forage seeker, near Balkany)",
+      "synthetic": true,
+      "home": [
+        21.86,
+        47.77
+      ],
+      "colonies": 20,
+      "max_distance_km": 60.0,
+      "goal": "forage",
+      "availability": {
+        "start": "2024-04-01",
+        "end": "2024-08-31"
+      },
+      "vehicle_l_per_100km": 12.0,
+      "alternative_contribution_eur": 0.0
+    }
+  ]
+}
