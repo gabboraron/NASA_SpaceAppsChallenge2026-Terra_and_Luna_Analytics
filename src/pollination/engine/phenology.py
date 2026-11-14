@@ -136,9 +136,9 @@ def chill_rates(tmax: float, tmin: float, base: float) -> tuple[float, float]:
     mean = (tmax + tmin) / 2
     if tmax <= 0:
         return 0.0, 0.0
-    above = (tmax - base) ** 2 / (2 * (tmax - tmin)) if tmax > base else 0.0
     if tmin >= base:
         return 0.0, mean - base
+    above = (tmax - base) ** 2 / (2 * (tmax - tmin)) if tmax > base else 0.0
     if tmin >= 0:
         return -((mean - tmin) - above), above
     return -(tmax**2 / (2 * (tmax - tmin)) - above), above

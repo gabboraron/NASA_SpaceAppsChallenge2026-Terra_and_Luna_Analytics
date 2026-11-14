@@ -260,9 +260,9 @@ SMAP_DAY = date(2024, 7, 17)
     [
         ("apple", True, "blooming", "missing", "normal"),
         ("sunflower", True, "blooming", 5.0, "normal"),  # irrigated
-        ("sunflower", False, "blooming", 15.0, "low_nectar"),
-        ("black_locust", False, "blooming", 19.9, "low_nectar"),
-        ("sunflower", False, "blooming", 20.0, "normal"),  # strictly below 20
+        ("sunflower", False, "blooming", 5.0, "low_nectar"),  # driest on record
+        ("sunflower", False, "blooming", 15.0, "normal"),  # second driest of ten
+        ("black_locust", False, "blooming", 5.0, "unknown"),  # rule not validated
         ("sunflower", False, "pre_bloom", 5.0, "normal"),  # not flowering
         ("sunflower", False, "blooming", "missing", "unknown"),
         ("sunflower", False, "blooming", None, "unknown"),  # no percentile
@@ -303,7 +303,7 @@ def test_done_when_drought_year_flags_low_nectar_in_july() -> None:
     """Issue #17: 2022 sunflower blooming + low_nectar in July, 2024 normal."""
     p = parcel("sunflower", pid="P07")
     outcome: dict[int, set[str]] = {}
-    for year, pct in ((2022, 8.0), (2024, 55.0)):
+    for year, pct in ((2022, 5.0), (2024, 15.0)):
         inputs = tl.SeasonInputs(
             power={"P07": power(year, 15.0)}, hls="n/a", smap=smap_season(p, pct)
         )

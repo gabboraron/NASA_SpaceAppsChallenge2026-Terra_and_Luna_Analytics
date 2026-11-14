@@ -75,7 +75,7 @@ def test_contract_click_path() -> None:
             params = {
                 "beekeeper_id": actors["beekeepers"][0]["id"],
                 "year": 2024,
-                "week": 26,
+                "week": 9,
             }
             card = (await client.get("/matches", params=params)).json()[0]
             calc = await client.post("/calculate", json=card["calculator_input"])

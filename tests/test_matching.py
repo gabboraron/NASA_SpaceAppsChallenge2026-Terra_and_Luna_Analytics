@@ -130,7 +130,7 @@ def test_requested_colonies_above_what_the_beekeeper_has_block_the_parcel() -> N
     assert any("60" in r and "50" in r for r in card.reasons)
 
 
-WEEK = week_of()
+WEEK = week_of(week=1)  # 1 March: no bloom is over yet
 
 
 def variant(  # noqa: PLR0913  # one keyword per thing a test may change
@@ -251,7 +251,7 @@ def test_warnings_for_buffer_overlap_reported_bloom_and_low_nectar() -> None:
     warned = match_variants("B1", variant("P03", "dry", nectar="low_nectar"))["dry"]
     assert any("Natura 2000 site within 3 km" in w for w in warned.warnings)
     assert any("grower's declaration" in w for w in warned.warnings)
-    assert any("Low nectar" in w for w in warned.warnings)
+    assert any("Dry soil during bloom" in w for w in warned.warnings)
 
 
 def test_observed_bloom_drops_the_declaration_warning_and_field_check() -> None:
@@ -261,3 +261,17 @@ def test_observed_bloom_drops_the_declaration_warning_and_field_check() -> None:
     )["seen"]
     assert not any("grower's declaration" in w for w in card.warnings)
     assert "Field confirmation" not in card.missing_items
+
+
+def test_bloom_that_ended_before_the_selected_week_blocks_the_parcel() -> None:
+    """In mid-July (week 20) the April and May orchards are over, sunflower is open."""
+    cards = by_parcel(run("B1", weeks=week_of(week=20)))
+    assert cards["P01"].blocked
+    assert any("Bloom ended 08 May" in r for r in cards["P01"].reasons)
+    assert not cards["P07"].blocked
+
+
+def test_only_the_bloom_days_still_ahead_count() -> None:
+    """Week 10 starts 3 May: 6 of the apple's 17 bloom days are left."""
+    card = by_parcel(run("B1", weeks=week_of(week=10)))["P01"]
+    assert "6 of them left from the selected week" in card.reasons
