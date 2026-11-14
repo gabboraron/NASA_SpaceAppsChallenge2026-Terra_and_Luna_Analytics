@@ -1,1 +1,1 @@
-"""Nyírség pollination decision support."""
+"""Pollination marketplace decision support."""

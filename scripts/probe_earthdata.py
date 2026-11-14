@@ -1,5 +1,6 @@
-"""Prove remote HLS and SMAP access at one Nyírbátor location."""
+"""Prove remote HLS and SMAP access at one pilot-region location."""
 
+import logging
 import math
 from contextlib import closing
 from pathlib import Path
@@ -15,6 +16,8 @@ from rasterio.windows import Window
 LON, LAT = 22.13, 47.84
 JUNE = ("2024-06-01", "2024-06-30")
 POINT = (LON, LAT)
+
+log = logging.getLogger(__name__)
 
 
 def hls_probe() -> None:
@@ -36,8 +39,10 @@ def hls_probe() -> None:
                     1, window=Window(col - 1, row - 1, 3, 3), masked=True
                 ).compressed()
                 if pixels.size:
-                    print(f"HLS source: {url.split('?')[0]}")
-                    print(f"B03 row={row}, col={col}, raw pixels={pixels.tolist()}")
+                    log.info("HLS source: %s", url.split("?")[0])
+                    log.info(
+                        "B03 row=%s, col=%s, raw pixels=%s", row, col, pixels.tolist()
+                    )
                     return
     raise RuntimeError(f"No usable B03 window in {len(granules)} HLS granules")
 
@@ -66,15 +71,17 @@ def smap_probe() -> None:
                     raise RuntimeError(f"Unexpected SMAP grid: {moisture.shape}")
                 value = float(moisture[row, col])
                 fill = moisture.attrs.get("_FillValue")
-                if not np.isfinite(value) or (fill is not None and value == float(fill)):
+                is_fill = fill is not None and value == float(fill)
+                if not np.isfinite(value) or is_fill:
                     continue
-                print(f"SMAP source: {url.split('?')[0]}")
-                print(f"sm_rootzone row={row}, col={col}, value={value} m³/m³")
+                log.info("SMAP source: %s", url.split("?")[0])
+                log.info("sm_rootzone row=%s, col=%s, value=%s m³/m³", row, col, value)
                 return
     raise RuntimeError(f"No usable SMAP cell in {len(granules)} granules")
 
 
 if __name__ == "__main__":
+    logging.basicConfig(level=logging.INFO)
     load_dotenv(Path(__file__).resolve().parents[1] / ".env")
     earthaccess.login(strategy="environment")
     failures = []
@@ -83,6 +90,6 @@ if __name__ == "__main__":
             probe()
         except Exception as exc:
             failures.append(name)
-            print(f"{name} failed: {type(exc).__name__}: {exc}")
+            log.error("%s failed: %s: %s", name, type(exc).__name__, exc)
     if failures:
         raise SystemExit(f"Access proof incomplete: {', '.join(failures)}")

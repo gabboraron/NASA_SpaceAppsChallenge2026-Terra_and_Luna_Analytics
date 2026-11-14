@@ -1,0 +1,7 @@
+# API image needs only pyproject.toml, uv.lock, src/ and data/.
+**
+!pyproject.toml
+!uv.lock
+!src/
+!data/
+**/__pycache__

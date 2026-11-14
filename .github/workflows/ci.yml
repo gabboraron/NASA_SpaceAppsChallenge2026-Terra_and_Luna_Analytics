@@ -59,3 +59,16 @@ jobs:
       - run: npm run lint
       - run: npm run format:check
       - run: npm run build
+
+  docker:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - run: docker compose build
+      - name: Smoke test
+        run: |
+          docker compose up -d --wait
+          curl -fsS http://localhost:8080/api/health
+          curl -fsS -o /dev/null http://localhost:8080/
+      - if: always()
+        run: docker compose down
