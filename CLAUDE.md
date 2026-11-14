@@ -9,7 +9,7 @@ Project summary: the `project-context` skill. Build plan: `docs/implementation_p
   `datafiles.py`, `geo.py`, `state.py`, `engine/` (calculator, phenology, timeline, matching), `nasa/` (cache, POWER, HLS, SMAP)
 - `verification/` standalone checks of the model against past ground truth (hive scales, iNaturalist, PEP725); own README, not in CI
 - `tests/` pytest; `frontend/` React + Vite + TS + CSS Modules + MapLibre (+ Terra Draw)
-- `data/` committed config/geometry (parcels, Natura 2000, phenology, synthetic actors, ranking); NASA data is never committed
+- `data/` committed config/geometry (parcels, Natura 2000, phenology, synthetic actors, ranking); raw NASA data is never committed; the only exception is the small warmed response cache `data/nasa-cache.zip` (set up with `docs/cache_setup.md`)
 - `scripts/` one-off data builders + Earthdata probe; `docs/` plan + `ENGINEERING_GUIDE.md` (git/commit/release, security, testing)
 - `compose.yaml`, `Dockerfile`, `frontend/Dockerfile`, `frontend/nginx.conf`: Docker stack
 - `pyproject.toml` is the single source of tool config; `uv.lock` is committed
