@@ -251,3 +251,17 @@ Puli Space's instrument. Artemis III is now an Earth-orbit test, so say "Artemis
 - Cite a source URL for every dataset/claim used in the pitch.
 - Prefer verified NASA/NOAA endpoints; mark unverified ones.
 - Keep scratch work out of `ideas/`.
+
+### Pollination API contract
+
+Update `src/pollination/models.py` and the generated frontend types together
+in the same PR when changing the contract. From the repository root, start
+`uv run uvicorn pollination.api:app` and regenerate in a second terminal:
+
+```sh
+npx --yes openapi-typescript@7.13.0 http://127.0.0.1:8000/openapi.json -o frontend/src/api/schema.d.ts
+```
+
+Backend routes use the paths in issue #8. Strip the browser-facing `/api`
+prefix in the frontend proxy. Timeline weeks are numbered 1–26 from March 1.
+WP2 responses are synthetic fixtures; live data and verification state belong to WP13.

@@ -2,7 +2,10 @@
 
 from fastapi import FastAPI
 
+from pollination.contract import router
+
 app = FastAPI(title="Pollination API")
+app.include_router(router)
 
 
 @app.get("/health")
