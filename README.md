@@ -106,6 +106,7 @@ Beekeepers and growers in `data/actors.json` are **synthetic**. Parcels are **il
 - Benedek Máté
 - Yhair Sifuentes
 - Sándor Burian
+- Zsolt Laczkó
 
 ## AI use
 
