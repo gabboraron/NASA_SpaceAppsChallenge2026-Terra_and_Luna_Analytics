@@ -58,6 +58,10 @@ Presentation) is rated from 1 to 5. The [decision board](#quick-start) lets you 
 | Lunar Shield API on its own | [Lunar Landing Site Navigator](https://www.spaceappschallenge.org/2026/challenges/lunar-landing-site-navigator/) | 17/25 | Drop |
 | Lunar Shield outpost game | [Junior Astronaut Trainer](https://www.spaceappschallenge.org/2026/challenges/junior-astronaut-mission-trainer/) | 17/25 | Drop |
 | Pollen & Bee EO Monitor | [Dancing with the SARs](https://www.spaceappschallenge.org/2026/challenges/dancing-with-the-sars/) | 17/25 | Drop |
+| Slip Day + Moon Power layer (solar-farm heatmap merged in) | [Lunar Landing Site Navigator](https://www.spaceappschallenge.org/2026/challenges/lunar-landing-site-navigator/) | 21–22/25 | Build |
+| Moon Power Map (standalone) | [Lunar Landing Site Navigator](https://www.spaceappschallenge.org/2026/challenges/lunar-landing-site-navigator/) | 18/25 | Merge into Slip Day |
+| Heat & Light of the Cloud (AI data-center footprint) | [Earth System Trend Detective](https://www.spaceappschallenge.org/2026/challenges/earth-system-trend-detective/) | 20/25 (21–22 inside Navigator) | Merge into Navigator |
+| GPU smuggling from space (original sticky) | none | 9/25 | Drop |
 
 ## Quick start
 

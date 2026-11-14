@@ -29,6 +29,8 @@ window.DATA = {
     ['../04-feasibility-trend-navigator.md', 'Feasibility: Research Navigator + LLM front-end'],
     ['../04-feasibility-sar-pollen.md', 'Feasibility: Budapest ground motion (rail, buildings), Pollen & Bee'],
     ['../04-feasibility-trailbreaker.md', 'Feasibility: Trailbreaker / Marswalk planner'],
+    ['../04-feasibility-lunar-solar-farm.md', 'Feasibility: lunar solar-farm heatmap, standalone and as a Slip Day power layer'],
+    ['../04-feasibility-ai-datacenter-heat.md', 'Feasibility: GPU smuggling sticky (rejected) and its ch. 2 reframe, AI data-center heat footprint'],
     ['../04-feasibility-moon-salvage.md', 'Feasibility: lunar hardware recovery / Moon Salvage or Museum'],
     ['../space-apps-2026-map.html', 'Visual hackathon map (also published as a private Claude artifact)']
   ],
@@ -349,6 +351,125 @@ window.DATA = {
       verdict: 'Drop',
       checks: { fits: 1, nasa: 1, data: 1, demo: 0.5, skills: 0, novel: 0, local: 0, video: 1 },
       report: '../04-feasibility-slip-day-lunar.md'
+    },
+    /* ---------------------------------------------------------------- */
+    {
+      id: 'slipday-power', sources: [["Challenge 11 brief (names power generation)", "https://www.spaceappschallenge.org/2026/challenges/lunar-landing-site-navigator/"], ["Fincannon, NASA Glenn: 3–4 days darkness at 10 m (tested)", "https://ntrs.nasa.gov/api/citations/20205002224/downloads/Lunar%20Environment%20and%20Lunar%20Power%20Needs_2.pdf"], ["PGDA lunar polar illumination (Mazarico)", "https://pgda.gsfc.nasa.gov/products/69"], ["Ross et al. 2021, Towers on the Peaks of Eternal Light", "https://arxiv.org/abs/2102.11766"], ["Fincannon 2007, linked sites", "https://ntrs.nasa.gov/citations/20080045536"]], short: 'Slip Day + Power', name: 'Slip Day + Moon Power layer', family: 'Moon · mission planning', chNum: '11',
+      challenge: 'Lunar Landing Site Navigator',
+      summary: 'Slip Day plus a power layer: per site × day kWh/m² for a vertical tracking panel, longest night, battery size for a given load, and a mast-height selector (2/10/20 m). A small area heatmap around each site shows where a solar array would work best.',
+      scores: { impact: 4, creativity: 4, validity: 5, relevance: 5, presentation: 4 },
+      scoreWhy: 'Estimated 21–22 (vs 20 for Slip Day alone, a different agent: 1–2 points is noise). Challenge 11 asks for "power generation potential". Our engine reproduces NASA Glenn\'s 3–4 day darkness at 10 m (computed 86 h on the ridge). Fine-scale agreement with NASA\'s map is only r = 0.60 at 500 m spacing, so NASA\'s map stays the base layer.',
+      feasible: 'Yes', effortH: '65–75 (Slip Day 50–60 + power 12–18)', dataEffort: 'Low', teamFit: 4, riskLevel: 2,
+      coreData: 'Slip Day stack (LOLA DEM, SPICE, Horizons) + Mazarico average-visibility map, PGDA 5 m site DEMs, LROC WAC illumination map (check)',
+      risk: 'Scope: about the whole 68 person-hours. Area heatmaps must be precomputed offline (5–30 min per region on 10 cores) and frozen by Sat 24:00.',
+      res: {
+        listed: 'QuickMap (Sun-visibility layers), Moon Trek, Horizons',
+        other: 'Mazarico AVGVISIB 60 m map, LOLA 20 m DEM (460 MB), PGDA 5 m slope GeoTIFFs, LROC WAC illumination %',
+        tools: 'spiceypy, numpy, rasterio, Plotly/Leaflet polar overlay, Streamlit',
+        sponsor: 'Azure Blob for precomputed power cubes, Container Apps for the app; GoDaddy domain; Copilot'
+      },
+      mvp: {
+        must: 'All of Slip Day + per site×day kWh/m², longest night, battery kWh for a user load, mast 2/10/20 m, small area heatmap (NASA static map)',
+        nice: 'Precomputed monthly power grids for 2–3 regions; "partner site" map (second array that best covers the first one\'s nights)',
+        cut: 'Thermal model, cable routing, ML, 3D globe',
+        demo: 'Launch slips 3 weeks → Mons Mouton drops to MARGINAL (25-day night). Raise the mast to 10 m on the ridge → 3.6 days, same as NASA\'s own figure'
+      },
+      roles: [['Patrik', 'Power module from heat.py, overnight precompute'], ['Bence', 'Validation vs Mazarico, LROC WAC and Fincannon; partner-site map'], ['Benedek', 'Physics explainer, pitch, video'], ['Yhair', 'Heatmap panel, mast selector, battery sizer in the Slip Day UI']],
+      data: [['Mazarico illumination maps', 'http://imbrium.mit.edu/EXTRAS/ILLUMINATION/IMG/', 'tested'], ['PGDA 5 m site DEMs + slope', 'https://pgda.gsfc.nasa.gov/products/78', 'tested'], ['LROC WAC illumination % (south)', 'https://data.lroc.im-ldi.com/lroc/view_rdr/WAC_POLE_ILL_PCT_SOUTH', 'tested'], ['LOLA polar DEMs', 'http://imbrium.mit.edu/DATA/LOLA_GDR/POLAR/IMG/', 'tested'], ['NAIF SPICE kernels', 'https://naif.jpl.nasa.gov/pub/naif/generic_kernels/']],
+      prior: ['NASA Glenn already published a 30 m south-pole illumination + longest-darkness map at 10 m: a static heatmap alone is not new', 'Mazarico 2011, Gläser 2014/2018, Speyerer & Robinson 2013, Ross et al. 2021 (towers), Fincannon 2007 (linked sites 0.71 → 0.84)', 'Hardware concepts: NASA VSAT, Astrobotic LunaGrid', 'Space Apps 2021 "Find my Sun" (Earth solar siting) was a nominee, not a winner; no lunar solar-siting winner found'],
+      risks: [['Fine-scale disagreement with NASA map (r = 0.60)', 'NASA map as base; label ours "scenario (80 m DEM)"; try 20 m DEM'], ['Over-claiming panel output', 'Efficiency (default 0.30) and load editable; label "upper bound"'], ['"NASA already has this map"', 'Credit Fincannon/Mazarico; differentiate on dates, mast, slip, partner site'], ['Scope', 'Freeze rule: no grid by Sat 24:00 → static map + per-site numbers']],
+      pros: ['Turns "sunlit %" into kWh, battery hours and mast height: the numbers an operator sizes hardware with', 'Matches a published NASA number (credible)', 'About 90 % shared code with the validated Slip Day prototype', 'Mast slider + "only 0.07 km² gets > 80 % sun" are strong pitch hooks'],
+      cons: ['Uses nearly all team hours', 'Strong prior art on static maps', 'Fine-scale accuracy of our 80 m engine is moderate'],
+      verdict: 'Build',
+      checks: { fits: 1, nasa: 1, data: 1, demo: 1, skills: 1, novel: 0.5, local: 1, video: 1 },
+      report: '../04-feasibility-lunar-solar-farm.md'
+    },
+    /* ---------------------------------------------------------------- */
+    {
+      id: 'solarfarm', sources: [["Challenge 11 brief", "https://www.spaceappschallenge.org/2026/challenges/lunar-landing-site-navigator/"], ["Prior art: Fincannon, NASA Glenn 10 m map (tested)", "https://ntrs.nasa.gov/api/citations/20205002224/downloads/Lunar%20Environment%20and%20Lunar%20Power%20Needs_2.pdf"], ["PGDA lunar polar illumination", "https://pgda.gsfc.nasa.gov/products/69"], ["Gläser et al. 2018", "https://elib.dlr.de/119091"]], short: 'Moon Power Map', name: 'Moon Power Map (standalone solar-farm heatmap)', family: 'Moon · power', chNum: '11',
+      challenge: 'Lunar Landing Site Navigator',
+      summary: 'A south-pole heatmap of solar power potential (W/m², longest night, battery size) with mast-height scenarios, showing where a solar farm could go.',
+      scores: { impact: 3, creativity: 3, validity: 4, relevance: 4, presentation: 4 },
+      scoreWhy: 'Estimated 18. Clear visual and real physics, but NASA has published the same kind of map, and it covers only the power half of challenge 11 (no dates, no direct-to-Earth comms). Better merged into Slip Day.',
+      feasible: 'Yes', effortH: '45–55', dataEffort: 'Low', teamFit: 4, riskLevel: 2,
+      coreData: 'Mazarico average-visibility map, LOLA polar DEM, SPICE kernels',
+      risk: 'Fine-scale accuracy: our 80 m engine agrees with NASA\'s map only at r = 0.60 on a 500 m grid.',
+      res: {
+        listed: 'QuickMap, Moon Trek, Horizons',
+        other: 'PGDA 5 m site DEMs, LROC WAC illumination %',
+        tools: 'numpy, spiceypy, rasterio, Plotly/Leaflet, Streamlit',
+        sponsor: 'Azure Blob + Container Apps; GoDaddy domain; Copilot'
+      },
+      mvp: {
+        must: 'Static heatmap (NASA map × 1361 W/m² × efficiency), slope mask, click a pixel for monthly kWh and longest night at 2/10/20 m, battery sizer',
+        nice: 'Precomputed monthly grids for 2–3 regions, bifacial/fixed comparison',
+        cut: 'Thermal, cables, ML, 3D globe',
+        demo: '"Under 1 km² at 85–90°S gets > 70 % sun." Drag the mast from 2 m to 20 m: longest night drops from 8 days to 2'
+      },
+      roles: [['Patrik', 'Engine + precompute'], ['Bence', 'Validation'], ['Benedek', 'Physics explainer, pitch'], ['Yhair', 'Heatmap UI']],
+      data: [['Mazarico illumination maps', 'http://imbrium.mit.edu/EXTRAS/ILLUMINATION/IMG/', 'tested'], ['LOLA polar DEMs', 'http://imbrium.mit.edu/DATA/LOLA_GDR/POLAR/IMG/', 'tested'], ['PGDA 5 m site DEMs', 'https://pgda.gsfc.nasa.gov/products/78', 'tested']],
+      prior: ['Fincannon (NASA Glenn) 30 m map with 10 m-mast darkness', 'Mazarico 2011, Gläser 2018, Ross et al. 2021'],
+      risks: [['Prior art', 'Differentiate on scenarios'], ['Half the brief', 'Merge into Slip Day']],
+      pros: ['Striking visual', 'Low data risk, all tested', 'Real physics a judge can check'],
+      cons: ['Answers only half of challenge 11', 'NASA already published a similar map', 'Weaker than the merged version'],
+      verdict: 'Merge',
+      checks: { fits: 0.5, nasa: 1, data: 1, demo: 1, skills: 1, novel: 0, local: 0.5, video: 1 },
+      report: '../04-feasibility-lunar-solar-farm.md'
+    },
+    /* ---------------------------------------------------------------- */
+    {
+      id: 'dc-heat', sources: [["Challenge 2 brief", "https://www.spaceappschallenge.org/2026/challenges/earth-system-trend-detective/"], ["FAS 2026: tracking hyperscale data centers", "https://fas.org/publication/tracking-hyperscale/"], ["Prior art: Marinoni et al. 2026 (preprint)", "https://arxiv.org/html/2603.20897v3"], ["Epoch AI data-center list (CC BY)", "https://epoch.ai/data/data_centers/data_centers.csv"], ["Planetary Computer Landsat C2 L2 (tested)", "https://planetarycomputer.microsoft.com/dataset/landsat-c2-l2"]], short: 'Cloud Heat', name: 'Heat & Light of the Cloud (AI data-center footprint)', family: 'Earth observation', chNum: '2',
+      challenge: 'Be An Earth System Trend Detective!',
+      summary: 'Trend detection of the physical footprint of AI data centers: land surface temperature, vegetation and night lights around 4–6 sites vs control sites, with Mann-Kendall significance tests. Includes a pre-construction baseline for the planned Paks AI campus.',
+      scores: { impact: 4, creativity: 3, validity: 4, relevance: 5, presentation: 4 },
+      scoreWhy: 'Estimated 20 standalone, 21–22 as the headline case of Research Navigator (same challenge). First test near Stargate Abilene: about +3.2 °C relative warming (computed, n = 4, site footprint not confirmed). Creativity capped by FAS, Marinoni and Epoch prior art.',
+      feasible: 'Yes', effortH: '50–60', dataEffort: 'Med', teamFit: 4, riskLevel: 2,
+      coreData: 'Landsat C2 L2 surface temperature/NDVI, ECOSTRESS LST, VIIRS Black Marble, HLS',
+      risk: 'Attribution: construction-driven warming looks like waste heat. Use night LST, control sites and careful wording ("associated with").',
+      res: {
+        listed: 'AppEEARS, Giovanni, Mann-Kendall guides from the challenge page',
+        other: 'Epoch AI site list and timelines, CSO Ireland data-center electricity statistics',
+        tools: 'pystac-client, planetary-computer, rasterio/stackstac, xarray, pymannkendall, Streamlit',
+        sponsor: 'Microsoft Planetary Computer (tested, no login), Azure for the API, GoDaddy domain, Copilot'
+      },
+      mvp: {
+        must: '4–6 sites + 2 controls; Landsat summer LST + NDVI 2015–2026, site vs ring; Mann-Kendall + Sen\'s slope verdict; map + chart page; citation and AI disclosure panel',
+        nice: 'ECOSTRESS night LST, Black Marble radiance trend, before/after opening test',
+        cut: 'Water use, chip/compute estimates, commercial imagery, any national framing',
+        demo: '2016 → 2026 slider: a field becomes a server campus while the LST trend climbs ("+X °C, significant"). Cut to Paks: "Baseline recorded."'
+      },
+      roles: [['Patrik', 'STAC pipeline, API, Azure deploy'], ['Bence', 'Trend statistics, control sites, night LST'], ['Benedek', 'Site footprints, physical interpretation, video'], ['Yhair', 'Map + charts, energy context, citations']],
+      data: [['Landsat C2 L2 (Planetary Computer)', 'https://planetarycomputer.microsoft.com/dataset/landsat-c2-l2', 'tested'], ['ECOSTRESS ECO_L2T_LSTE', 'https://cmr.earthdata.nasa.gov/search/concepts/C2076090826-LPCLOUD.html', 'tested, Earthdata login'], ['VIIRS Black Marble VNP46A3', 'https://ladsweb.modaps.eosdis.nasa.gov/missions-and-measurements/products/VNP46A3/', 'tested, Earthdata login'], ['Epoch AI data centers', 'https://epoch.ai/data/data_centers/data_centers.csv', 'CC BY']],
+      prior: ['Marinoni et al. 2026 measured data-center heat islands from satellites (preprint)', 'FAS 2026 tracks hyperscale sites with imagery', 'Epoch AI publishes site lists and timelines'],
+      risks: [['Attribution of warming', 'Night LST, controls, cautious wording'], ['Site footprint errors', 'Check each polygon in imagery'], ['Earthdata login delays', 'Start with Landsat on Planetary Computer (no login)']],
+      pros: ['Topical "AI\'s physical footprint" story', 'Direct ch. 2 fit with real statistics', 'Hungarian hook: Paks baseline', 'Merges naturally into Research Navigator'],
+      cons: ['Published prior art', 'Attribution is hard', 'Paks campus status is a letter of intent (news, unverified)'],
+      verdict: 'Merge',
+      checks: { fits: 1, nasa: 1, data: 1, demo: 1, skills: 1, novel: 0.5, local: 1, video: 1 },
+      report: '../04-feasibility-ai-datacenter-heat.md'
+    },
+    /* ---------------------------------------------------------------- */
+    {
+      id: 'gpu', sources: [["FAS 2026: imagery cannot directly observe GPUs", "https://fas.org/publication/tracking-hyperscale/"], ["Space Apps terms: must address a challenge; no discriminatory language", "https://www.spaceappschallenge.org/legal/"], ["The 14 challenges", "https://www.spaceappschallenge.org/2026/challenges/"]], short: 'GPU smuggling', name: 'Detect GPU smuggling from space (original sticky)', family: 'Earth observation', chNum: '–',
+      challenge: 'None (no matching challenge)',
+      summary: 'The original board sticky: detect chip smuggling from orbit. Kept here so the team can see why it was reframed.',
+      scores: { impact: 2, creativity: 3, validity: 1, relevance: 1, presentation: 2 },
+      scoreWhy: 'Estimated 9. Fits no 2026 challenge (submissions must address one), GPUs and shipments are invisible from orbit, and naming a nationality risks the conduct rules. See "Heat & Light of the Cloud" for the usable version.',
+      feasible: 'No', effortH: 'n/a (core cannot be built)', dataEffort: 'High', teamFit: 2, riskLevel: 5,
+      coreData: 'None measures the target; imagery only shows buildings',
+      risk: 'The core signal (chips, shipments) cannot be observed from orbit.',
+      res: { listed: 'None applicable', other: 'Landsat/Sentinel-2 (buildings only)', tools: '–', sponsor: '–' },
+      mvp: { must: '–', nice: '–', cut: 'Everything that names a country or claims chip detection', demo: '–' },
+      roles: [],
+      data: [],
+      prior: ['FAS 2026 explicitly says imagery cannot see indoor hardware'],
+      risks: [['Ineligible', 'Reframe under ch. 2'], ['Discriminatory framing', 'Drop national targeting']],
+      pros: ['Catchy, topical'],
+      cons: ['No challenge fit', 'Not observable', 'Conduct-rule risk'],
+      verdict: 'Drop',
+      checks: { fits: 0, nasa: 0, data: 0, demo: 0, skills: 0.5, novel: 0.5, local: 0, video: 0.5 },
+      report: '../04-feasibility-ai-datacenter-heat.md'
     }
+
   ]
 };

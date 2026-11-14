@@ -96,6 +96,11 @@ Final feasibility scores (/25, research estimates; details in `research/04-feasi
 Earth's Twin Finder (ch. 9) 23 · Research Navigator + LLM (ch. 2) 23 · Trailbreaker hybrid at Gale (ch. 10) 21 ·
 Moon Salvage or Museum (ch. 1) 21 · Slip Day (ch. 11) 20, with a validated prototype · Budapest Ground Motion (ch. 5) 20 ·
 Slip Day + Shield 17 · Lunar Shield solo 17 · Shield game (ch. 3) 17 · Pollen 17.
+Added from the Miro board (14 Nov): Slip Day + Moon Power layer (ch. 11) 21–22, Build (`04-feasibility-lunar-solar-farm.md`;
+engine matches NASA Glenn's 3–4 day darkness at a 10 m mast, fine-scale r = 0.60 vs Mazarico so NASA's map stays the base) ·
+Moon Power Map standalone 18, Merge · Heat & Light of the Cloud (ch. 2, AI data-center heat/NDVI/night-light trends) 20, or 21–22
+as Research Navigator's headline case (`04-feasibility-ai-datacenter-heat.md`) · "GPU smuggling from space" sticky 9, Drop (no
+challenge fit, not observable, conduct-rule risk). "Cross-planetary vector search" sticky = Earth's Twin Finder.
 Note: the published artifact still says "Slip Day + Shield layer = strongest". That is outdated: terrain open-sky fraction is
 0.92–0.98 at landing sites (only 2–8 % shielding), and live SEP status means nothing for a future landing date.
 Slip Day prototype facts: Horizons `coord@301` and spiceypy agree to 0.001°; LOLA LDEM_80S_80M horizon takes 0.25 s per site;

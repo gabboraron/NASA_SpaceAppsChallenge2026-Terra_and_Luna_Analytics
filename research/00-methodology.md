@@ -12,6 +12,7 @@ be checkable, so this file explains where each kind of claim comes from and how 
 | 3. Lunar Shield deep dive | Two agents: science and prior art; data and tooling | `02-lunar-shield-science.md`, `02b-lunar-shield-data.md` | Inline citations; endpoints tagged [V] verified, [V-page] page loads, [U] unverified, [X] failed |
 | 4. Past winners | Claude Code, from the team's CSV | `03-past-winners.md` | `hackathon/NASA Space Apps Global Winners 2021-2025 (CSV).csv` |
 | 5. Feasibility per idea | Six agents, one per idea group, all given the same brief and the same four table formats | `04-feasibility-*.md` | Each report cites URLs and lists what it could not verify |
+| 5b. Board additions | Two more agents, same brief: solar-farm heatmap, GPU-smuggling sticky (reframed) | `04-feasibility-lunar-solar-farm.md`, `04-feasibility-ai-datacenter-heat.md`, `prototypes/lunar-solar-farm/heat.py`, `prototypes/datacenter-heat/lst_test.py` | Rerun the scripts; heat.py prints r vs the Mazarico map |
 | 6. Slip Day prototype | The Slip Day agent | `prototypes/slip-day/*.py` | Rerun `val.py`: compares the computed sunlit fraction with NASA's illumination map (reported r = 0.977, MAE 0.02 on 40 points) |
 | 7. Synthesis | Claude Code | `dashboard/`, README table, Miro "Idea review" section | Each idea in `dashboard/data.js` has a `sources` list and a `report` link |
 
