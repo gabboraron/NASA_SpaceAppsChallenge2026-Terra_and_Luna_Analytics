@@ -63,15 +63,70 @@ export function indexWeeks(
   return index;
 }
 
-/** Weeks run 1–26 from 1 March; returns e.g. "12–18 July". */
+export const WEEKS = 26;
+const DAY_MS = 86_400_000;
+const MONTH = new Intl.DateTimeFormat("en-GB", {
+  month: "long",
+  timeZone: "UTC",
+});
+const MONTH_SHORT = new Intl.DateTimeFormat("en-GB", {
+  month: "short",
+  timeZone: "UTC",
+});
+
+/** First day of a timeline week; weeks run 1–26 from 1 March. */
+export const weekStart = (year: Season, week: number): Date =>
+  new Date(Date.UTC(year, 2, 1 + (week - 1) * 7));
+
+/** e.g. "12–18 July". */
 export function weekLabel(year: Season, week: number): string {
-  const start = new Date(Date.UTC(year, 2, 1 + (week - 1) * 7));
-  const end = new Date(start.getTime() + 6 * 86_400_000);
-  const month = (d: Date) =>
-    d.toLocaleString("en-GB", { month: "long", timeZone: "UTC" });
-  return month(start) === month(end)
-    ? `${start.getUTCDate()}–${end.getUTCDate()} ${month(end)}`
-    : `${start.getUTCDate()} ${month(start)} – ${end.getUTCDate()} ${month(end)}`;
+  const start = weekStart(year, week);
+  const end = new Date(start.getTime() + 6 * DAY_MS);
+  const [a, b] = [MONTH.format(start), MONTH.format(end)];
+  return a === b
+    ? `${start.getUTCDate()}–${end.getUTCDate()} ${b}`
+    : `${start.getUTCDate()} ${a} – ${end.getUTCDate()} ${b}`;
+}
+
+/** Month names placed at the week in which each month starts (March–August). */
+export function monthTicks(year: Season): { label: string; week: number }[] {
+  return [2, 3, 4, 5, 6, 7].map((m) => {
+    const first = new Date(Date.UTC(year, m, 1));
+    return {
+      label: MONTH_SHORT.format(first),
+      week: 1 + (first.getTime() - weekStart(year, 1).getTime()) / DAY_MS / 7,
+    };
+  });
+}
+
+/** True when the week's bloom or indices are gap-filled, not observed (D4). */
+export const isInterpolated = (row: ParcelWeek): boolean =>
+  row.bloom_provenance.interpolated ||
+  row.ndvi.provenance.interpolated ||
+  row.ndyi.provenance.interpolated;
+
+/** The demo's headline state: in flower, but the soil is too dry for nectar. */
+export const isHighBloomLowNectar = (row: ParcelWeek): boolean =>
+  row.bloom_state === "blooming" && row.nectar_state === "low_nectar";
+
+/** One-line state of a parcel week, shared by the hover card and the detail panel. */
+export function weekStateText(row?: ParcelWeek): string {
+  if (!row) return "No data for this week";
+  if (isHighBloomLowNectar(row)) return "High bloom / Low nectar";
+  return `${BLOOM_LABELS[row.bloom_state]} · ${NECTAR_LABELS[row.nectar_state]}`;
+}
+
+/** Per week: how many parcels bloom, and how many of those are low on nectar. */
+export function weekSummary(
+  weeks: Map<number, Map<string, ParcelWeek>>,
+): { blooming: number; low: number }[] {
+  return Array.from({ length: WEEKS }, (_, i) => {
+    const rows = [...(weeks.get(i + 1)?.values() ?? [])];
+    return {
+      blooming: rows.filter((r) => r.bloom_state === "blooming").length,
+      low: rows.filter(isHighBloomLowNectar).length,
+    };
+  });
 }
 
 export function parcelCollection(

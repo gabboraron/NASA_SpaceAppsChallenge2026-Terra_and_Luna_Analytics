@@ -7,6 +7,7 @@ import httpx
 import pytest
 
 from pollination import models as m
+from pollination import state
 from pollination.api import app
 from pollination.contract import season_inputs
 from pollination.engine.timeline import SeasonInputs
@@ -22,6 +23,7 @@ def no_nasa() -> Iterator[None]:
     app.dependency_overrides[season_inputs] = offline
     yield
     app.dependency_overrides.clear()
+    state.verifications.clear()
 
 
 def test_contract_click_path() -> None:
@@ -64,7 +66,7 @@ def test_contract_click_path() -> None:
             calc = await client.post("/calculate", json=card["calculator_input"])
             assert {"low", "base", "high"} <= calc.json().keys()
             verify = await client.post(f"/parcels/{parcel['id']}/verify")
-            assert verify.json()["source"] == "WP2 synthetic example"
+            assert verify.json()["kind"] == "Observed"
             for endpoint in ("/polygon/power", "/polygon/hls"):
                 response = await client.post(endpoint, json=parcel["geometry"])
                 assert response.status_code == 200
@@ -78,5 +80,31 @@ def test_contract_click_path() -> None:
             ).status_code == 422
             assert (await client.post("/calculate", json={})).status_code == 422
             assert (await client.post("/parcels/absent/verify")).status_code == 404
+
+    asyncio.run(exercise())
+
+
+def test_verification_marks_blooming_weeks_observed() -> None:
+    """A simulated field photo turns the parcel's blooming weeks Observed."""
+
+    async def exercise() -> None:
+        async with httpx.AsyncClient(
+            transport=httpx.ASGITransport(app=app), base_url="http://test"
+        ) as client:
+            parcel = (await client.get("/parcels")).json()[0]["id"]
+
+            async def blooming() -> list[dict[str, str]]:
+                timeline = (await client.get("/timeline?year=2024")).json()
+                return [
+                    w["bloom_provenance"]
+                    for w in timeline["parcel_weeks"]
+                    if w["parcel_id"] == parcel and w["bloom_state"] == "blooming"
+                ]
+
+            before = await blooming()
+            assert before
+            assert all(p["kind"] != "Observed" for p in before)
+            assert (await client.post(f"/parcels/{parcel}/verify")).status_code == 200
+            assert all(p["kind"] == "Observed" for p in await blooming())
 
     asyncio.run(exercise())

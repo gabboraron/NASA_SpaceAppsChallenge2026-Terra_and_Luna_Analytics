@@ -1,7 +1,7 @@
 """API routes.
 
-Parcels, Natura 2000 and the timeline are real; the rest are WP2 fixtures until
-WP12/WP13.
+Parcels, Natura 2000, actors, the timeline and grower verification are real; the
+rest are WP2 fixtures until WP12/WP13.
 """
 
 from datetime import date
@@ -90,22 +90,8 @@ def natura2000() -> m.NaturaCollection:
 
 @router.get("/actors")
 def actors() -> m.Actors:
-    """Return synthetic participants."""
-    return m.Actors(
-        growers=[m.Grower(id="G1", name="Example grower", synthetic=True)],
-        beekeepers=[
-            m.Beekeeper(
-                id="B1",
-                name="Example beekeeper",
-                synthetic=True,
-                home=(22.11, 47.83),
-                colonies=50,
-                max_distance_km=40,
-                goal="pollination",
-                availability=m.Window(start=date(2024, 3, 1), end=date(2024, 8, 31)),
-            )
-        ],
-    )
+    """Return the synthetic growers and beekeepers."""
+    return catalog().actors
 
 
 @router.get("/timeline")
@@ -150,15 +136,20 @@ def calculate(inputs: m.CalculatorInput) -> m.CalculatorResult:
 
 @router.post("/parcels/{id}/verify")
 def verify(id: str) -> m.Provenance:
-    """Return a simulated verification example without recording state."""
+    """Record a simulated grower field photo confirming the parcel's bloom (D16).
+
+    The timeline then reports the parcel's blooming weeks as Observed. The state
+    lives in memory and resets when the server restarts.
+    """
     if id not in {p.id for p in catalog().parcels}:
         raise HTTPException(status_code=404, detail="Unknown parcel")
-    return m.Provenance(
+    state.verifications[id] = m.Provenance(
         kind="Observed",
-        source=SOURCE,
+        source=state.PHOTO_SOURCE,
         observed_at=date.today(),
-        note="Simulated verification; no field observation.",
+        note="Simulated in the demo; resets when the server restarts.",
     )
+    return state.verifications[id]
 
 
 @router.post("/polygon/power")
