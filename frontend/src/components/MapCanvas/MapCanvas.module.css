@@ -1,0 +1,15 @@
+.map {
+  position: absolute;
+  inset: 0;
+}
+.error {
+  position: absolute;
+  bottom: 2rem;
+  left: 1rem;
+  max-width: 80%;
+  margin: 0;
+  padding: 0.75rem 1rem;
+  background: var(--paper);
+  border-radius: 0.6rem;
+  outline: 2px solid var(--drought);
+}
