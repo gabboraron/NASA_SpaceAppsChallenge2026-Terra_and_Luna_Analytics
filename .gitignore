@@ -238,3 +238,6 @@ data/*
 *.h5
 *.nc
 *.tif
+
+# Exported NASA cache zips are shared outside git (plan D2)
+nasa-cache*.zip
