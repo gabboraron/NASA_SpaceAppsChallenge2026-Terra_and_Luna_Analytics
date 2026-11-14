@@ -92,7 +92,7 @@ pre{background:#050811;border:1px solid var(--line);border-radius:7px;padding:12
     <label class="clock"><input type="checkbox" id="hyst" checked> Restart hysteresis</label>
   </div>
   <div class="card scene"><svg id="scene" viewBox="0 0 1200 330" role="img" aria-label="Sun, Earth and Moon: solar particles and CME travelling outward"></svg>
-    <div class="cap"><span class="legend"><span><i style="background:#ffd27a"></i>solar protons (SEP), arrive in &lt; 1 h</span><span><i style="background:#b18cff"></i>CME front, arrives in 1–3 days</span><span><i style="background:#3ddc97"></i>aurora = geomagnetic storm</span></span><span>Not to scale: Sun–Earth 150 million km, Earth–Moon 384 000 km</span></div></div>
+    <div class="cap"><span class="legend"><span><i style="background:#ffd27a"></i>solar protons (SEP), arrive in &lt; 1 h</span><span><i style="background:#b18cff"></i>CME front, arrives in 1–3 days</span><span><i style="background:#3ddc97"></i>aurora = geomagnetic storm</span><span><i style="background:#c58cff"></i>Van Allen belts (Earth&#39;s radiation &quot;donut&quot;)</span></span><span>Not to scale: Sun–Earth 150 million km, Earth–Moon 384 000 km</span></div></div>
   <div class="grid">
     <!-- left: map + fleet -->
     <div class="card">
@@ -323,6 +323,7 @@ function render(){
     ['ISS crew dose', S>=2?'shelter advised during passes':'normal', S>=2?'a':'g'],
     ['GNSS positioning accuracy', G>=3?'DEGRADED':G>=1?'minor errors':'normal', G>=3?'r':G>=1?'a':'g'],
     ['Power grids (high latitude)', G>=4?'voltage control issues':G>=2?'alarms possible':'normal', G>=4?'r':G>=2?'a':'g'],
+    ['Van Allen belts: GPS/MEO/GEO charging, transit to the Moon', G>=2?'OUTER BELT FILLING · charging risk':G>=1?'elevated electrons':'normal', G>=2?'a':'g'],
     ['Satellite drag (LEO)', G>=3?'orbit tracking errors':'normal', G>=3?'a':'g']];
   $('earthList').innerHTML = E.map(([n,v,c])=>`<div class="earth"><span>${n}</span><span class="pill ${c}">${v}</span></div>`).join('');
 }
@@ -341,7 +342,7 @@ function sceneSVG(){
    <radialGradient id="moonG" cx="35%" cy="35%" r="75%"><stop offset="0" stop-color="#d9dbe0"/><stop offset=".6" stop-color="#9a9da6"/><stop offset="1" stop-color="#4b4e57"/></radialGradient>
    <radialGradient id="night" cx="85%" cy="50%" r="70%"><stop offset=".45" stop-color="#000" stop-opacity="0"/><stop offset="1" stop-color="#000" stop-opacity=".75"/></radialGradient>
    <clipPath id="ec"><circle cx="${EARTH.x}" cy="${EARTH.y}" r="${EARTH.r}"/></clipPath>
-   <filter id="glow"><feGaussianBlur stdDeviation="6"/></filter></defs>
+   <filter id="glow"><feGaussianBlur stdDeviation="6"/></filter><filter id="soft"><feGaussianBlur stdDeviation="3"/></filter></defs>
   <rect width="1200" height="330" fill="#03050b"/>`;
   // stars (deterministic)
   for (let i=0;i<90;i++){ const x=(i*373)%1200, y=(i*151)%330, r=(i%7===0)?1.3:0.7; s+=`<circle cx="${x}" cy="${y}" r="${r}" fill="#fff" opacity="${0.25+((i*37)%50)/100}"/>`; }
@@ -363,10 +364,18 @@ function sceneSVG(){
     const x = SUN.x+70+u*(tgt.x-SUN.x-70-(toMoon?tgt.r:EARTH.r+20)), y = SUN.y+(tgt.y-SUN.y)*u + jitter*(1-u*0.7);
     s+=`<circle cx="${x.toFixed(1)}" cy="${y.toFixed(1)}" r="1.8" fill="#ffd27a" opacity="${0.35+0.6*(1-u*0.4)}"/>`; }
   // Earth magnetosphere (bow toward the Sun, tail away); compressed when the CME hits
-  const comp = G>=1 ? 0.75 : 1;
-  s+=`<path d="M ${EARTH.x+260} ${EARTH.y-120} C ${EARTH.x-40} ${EARTH.y-150}, ${EARTH.x-150*comp} ${EARTH.y-90}, ${EARTH.x-150*comp} ${EARTH.y}
-      C ${EARTH.x-150*comp} ${EARTH.y+90}, ${EARTH.x-40} ${EARTH.y+150}, ${EARTH.x+260} ${EARTH.y+120}" fill="#5aa9ff" fill-opacity=".05" stroke="#5aa9ff" stroke-opacity=".45" stroke-dasharray="5 5"/>
-     <text x="${EARTH.x-150*comp+6}" y="${EARTH.y-96}" fill="#5aa9ff" font-size="10" opacity=".8">magnetosphere</text>`;
+  const comp = G>=1 ? 0.88 : 1;
+  s+=`<path d="M ${EARTH.x+260} ${EARTH.y-120} C ${EARTH.x-40} ${EARTH.y-150}, ${EARTH.x-185*comp} ${EARTH.y-90}, ${EARTH.x-185*comp} ${EARTH.y}
+      C ${EARTH.x-185*comp} ${EARTH.y+90}, ${EARTH.x-40} ${EARTH.y+150}, ${EARTH.x+260} ${EARTH.y+120}" fill="#5aa9ff" fill-opacity=".05" stroke="#5aa9ff" stroke-opacity=".45" stroke-dasharray="5 5"/>
+     <text x="${EARTH.x-185*comp+6}" y="${EARTH.y-96}" fill="#5aa9ff" font-size="10" opacity=".8">magnetosphere</text>`;
+  // Van Allen belts ("the Earth donut"): cross-section = two lobes each side. Inner = trapped protons, outer = electrons
+  // that fill up during geomagnetic storms (G>=2 here, schematic). Radii are schematic, not to scale.
+  const lobe = (r,w,col,op,side) => { const a0=-0.95, a1=0.95, p=(a)=>[EARTH.x+side*r*Math.cos(a), EARTH.y+r*Math.sin(a)];
+    const [x0,y0]=p(a0),[x1,y1]=p(a1); return `<path d="M ${x0} ${y0} A ${r} ${r} 0 0 ${side>0?1:0} ${x1} ${y1}" fill="none" stroke="${col}" stroke-width="${w}" stroke-linecap="round" opacity="${op}" filter="url(#soft)"/>`; };
+  const outerOp = 0.22 + Math.min(0.55, G*0.14);
+  for (const side of [-1,1]){ s+=lobe(EARTH.r*1.38, EARTH.r*0.26, '#ff9a4a', 0.32, side); s+=lobe(EARTH.r*2.05, EARTH.r*0.5, '#c58cff', outerOp, side); }
+  s+=`<text x="${EARTH.x+EARTH.r*1.38}" y="${EARTH.y+EARTH.r*1.38+14}" fill="#ff9a4a" font-size="10" text-anchor="middle" opacity=".9">inner belt</text>
+      <text x="${EARTH.x+EARTH.r*2.05}" y="${EARTH.y+EARTH.r*2.05-4}" fill="#c58cff" font-size="10" text-anchor="middle" opacity=".9">outer belt${G>=2?' · filling':''}</text>`;
   // Earth globe with simple continents, night side, aurora
   s+=`<circle cx="${EARTH.x}" cy="${EARTH.y}" r="${EARTH.r+6}" fill="#5aa9ff" opacity=".18" filter="url(#glow)"/>
    <circle cx="${EARTH.x}" cy="${EARTH.y}" r="${EARTH.r}" fill="url(#earthG)"/>
