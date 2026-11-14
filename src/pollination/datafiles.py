@@ -141,10 +141,11 @@ class Catalog:
     phenology: dict[str, PhenologyEntry]
     actors: Actors
     calculator: CalculatorDefaults
+    ranking: Ranking
 
 
 def load_catalog(settings: Settings) -> Catalog:
-    """Load Natura 2000, parcels (with Natura status), phenology, actors, defaults."""
+    """Load Natura 2000, parcels (with Natura status), phenology, actors and configs."""
     natura = load_natura(settings.data_dir)
     index = NaturaIndex.for_bbox(natura, settings.bbox)
     return Catalog(
@@ -153,4 +154,5 @@ def load_catalog(settings: Settings) -> Catalog:
         phenology=load_phenology(settings.data_dir),
         actors=load_actors(settings.data_dir),
         calculator=load_calculator(settings.data_dir),
+        ranking=load_ranking(settings.data_dir),
     )
