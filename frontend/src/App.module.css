@@ -1,0 +1,80 @@
+.page {
+  display: flex;
+  flex-direction: column;
+  min-height: 100dvh;
+}
+.page header {
+  display: flex;
+  align-items: baseline;
+  gap: calc(2 * var(--step));
+  padding: 1rem 1.5rem;
+  border-bottom: 1px solid var(--line);
+}
+.page h1 {
+  font-size: var(--title);
+  margin: 0;
+}
+.workspace {
+  flex: 1;
+  display: grid;
+  grid-template-columns: minmax(13rem, 18rem) 1fr;
+}
+.workspace aside {
+  padding: 1.25rem;
+}
+.workspace h2 {
+  margin: 0;
+  font-size: 1.15rem;
+}
+.workspace aside p,
+.page header span,
+.workspace small {
+  color: #526659;
+}
+.workspace button {
+  display: block;
+  text-align: left;
+  background: white;
+  border: 1px solid var(--line);
+  border-radius: 0.4rem;
+  padding: 0.7rem 0.9rem;
+  font: inherit;
+  width: 100%;
+  margin-top: var(--step);
+  cursor: pointer;
+}
+.workspace button[aria-pressed="true"] {
+  border-color: var(--natura);
+  background: #e9f1e9;
+}
+.workspace small {
+  display: block;
+  margin-top: 0.25rem;
+}
+.panel {
+  position: relative;
+  min-height: 56dvh;
+  background: #e6ebe3;
+}
+.map {
+  position: absolute;
+  inset: 0;
+}
+.error {
+  position: absolute;
+  bottom: 2rem;
+  left: 1rem;
+  max-width: 80%;
+  padding: 0.75rem;
+  background: var(--paper);
+  border-left: 3px solid var(--drought);
+}
+@media (max-width: 640px) {
+  .workspace {
+    grid-template-columns: 1fr;
+    grid-template-rows: auto 1fr;
+  }
+  .page header {
+    flex-wrap: wrap;
+  }
+}
