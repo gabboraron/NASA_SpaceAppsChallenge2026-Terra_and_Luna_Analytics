@@ -48,7 +48,10 @@ Python-only AI engineering project. Challenge/goal/stack details: see the `proje
 - CI also runs `pip-audit` on the locked deps and a gitleaks secret scan; the PR title must be a Conventional Commit.
 - Dependabot updates uv deps and Actions weekly. Dependency changes go through `uv add` so the lockfile stays in sync (CI fails on a stale lock).
 - Work on feature branches and open PRs into `main`; use `superpowers:finishing-a-development-branch` when done.
-# NASA Space Apps Challenge 2026 — Team Workspace
+
+---
+
+## Team workspace context (research phase)
 
 Context file for Claude Code. Keep it current as decisions are made.
 Status: initial version (2026-11-14) built from the team's idea docs; hackathon rules/resources

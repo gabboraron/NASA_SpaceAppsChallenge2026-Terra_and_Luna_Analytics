@@ -24,6 +24,8 @@ dev = [
 line-length = 88
 target-version = "py312"
 src = ["src", "tests"]
+# research/ holds throwaway feasibility prototypes, not product code
+extend-exclude = ["research"]
 
 [tool.ruff.lint]
 select = [
