@@ -18,8 +18,6 @@ import os
 import time
 from contextlib import ExitStack
 from datetime import date
-from functools import cache
-from pathlib import Path
 from typing import Any
 
 import earthaccess
@@ -27,12 +25,12 @@ import httpx
 import numpy as np
 import rasterio
 import shapely
-from dotenv import load_dotenv
 from pyproj import Transformer
 from rasterio.features import geometry_mask
 from rasterio.windows import Window
 from shapely.geometry import Polygon, mapping
 
+from pollination.nasa.earthdata import login
 from pollination.nasa.hls import BandWindow, Bbox, Scene, scene_day
 
 SCALE = 0.0001
@@ -51,14 +49,6 @@ _CLIENT = httpx.Client(  # shared: reuses connections instead of opening one per
 _COMMON = {"blue": "B02", "green": "B03", "red": "B04", "fmask": "Fmask"}
 _PRODUCTS = {"HLSS30": {**_COMMON, "nir": "B8A"}, "HLSL30": {**_COMMON, "nir": "B05"}}
 _ROLES = ("blue", "green", "red", "nir", "fmask")
-_REPO_ROOT = Path(__file__).resolve().parents[3]
-
-
-@cache
-def _login() -> None:
-    """Log in to Earthdata once, from ``.env`` / environment variables."""
-    load_dotenv(_REPO_ROOT / ".env")
-    earthaccess.login(strategy="environment")
 
 
 def search_scenes(bbox: Bbox, start: date, end: date) -> list[Scene]:
@@ -72,7 +62,7 @@ def search_scenes(bbox: Bbox, start: date, end: date) -> list[Scene]:
     Returns:
         Scenes that have all five bands needed (blue, green, red, NIR, Fmask).
     """
-    _login()
+    login()
     scenes: list[Scene] = []
     for short_name, suffixes in _PRODUCTS.items():
         granules = earthaccess.search_data(
@@ -136,7 +126,7 @@ def read_window(scene: Scene, polygon: Polygon) -> BandWindow | None:
         Scaled reflectance, Fmask and the parcel pixel mask, or None if the parcel
         is not fully inside this granule's tile.
     """
-    _login()
+    login()
     with (
         rasterio.Env(
             GDAL_DISABLE_READDIR_ON_OPEN="EMPTY_DIR",
