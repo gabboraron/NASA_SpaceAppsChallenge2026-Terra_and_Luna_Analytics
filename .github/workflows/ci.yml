@@ -38,7 +38,7 @@ jobs:
           uv export --locked --no-emit-project -o requirements.audit.txt
           uv run pip-audit -r requirements.audit.txt --require-hashes --disable-pip
       - name: Secret scan
-        uses: gitleaks/gitleaks-action@v2
+        uses: gitleaks/gitleaks-action@v3
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
