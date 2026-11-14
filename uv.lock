@@ -1,5 +1,5 @@
 version = 1
-revision = 5
+revision = 3
 requires-python = ">=3.12"
 resolution-markers = [
     "python_full_version >= '3.14' and sys_platform == 'win32'",
@@ -1364,6 +1364,7 @@ dev = [
     { name = "pytest-cov" },
     { name = "pytest-httpx" },
     { name = "ruff" },
+    { name = "types-shapely" },
 ]
 
 [package.metadata]
@@ -1393,6 +1394,7 @@ dev = [
     { name = "pytest-cov" },
     { name = "pytest-httpx" },
     { name = "ruff" },
+    { name = "types-shapely", specifier = ">=2.1.0.20261030" },
 ]
 
 [[package]]
@@ -2523,6 +2525,18 @@ dependencies = [
 sdist = { url = "https://files.pythonhosted.org/packages/0d/ea/b2a5bd54b28a324dae8211928b2d730b6547500342c7e6c6dea08bd0a485/tqdm-4.70.1.tar.gz", hash = "sha256:cefd0eca11b2a37a3aee776544d4f4ae913f02688135b5556b8788dfa474afc4", size = 171846, upload-time = "2026-09-11T07:25:16.601Z" }
 wheels = [
     { url = "https://files.pythonhosted.org/packages/a7/03/921a3d3c75785aca9ebfbfcabfbc3a1be12e2ab5265deb026d55a5a3f83e/tqdm-4.70.1-py3-none-any.whl", hash = "sha256:c293e525e6fef9c20e8728fd4612df02a0aa31bb5fe91ecd93e123b1b7bffa73", size = 80199, upload-time = "2026-09-11T07:25:14.599Z" },
+]
+
+[[package]]
+name = "types-shapely"
+version = "2.1.0.20261030"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "numpy" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/d1/fb/c94c0e74109e5778cd619c36ea1f9ad21bb5f3b60c6a4287022c55433e86/types_shapely-2.1.0.20261030.tar.gz", hash = "sha256:2299ee7c5e671ea1f76c190236e1d7895dfd1a32672ff1f4c163da830cd96230", size = 27888, upload-time = "2026-10-30T07:50:33.391Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/2b/2e/5d2b8b9a9e6f79749b1817a2a31f36982b2d8ea5873a80eba9daab8fcdee/types_shapely-2.1.0.20261030-py3-none-any.whl", hash = "sha256:73b477a4a4e0e400ddc5324c7f556b9e4aea74bf0e4bcaafe49f66975a27b05f", size = 38616, upload-time = "2026-10-30T07:50:32.313Z" },
 ]
 
 [[package]]

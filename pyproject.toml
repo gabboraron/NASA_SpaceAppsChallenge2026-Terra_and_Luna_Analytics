@@ -44,6 +44,7 @@ dev = [
     "pre-commit",
     "pip-audit>=2.10.1",
     "commitizen>=4.19.3",
+    "types-shapely>=2.1.0.20261030",
 ]
 
 [tool.ruff]
