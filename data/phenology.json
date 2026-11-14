@@ -1,44 +1,37 @@
 {
-  "_note": "Plan D20 / WP4: every value needs a cited source and none is invented, except the entries marked 'approximate: AI estimate', which are placeholders chosen by the team to unblock WP11. Values stay null until someone reads the source and fills base_temp_c, gdd_bloom_start/end, uncertainty_days (and NDYI threshold for sunflower) together with the source URL or DOI. Until then the engine must use the grower-declared window only and show GDD as context (plan section 7 fallback). Leads were found by web search on 2026-11-14 and NOT read in full.",
+  "_note": "Plan D20 / WP4: every value needs a cited source that someone read; none is invented. method picks the heat series in src/pollination/engine/phenology.py; heat_threshold is the heat sum at threshold_stage; the window ends at heat_bloom_end if set, else after bloom_days (centred on the threshold day for full_bloom). uncertainty_days is the RMSE the source reports. All models run on NASA POWER daily T2M_MAX/T2M_MIN with Tmean = (Tmax + Tmin) / 2. Checks against observed bloom dates are in issue #35.",
   "apple": {
-    "method": "gdd",
-    "base_temp_c": 5.0,
-    "gdd_start": "03-01",
-    "gdd_bloom_start": 175,
-    "gdd_bloom_end": 320,
-    "uncertainty_days": 7,
+    "method": "sigmoid",
+    "base_temp_c": 3.3,
+    "gdd_start": "01-01",
+    "heat_threshold": 143,
+    "threshold_stage": "bloom_start",
+    "bloom_days": 15,
+    "uncertainty_days": 4.3,
     "ndyi_bloom_threshold": null,
-    "source": "AI estimate, unverified",
-    "status": "approximate: AI estimate, replace with cited value",
-    "leads": [
-      "https://asr.copernicus.org/articles/18/93/2021/ (degree-day sum from 1 January, Latvia; base not confirmed)",
-      "https://www.doi.org/10.1007/S00484-012-0551-9 (apple bloom phenology model; not read)"
-    ],
-    "note": "Approximate AI estimate (NOT from a read source): GDD summed from 1 March using daily mean temperature, derived from typical Nyiregyhaza monthly means (Mar ~5.5, Apr ~11.5, May ~16.5 C) and the declared 2024 bloom windows. Replace with a cited value. No Hungary-specific or base-4 C calibration found."
+    "source": "Chmielewski F-M, Blümel K, Henniges Y, Blanke M, Weber RWS, Zoth M (2011) Phenological models for the beginning of apple blossom in Germany. Meteorol Z 20:487-496, doi:10.1127/0941-2948/2011/0258; bloom length: Sepsi P (2016) PhD thesis, Szent István University, doi:10.14751/SZIE.2016.047",
+    "status": "sourced",
+    "leads": [],
+    "note": "Beginning of bloom (BBCH 61), model M1: sigmoid forcing (Eq. 3.2) from t1 = 1 January, TBf = 3.3 °C, F* = 143 FU, RMSE 4.28 days (Table 2, Germany). Bloom length 15 days: mean from first flower to end of petal fall, n = 2426, Sepsi 2016 p. 72 and Table 25. Fitted on station daily means; POWER (Tmax + Tmin) / 2 is used instead."
   },
   "sour_cherry": {
     "method": "gdd",
-    "base_temp_c": 4.4,
+    "base_temp_c": 2.0,
     "gdd_start": "03-01",
-    "gdd_bloom_start": 110,
-    "gdd_bloom_end": 215,
-    "uncertainty_days": 7,
+    "heat_threshold": 250.7,
+    "threshold_stage": "bloom_start",
+    "heat_bloom_end": 390,
+    "uncertainty_days": 4.3,
     "ndyi_bloom_threshold": null,
-    "source": "AI estimate, unverified",
-    "status": "approximate: AI estimate, replace with cited value",
-    "leads": [
-      "https://journal.americanpomological.org/index.php/jofaps/article/download/2840/2844/6039 (Michigan protocol counts degree days from 1 January to 50% bloom at base 4.4 C; bloom total not found)",
-      "https://ishs.org/ishs-article/1020_35 (Persely et al., Hungarian sour cherry phenology; not read)",
-      "https://ishs.org/ishs-article/1020_36/ (German sour cherry model, start date 1 March; fitted values not seen)"
-    ],
-    "note": "Approximate AI estimate (NOT from a read source): GDD summed from 1 March using daily mean temperature, derived from typical Nyiregyhaza monthly means (Mar ~5.5, Apr ~11.5, May ~16.5 C) and the declared 2024 bloom windows. Replace with a cited value. Candidate base 4.4 C is from a search snippet, not yet confirmed in the paper."
+    "source": "Matzneller P, Blümel K, Chmielewski F-M (2014) Models for the beginning of sour cherry blossom. Int J Biometeorol 58:703-715, doi:10.1007/s00484-013-0651-1; bloom end calibrated on Szabó T (2007) PhD thesis, Corvinus University of Budapest, Annex 7",
+    "status": "sourced; heat_bloom_end calibrated by the team on cited observations",
+    "leads": [],
+    "note": "Beginning of bloom (BBCH 60), model M1: linear GDD from t1 = 1 March (DOY 60), TBF = 2.0 °C, F* = 250.7 (Table 4; RMSE 4.30 days on validation). heat_bloom_end: median GDD (same base and start) at the observed end of bloom of 'Újfehértói fürtös', 1983-2005 (Szabó 2007, Annex 7), computed on NASA POWER; leave-one-year-out RMSE 3.1 days. On the same data the start threshold has RMSE 3.8 days."
   },
   "sunflower": {
     "method": "ndyi",
     "base_temp_c": null,
     "gdd_start": null,
-    "gdd_bloom_start": null,
-    "gdd_bloom_end": null,
     "uncertainty_days": 7,
     "ndyi_bloom_threshold": null,
     "source": "AI estimate, unverified",
@@ -47,22 +40,23 @@
       "NDSU sunflower GDD model quoted at base 6.7 C, R1 569 / R5.1 883 GDD, in a Manitoba sheet that is now a 404 (https://residents.manitoba.ca/agriculture/crops/crop-management/pubs/frost-sunflowers.pdf); unverified, start point (sowing or emergence) unknown",
       "https://nuseed.com/us/growing-degree-days-gdd-for-sunflower/ (not read)"
     ],
-    "note": "Bloom comes from HLS NDYI (plan D6). The threshold stays null until it can be read off the real 2024 series; uncertainty_days is an AI estimate. Bloom is detected from HLS NDYI (plan D6); the NDYI threshold must be calibrated or cited."
+    "note": "Bloom comes from HLS NDYI (plan D6). The threshold stays null until it can be read off the real 2024 series; uncertainty_days is an AI estimate. Bloom is detected from HLS NDYI (plan D6); the NDYI threshold must be calibrated or cited.",
+    "heat_threshold": null
   },
   "black_locust": {
-    "method": "gdd",
-    "base_temp_c": 5.0,
-    "gdd_start": "03-01",
-    "gdd_bloom_start": 365,
-    "gdd_bloom_end": 520,
-    "uncertainty_days": 7,
+    "method": "chill_days",
+    "base_temp_c": 8.88,
+    "gdd_start": null,
+    "chill_start": "10-01",
+    "chill_requirement": -138.95,
+    "heat_threshold": 247.73,
+    "threshold_stage": "full_bloom",
+    "bloom_days": 10,
+    "uncertainty_days": 6.1,
     "ndyi_bloom_threshold": null,
-    "source": "AI estimate, unverified",
-    "status": "approximate: AI estimate, replace with cited value",
-    "leads": [
-      "https://journal.uni-mate.hu/index.php/columella/article/download/2801/3272/4300 (Hungarian locust phenology; not read)",
-      "https://www.agriculturejournals.cz/artkey/jfs-202604-0002_soil-temperature-and-weather-factors-as-key-drivers-of-flowering-phenology-and-nectar-production-in-black-locus.php (Porcsin et al. 2026, Hungary; full text not read)"
-    ],
-    "note": "Approximate AI estimate (NOT from a read source): GDD summed from 1 March using daily mean temperature, derived from typical Nyiregyhaza monthly means (Mar ~5.5, Apr ~11.5, May ~16.5 C) and the declared 2024 bloom windows. Replace with a cited value. Hungarian sources found use monthly mean temperatures, not degree-day sums."
+    "source": "Kim S, Kim TK, Yoon S, et al. (2021) J Korean Soc For Sci 110(3):322-340, doi:10.14578/jkfs.2021.110.3.322 (chill-days model of Cesaraccio et al. 2004, doi:10.1016/j.agrformet.2004.03.002); bloom length: Ábri T, Keserű Z, Rédei K (2022) Erdészettudományi Közlemények 12:31-42, doi:10.17164/EK.2022.02",
+    "status": "sourced",
+    "leads": [],
+    "note": "Full bloom: chill days from 1 October of the previous year to C* = -138.95 °D, then forcing to F* = 247.73 °D, TB = 8.88 °C (single national model, p. 327; equations Table 2; validation RMSE 6.11 days, Table 4). Fitted on Korean data. Bloom length 10 days, the middle of 8-12 days for the 'Nyírségi' cultivar (Ábri et al. 2022, p. 33, citing Keresztesi 1984), centred on full bloom."
   }
 }

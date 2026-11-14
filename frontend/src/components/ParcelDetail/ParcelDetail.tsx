@@ -101,9 +101,10 @@ export function ParcelDetail({
     },
     { label: "NDVI (greenness)", m: row?.ndvi, text: show(row?.ndvi, 2) },
     {
-      label: "Growing degree days",
+      // The unit depends on the crop's model; the value's note names it.
+      label: "Heat sum (bloom model)",
       m: row?.gdd,
-      text: show(row?.gdd, 0, " °C·d"),
+      text: show(row?.gdd, 0),
     },
     {
       label: "Soil moisture (SMAP cell)",

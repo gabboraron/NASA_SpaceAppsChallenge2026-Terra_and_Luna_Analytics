@@ -2,7 +2,7 @@
 
 Every NASA response is cached on disk under `.cache/` (gitignored). Fetching it cold
 takes about 17 minutes, so the repository ships a warmed copy as
-`data/nasa-cache.zip` (about 430 KB, 1,012 entries). Import it once and the app
+`data/nasa-cache.zip` (about 435 KB, 1,014 entries). Import it once and the app
 and the demo run without waiting on NASA, even offline.
 
 ## Set up (every teammate, about one minute)
@@ -42,7 +42,7 @@ folder, the zip imported, a dummy token and the network cut. If it starts fetchi
 
 | Source | Scope |
 |---|---|
-| POWER | daily weather at the grid nodes under the parcels, 2022 and 2024 |
+| POWER | daily weather at the grid nodes under the parcels, 2022 and 2024, plus the previous October to December where a crop model needs winter chilling (black locust) |
 | HLS | NDVI and NDYI of the 5 sunflower parcels, March to August 2022 and 2024, plus the scene lists |
 | SMAP | root-zone moisture of the 36 cells over the region, 2022 and 2024, with the 2015 to 2024 baseline |
 

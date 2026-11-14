@@ -21,7 +21,14 @@ import httpx
 
 from pollination import models as m
 from pollination.datafiles import PhenologyEntry
-from pollination.engine.phenology import GddSeries, accumulate, bloom_window, total_on
+from pollination.engine.phenology import (
+    HeatSeries,
+    accumulate,
+    chill_days,
+    sigmoid_forcing,
+    threshold_window,
+    total_on,
+)
 from pollination.geo import SmapCell, centroid, smap_cell
 from pollination.nasa import hls
 from pollination.nasa.power import (
@@ -46,7 +53,13 @@ ORCHARD_CROPS = frozenset({"apple", "sour_cherry"})
 HLS_CROPS = frozenset({"sunflower"})  # NDYI drives bloom only for sunflower (D6)
 
 POWER_SOURCE = "NASA POWER daily (MERRA-2), T2M_MAX/T2M_MIN"
-GDD_SOURCE = "Heat-unit model: NASA POWER GDD + data/phenology.json"
+HEAT_SOURCE = "Heat-unit model: NASA POWER temperature + data/phenology.json"
+# What the weekly heat sum counts, by phenology method.
+HEAT_UNITS = {
+    "gdd": "growing degree days (°C·d)",
+    "sigmoid": "forcing units (Chmielewski et al. 2011)",
+    "chill_days": "forcing °D after winter chilling (Cesaraccio et al. 2004)",
+}
 NDYI_SOURCE = f"NDYI from {hls.SOURCE}"
 DECLARED_SOURCE = "Grower declaration"
 PHENOLOGY_SOURCE = "data/phenology.json"
@@ -198,17 +211,44 @@ def weekly_index(
     return out
 
 
-def _gdd(
+def _chill_heat(
+    power: PowerDaily, entry: PhenologyEntry, base: float, year: int
+) -> HeatSeries | m.Provenance:
+    """Forcing after winter chilling (``chill_days`` method)."""
+    chill_start = entry.chill_start_in(year)
+    if chill_start is None or entry.chill_requirement is None:
+        return _missing(PHENOLOGY_SOURCE, "No sourced chilling parameters")
+    if power.days[0] > chill_start:
+        note = f"No POWER temperatures from {chill_start} for winter chilling"
+        return _missing(POWER_SOURCE, note)
+    series = chill_days(
+        power.days,
+        power.values["T2M_MAX"],
+        power.values["T2M_MIN"],
+        base=base,
+        chill_start=chill_start,
+        chill_requirement=entry.chill_requirement,
+    )
+    if series is None:
+        return _missing(HEAT_SOURCE, "Chilling requirement not reached in the data")
+    return series
+
+
+def _heat(
     power: PowerDaily | str, entry: PhenologyEntry | None, year: int
-) -> GddSeries | m.Provenance:
-    """Cumulative GDD for a parcel, or the Missing provenance saying why not."""
-    start = entry.gdd_start_in(year) if entry is not None else None
-    if entry is None or entry.base_temp_c is None or start is None:
-        note = "No heat-unit base temperature for this crop"
-        return _missing(PHENOLOGY_SOURCE, note)
+) -> HeatSeries | m.Provenance:
+    """The crop model's cumulative heat sum, or the Missing reason."""
+    if entry is None or entry.base_temp_c is None or entry.method == "ndyi":
+        return _missing(PHENOLOGY_SOURCE, "No heat-unit model for this crop")
     if isinstance(power, str):
         return _missing(POWER_SOURCE, power)
-    return accumulate(
+    if entry.method == "chill_days":
+        return _chill_heat(power, entry, entry.base_temp_c, year)
+    start = entry.gdd_start_in(year)
+    if start is None:
+        return _missing(PHENOLOGY_SOURCE, "No heat accumulation start for this crop")
+    model = sigmoid_forcing if entry.method == "sigmoid" else accumulate
+    return model(
         power.days,
         power.values["T2M_MAX"],
         power.values["T2M_MIN"],
@@ -217,24 +257,28 @@ def _gdd(
     )
 
 
-def _last_day(gdd: GddSeries, year: int, week: int) -> date:
+def _last_day(heat: HeatSeries, year: int, week: int) -> date:
     """Last day of the week that has POWER data (D4: latest usable date)."""
-    return min(week_end(year, week), gdd.days[-1])
+    return min(week_end(year, week), heat.days[-1])
 
 
-def _gdd_measurements(gdd: GddSeries | m.Provenance, year: int) -> list[m.Measurement]:
-    if isinstance(gdd, m.Provenance):
-        return [m.Measurement(value=None, provenance=gdd) for _ in WEEKS]
+def _heat_measurements(
+    heat: HeatSeries | m.Provenance, units: str, year: int
+) -> list[m.Measurement]:
+    if isinstance(heat, m.Provenance):
+        return [m.Measurement(value=None, provenance=heat) for _ in WEEKS]
+    note = f"{units[0].upper()}{units[1:]}, cumulative from {heat.days[0]:%d %b %Y}"
+    if heat.missing_days:
+        note += f"; {heat.missing_days} days without temperature counted as 0"
     out: list[m.Measurement] = []
     for week in WEEKS:
-        last = _last_day(gdd, year, week)
-        note = f"Cumulative from {gdd.days[0]:%d %b}"
-        if gdd.missing_days:
-            note += f"; {gdd.missing_days} days without temperature counted as 0"
+        last = _last_day(heat, year, week)
         prov = m.Provenance(
             kind="Estimated", source=POWER_SOURCE, observed_at=last, note=note
         )
-        out.append(m.Measurement(value=total_on(gdd, last), provenance=prov))
+        # 0 before forcing starts (chilling can end after the week).
+        value = total_on(heat, last) or 0.0
+        out.append(m.Measurement(value=value, provenance=prov))
     return out
 
 
@@ -269,34 +313,45 @@ def in_year(day: date, year: int) -> date:
         return date(year, 2, 28)
 
 
-def _gdd_bloom(
-    gdd: GddSeries | m.Provenance, entry: PhenologyEntry, parcel: m.Parcel, year: int
+def _heat_bloom(
+    heat: HeatSeries | m.Provenance, entry: PhenologyEntry, parcel: m.Parcel, year: int
 ) -> tuple[list[_Bloom], m.Window | None]:
     """Bloom from the heat-unit window, or the declared fallback."""
-    window, why = None, ""
-    if isinstance(gdd, m.Provenance):
-        why = f"Heat-unit window unavailable: {gdd.note}"
-    elif entry.gdd_bloom_start is None or entry.gdd_bloom_end is None:
-        why = "No sourced GDD bloom thresholds for this crop"
-    else:
-        window = bloom_window(gdd, entry.gdd_bloom_start, entry.gdd_bloom_end)
+    if isinstance(heat, m.Provenance):
+        why = f"Heat-unit window unavailable: {heat.note}"
+        return _declared(parcel, year, why), None
+    if entry.heat_threshold is None:
+        return _declared(parcel, year, "No sourced heat threshold for this crop"), None
+    window = threshold_window(
+        heat,
+        entry.heat_threshold,
+        end_threshold=entry.heat_bloom_end,
+        bloom_days=entry.bloom_days,
+        centred=entry.threshold_stage == "full_bloom",
+    )
+    if window is None:
         why = "Bloom thresholds not reached in the POWER data"
-    if window is None or isinstance(gdd, m.Provenance):
         return _declared(parcel, year, why), None
     spread = f" ±{entry.uncertainty_days:g} days" if entry.uncertainty_days else ""
+    stage = entry.threshold_stage.replace("_", " ")
+    end = (
+        f"ends at {entry.heat_bloom_end:g}"
+        if entry.heat_bloom_end is not None
+        else f"lasts {entry.bloom_days} days"
+    )
     note = (
-        f"Window {window.start:%d %b}-{window.end:%d %b}{spread} "
-        f"(GDD {entry.gdd_bloom_start:g}-{entry.gdd_bloom_end:g}, base "
-        f"{entry.base_temp_c:g} °C from {gdd.days[0]:%d %b}); thresholds: "
-        f"{entry.source or 'unsourced'}"
+        f"Window {window.start:%d %b}-{window.end:%d %b}{spread}: "
+        f"{HEAT_UNITS[entry.method]} reach "
+        f"{entry.heat_threshold:g} at {stage} (base {entry.base_temp_c:g} °C), "
+        f"bloom {end}. Source: {entry.source or 'unsourced'}"
     )
     blooms = [
         _Bloom(
             _state_in(window, year, week),
             m.Provenance(
                 kind="Estimated",
-                source=GDD_SOURCE,
-                observed_at=_last_day(gdd, year, week),
+                source=HEAT_SOURCE,
+                observed_at=_last_day(heat, year, week),
                 note=note,
             ),
         )
@@ -427,14 +482,15 @@ def parcel_weeks(  # noqa: PLR0913  # the parcel's inputs, each from its own sou
     else:
         ndvi = weekly_index(observations, year, lambda o: o.ndvi)
         ndyi = weekly_index(observations, year, lambda o: o.ndyi)
-    gdd = _gdd(power, entry, year)
+    heat = _heat(power, entry, year)
+    units = HEAT_UNITS.get(entry.method, "") if entry else ""
     if entry is None:
         blooms = _declared(parcel, year, f"No bloom model for {parcel.crop}")
         window = None
     elif entry.method == "ndyi":
         blooms, window = _ndyi_bloom(ndyi, entry, parcel, year)
     else:
-        blooms, window = _gdd_bloom(gdd, entry, parcel, year)
+        blooms, window = _heat_bloom(heat, entry, parcel, year)
     cell = smap_cell(centroid(parcel.geometry))
     if isinstance(smap, str):
         cell_weeks: Mapping[int, SmapWeek] = {}
@@ -443,8 +499,10 @@ def parcel_weeks(  # noqa: PLR0913  # the parcel's inputs, each from its own sou
         cell_weeks = smap.weeks.get(cell, {})
         baseline, no_smap = smap.baseline, "No SMAP value for this cell and week"
     weeks: list[m.ParcelWeek] = []
-    rows = zip(WEEKS, blooms, ndvi, ndyi, _gdd_measurements(gdd, year), strict=True)
-    for week, bloom, vi, yi, heat in rows:
+    rows = zip(
+        WEEKS, blooms, ndvi, ndyi, _heat_measurements(heat, units, year), strict=True
+    )
+    for week, bloom, vi, yi, heat_sum in rows:
         state, nectar_prov = nectar(
             parcel, bloom.state, cell_weeks.get(week, no_smap), baseline
         )
@@ -460,7 +518,7 @@ def parcel_weeks(  # noqa: PLR0913  # the parcel's inputs, each from its own sou
                 estimated_bloom=window,
                 ndvi=vi,
                 ndyi=yi,
-                gdd=heat,
+                gdd=heat_sum,
                 smap_cell_id=cell.id,
             )
         )
@@ -558,45 +616,90 @@ def build_timeline(
 # --- fetching --------------------------------------------------------------------
 
 
+def _with_history(
+    season: PowerDaily, node: tuple[float, float], start: date, cache_dir: Path
+) -> PowerDaily:
+    """Prepend the days from ``start`` to the season series (a separate request).
+
+    The season request stays unchanged, so its cache entry is reused.
+
+    Raises:
+        httpx.HTTPError: The extra request failed.
+    """
+    before = daily_point(
+        *node, start, season.days[0] - timedelta(days=1), cache_dir=cache_dir
+    )
+    values = {k: before.values[k] + v for k, v in season.values.items()}
+    return season.model_copy(
+        update={"days": before.days + season.days, "values": values}
+    )
+
+
+def _history_start(
+    parcels: Sequence[m.Parcel], phenology: Mapping[str, PhenologyEntry], year: int
+) -> date | None:
+    """The earliest chilling start any of these parcels' crops needs, if any."""
+    starts = [
+        day
+        for p in parcels
+        if (entry := phenology.get(p.crop)) is not None
+        and entry.method == "chill_days"
+        and (day := entry.chill_start_in(year)) is not None
+    ]
+    return min(starts, default=None)
+
+
 def fetch_inputs(
     year: int,
     parcels: Sequence[m.Parcel],
     cache_dir: Path,
     *,
     earthdata: bool,
+    phenology: Mapping[str, PhenologyEntry],
 ) -> SeasonInputs:
     """Fetch POWER, HLS and SMAP inputs for a season; failures become reasons.
 
-    POWER is requested once per MERRA-2 grid node under the parcel centroids. HLS
-    is read for sunflower parcels only, and only with an Earthdata token. A cold
-    HLS cache takes minutes; warm it first (WP14).
+    POWER is requested once per MERRA-2 grid node under the parcel centroids, from
+    1 January; nodes with a crop that needs winter chilling also get the previous
+    autumn in a second request. HLS is read for sunflower parcels only, and only
+    with an Earthdata token. A cold HLS cache takes minutes; warm it first (WP14).
 
     Args:
         year: Season.
         parcels: All listed parcels.
         cache_dir: NASA response cache root.
         earthdata: Whether an Earthdata token is configured (HLS reads need it).
+        phenology: Phenology entries by crop, to know which nodes need the
+            previous autumn.
 
     Returns:
         The inputs for :func:`build_timeline`.
     """
     end = date(year, *SEASON_END)
     failed = False
-    by_node: dict[tuple[float, float], PowerDaily | str] = {}
-    power: dict[str, PowerDaily | str] = {}
+    at_node: dict[tuple[float, float], list[m.Parcel]] = {}
     for parcel in parcels:
         lon, lat = centroid(parcel.geometry)
         node = (snap(lat, GRID_LAT_DEG), snap(lon, GRID_LON_DEG))
-        if node not in by_node:
+        at_node.setdefault(node, []).append(parcel)
+    power: dict[str, PowerDaily | str] = {}
+    for node, here in at_node.items():
+        series: PowerDaily | str
+        try:
+            series = daily_point(*node, date(year, 1, 1), end, cache_dir=cache_dir)
+        except httpx.HTTPError as exc:
+            log.warning("POWER request for %s failed: %s", node, exc)
+            series = f"NASA POWER request failed ({type(exc).__name__})"
+            failed = True
+        history = _history_start(here, phenology, year)
+        if history is not None and not isinstance(series, str):
             try:
-                by_node[node] = daily_point(
-                    *node, date(year, 1, 1), end, cache_dir=cache_dir
-                )
-            except httpx.HTTPError as exc:
-                log.warning("POWER request for %s failed: %s", node, exc)
-                by_node[node] = f"NASA POWER request failed ({type(exc).__name__})"
+                series = _with_history(series, node, history, cache_dir)
+            except httpx.HTTPError as exc:  # season data stays; chilling is Missing
+                log.warning("POWER autumn request for %s failed: %s", node, exc)
                 failed = True
-        power[parcel.id] = by_node[node]
+        for parcel in here:
+            power[parcel.id] = series
     observed: Mapping[str, Sequence[hls.Obs]] | str
     if not earthdata:
         observed = "No Earthdata token configured; HLS not queried"

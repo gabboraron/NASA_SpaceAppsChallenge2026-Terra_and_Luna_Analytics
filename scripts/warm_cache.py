@@ -21,9 +21,8 @@ from collections.abc import Callable
 from concurrent.futures import ThreadPoolExecutor
 
 from pollination.config import Settings
-from pollination.datafiles import load_catalog
+from pollination.datafiles import Catalog, load_catalog
 from pollination.engine.timeline import fetch_inputs
-from pollination.models import Parcel
 from pollination.nasa import smap
 
 log = logging.getLogger(__name__)
@@ -39,9 +38,15 @@ def entries(settings: Settings) -> dict[str, int]:
     }
 
 
-def warm_inputs(year: int, settings: Settings, parcels: list[Parcel]) -> list[str]:
+def warm_inputs(year: int, settings: Settings, catalog: Catalog) -> list[str]:
     """Fetch POWER and HLS for one season exactly as the API does; list problems."""
-    inputs = fetch_inputs(year, parcels, settings.cache_dir, earthdata=True)
+    inputs = fetch_inputs(
+        year,
+        catalog.parcels,
+        settings.cache_dir,
+        earthdata=True,
+        phenology=catalog.phenology,
+    )
     problems = [
         f"{year} POWER {pid}: {v}"
         for pid, v in inputs.power.items()
@@ -54,7 +59,7 @@ def warm_inputs(year: int, settings: Settings, parcels: list[Parcel]) -> list[st
     return problems
 
 
-def warm_smap(year: int, _settings: Settings, _parcels: list[Parcel]) -> list[str]:
+def warm_smap(year: int, _settings: Settings, _catalog: Catalog) -> list[str]:
     """Fetch SMAP weekly values and percentiles for one season; list problems."""
     season = smap.season(year)
     if all(w.value is None for weeks in season.weeks.values() for w in weeks.values()):
@@ -65,16 +70,16 @@ def warm_smap(year: int, _settings: Settings, _parcels: list[Parcel]) -> list[st
 def lane(
     name: str,
     years: list[int],
-    work: Callable[[int, Settings, list[Parcel]], list[str]],
+    work: Callable[[int, Settings, Catalog], list[str]],
     settings: Settings,
-    parcels: list[Parcel],
+    catalog: Catalog,
 ) -> list[str]:
     """Run ``work`` for each year, logging durations; errors become problems."""
     problems: list[str] = []
     for year in years:
         started = time.perf_counter()
         try:
-            found = work(year, settings, parcels)
+            found = work(year, settings, catalog)
         except Exception as exc:  # keep the other lane running
             log.exception("%s %d failed", name, year)
             found = [f"{year} {name}: {type(exc).__name__}: {exc}"]
@@ -97,14 +102,14 @@ def main() -> None:
     settings = Settings()
     if settings.earthdata_token is None:
         raise SystemExit("EARTHDATA_TOKEN is missing in .env; HLS and SMAP need it")
-    parcels = load_catalog(settings).parcels
+    catalog = load_catalog(settings)
     lanes = {"inputs": ("POWER+HLS", warm_inputs), "smap": ("SMAP", warm_smap)}
     chosen = [args.only] if args.only else list(lanes)
     before, started = entries(settings), time.perf_counter()
     log.info("warming %s for %s; cache before: %s", chosen, args.years, before)
     with ThreadPoolExecutor(max_workers=len(chosen)) as pool:
         futures = [
-            pool.submit(lane, lanes[k][0], args.years, lanes[k][1], settings, parcels)
+            pool.submit(lane, lanes[k][0], args.years, lanes[k][1], settings, catalog)
             for k in chosen
         ]
         problems = [p for future in futures for p in future.result()]

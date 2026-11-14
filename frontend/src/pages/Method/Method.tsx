@@ -47,20 +47,20 @@ const CROPS: CropRow[] = [
   },
   {
     crop: "Apple",
-    signal: "Growing degree days reach the crop's threshold",
-    source: "POWER T2M, daily",
+    signal: "Spring heat sum reaches the start of bloom (Chmielewski 2011)",
+    source: "POWER daily max/min temperature",
     label: "Estimated · heat units",
   },
   {
     crop: "Sour cherry",
-    signal: "Growing degree days, as for apple",
-    source: "POWER T2M, daily",
+    signal: "Growing degree days reach the start of bloom (Matzneller 2014)",
+    source: "POWER daily max/min temperature",
     label: "Estimated · heat units",
   },
   {
     crop: "Black locust",
-    signal: "Growing degree days, as for apple",
-    source: "POWER T2M, daily",
+    signal: "Winter chill, then spring heat, reach full bloom (Kim 2021)",
+    source: "POWER daily max/min temperature",
     label: "Estimated · heat units",
   },
   {
