@@ -256,7 +256,7 @@ Format:
 
 - **Semantic Versioning** `MAJOR.MINOR.PATCH`: breaking → MAJOR, backwards-compatible feature → MINOR, fix → PATCH. `0.y.z` means "unstable API".
 - Version lives in one place (`pyproject.toml`).
-- Tag releases `vX.Y.Z` on `main` (annotated tags). Release notes come from the Conventional Commit history (no `CHANGELOG.md` in the repo).
+- Tag releases `vX.Y.Z` on `main` (annotated tags). Generate the changelog from Conventional Commits (`CHANGELOG.md`, [Keep a Changelog](https://keepachangelog.com) format). **[todo]** automate with `python-semantic-release` or `release-please` if/when publishing.
 - Hotfix: branch from the tag, fix, release a PATCH, merge back to `main`.
 - Pre-releases: `1.2.0rc1`. Never reuse or move a published tag.
 - Deprecate before removing: warn for at least one MINOR release, then remove in the next MAJOR.
@@ -283,7 +283,7 @@ CI (`.github/workflows/ci.yml`) runs on every PR and push to `main`: `uv sync --
 - Tests cover new behavior and edge cases; a bug fix has a regression test?
 - No secrets, no hard-coded config, no new unreviewed dependency?
 - Performance sane for expected data sizes? No O(n²) surprises?
-- Backwards compatibility and migration considered? Docs updated?
+- Backwards compatibility and migration considered? Docs/changelog updated?
 - Do CI and pre-commit pass?
 
 ---
