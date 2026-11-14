@@ -1,6 +1,6 @@
 # NASA Space Apps Challenge 2026
 
-Python-only AI engineering project. Challenge/goal/stack details: see the `project-context` skill.
+Python backend + TypeScript frontend. Challenge/goal/stack details: see the `project-context` skill.
 
 ## Layout
 - `src/` code, `tests/` pytest tests, `pyproject.toml` is the single source of tool config; `uv.lock` is committed
