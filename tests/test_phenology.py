@@ -86,6 +86,10 @@ def test_chill_rates_match_kim_2021_table_2(
     assert chill_rates(tmax, tmin, 8.0) == pytest.approx((chill, forcing))
 
 
+def test_chill_rates_accept_a_day_with_equal_tmax_and_tmin() -> None:
+    assert chill_rates(10.0, 10.0, 8.0) == (0.0, 2.0)
+
+
 def test_chill_days_forces_from_the_day_chilling_is_met() -> None:
     d = days(date(2023, 10, 1), 6)
     tmax = [6.0, 6.0, 6.0, 20.0, 20.0, None]

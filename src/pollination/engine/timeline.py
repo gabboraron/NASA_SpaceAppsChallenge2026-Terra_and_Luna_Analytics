@@ -44,11 +44,16 @@ log = logging.getLogger(__name__)
 WEEKS = range(1, 27)  # D12: weekly steps from 1 March, March-August
 WEEK_DAYS = 7
 SEASON_END = (8, 31)
-# D13: blooming and root-zone moisture below this percentile -> low nectar.
-LOW_NECTAR_PERCENTILE = 20.0
+# D13, tightened: blooming and root-zone moisture below this percentile -> low nectar.
+# With a ten-year baseline the mid-rank percentile moves in steps of 10 (5, 15, ...),
+# so "below 10" means the driest same week on record; "below 20" flickered week to
+# week and flagged 2024, a good flow year on the reference hive scales.
+LOW_NECTAR_PERCENTILE = 10.0
 # Gap-filled NDYI/NDVI only between observations at most this far apart (D4).
 MAX_INTERPOLATION_GAP_DAYS = 21
-NECTAR_CROPS = frozenset({"sunflower", "black_locust"})
+# Sunflower only: for black locust, a deep-rooted tree, the flag marked the best
+# flow year of the reference hive scales (2024) as low.
+NECTAR_CROPS = frozenset({"sunflower"})
 ORCHARD_CROPS = frozenset({"apple", "sour_cherry"})
 HLS_CROPS = frozenset({"sunflower"})  # NDYI drives bloom only for sunflower (D6)
 
@@ -408,8 +413,9 @@ def nectar(
     """Apply the D13 nectar heuristic to one parcel week.
 
     Orchards and irrigated parcels are assumed not water-limited (normal). For
-    sunflower and black locust, a blooming week in a SMAP cell below the 20th
-    percentile of its same-week history is ``low_nectar``.
+    sunflower, a blooming week in a SMAP cell drier than every same week of the
+    baseline (below the 10th percentile) is ``low_nectar``: dry soil during bloom,
+    a risk to nectar, not a measurement of it.
 
     Args:
         parcel: The parcel.
@@ -431,7 +437,7 @@ def nectar(
         )
         return "normal", prov
     if parcel.crop not in NECTAR_CROPS:
-        note = "The nectar rule covers sunflower and black locust only"
+        note = "The dry-soil nectar rule covers sunflower only"
         return "unknown", _missing(NECTAR_SOURCE, note)
     if isinstance(smap, str):
         return "unknown", _missing(SMAP_SOURCE, smap)
@@ -444,8 +450,8 @@ def nectar(
         observed_at=smap.observed_at,
         note=(
             f"Heuristic: root-zone moisture at percentile {smap.percentile:.0f} of "
-            f"the same week in {baseline}; low nectar if blooming and below "
-            f"{LOW_NECTAR_PERCENTILE:g}"
+            f"the same week in {baseline}; dry soil during bloom (nectar at risk) "
+            f"if blooming and below {LOW_NECTAR_PERCENTILE:g}"
         ),
     )
     return ("low_nectar" if low else "normal"), prov
@@ -669,7 +675,8 @@ def fetch_inputs(
         year: Season.
         parcels: All listed parcels.
         cache_dir: NASA response cache root.
-        earthdata: Whether an Earthdata token is configured (HLS reads need it).
+        earthdata: Whether an Earthdata token is configured (HLS and SMAP reads
+            need it).
         phenology: Phenology entries by crop, to know which nodes need the
             previous autumn.
 

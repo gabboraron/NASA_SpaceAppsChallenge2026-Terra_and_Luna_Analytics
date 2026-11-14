@@ -167,8 +167,9 @@ export function LandingPage() {
         >
           <p>
             Harmonized Landsat and Sentinel-2 imagery revisits every few days. A
-            yellowness index (NDYI) rises as petals open. Between clear passes
-            the week is interpolated, and the map marks it so.
+            yellowness index (NDYI) rises as petals open; we show it next to the
+            grower&apos;s declared window. Between clear passes the week is
+            interpolated, and the map marks it so.
           </p>
           <p>
             Orchards and black locust flower white, which the index cannot see.
@@ -186,7 +187,7 @@ export function LandingPage() {
             <figure className={styles.fig}>
               <svg
                 role="img"
-                aria-label="Schematic soil moisture percentile falling below the 20th percentile line in mid-summer"
+                aria-label="Schematic soil moisture percentile falling below the 10th percentile line in mid-summer"
                 viewBox="0 0 360 180"
                 className={styles.diagram}
               >
@@ -212,7 +213,7 @@ export function LandingPage() {
                   textAnchor="end"
                   className={styles.fDroughtInk}
                 >
-                  20th percentile
+                  10th percentile
                 </text>
                 <path
                   d="M20 60 C70 50 110 72 150 92 S210 150 240 148 S300 120 344 96"
@@ -235,9 +236,9 @@ export function LandingPage() {
           }
         >
           <p>
-            When root-zone soil moisture drops below the 20th percentile of that
-            cell&apos;s own history for the week, flowering sunflower and black
-            locust are flagged &ldquo;high bloom, low nectar&rdquo;.
+            When root-zone soil moisture is the driest on record for that cell
+            and week (below the 10th percentile), flowering sunflower is flagged
+            &ldquo;high bloom, low nectar&rdquo;: nectar is at risk.
           </p>
           <p>
             SMAP sees a cell about 9 km across, so the flag covers every field

@@ -180,7 +180,7 @@ function week(p: Parcel, w: number, year: Season): ParcelWeek {
     nectar_provenance: prov(
       sunflower ? "Estimated" : "Missing",
       low
-        ? "Heuristic: SMAP below the 20th percentile"
+        ? "Heuristic: SMAP below the 10th percentile"
         : sunflower
           ? "Heuristic"
           : "Not drought-sensitive in the model",

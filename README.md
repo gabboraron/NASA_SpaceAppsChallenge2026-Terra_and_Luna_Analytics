@@ -22,9 +22,11 @@ NASA Earth observations tell beekeepers and growers when and where crops bloom, 
 Migratory beekeepers and growers of insect-pollinated crops (orchards, sunflower, black locust and more) need to meet
 at the right place in the right week, anywhere in the world. Our map shows, week by week through the season:
 
-- When each parcel blooms: from NASA HLS satellite imagery (NDYI) for sunflower, and from published heat-sum models on
-  NASA POWER temperatures for apple, sour cherry and black locust, next to the grower's declared window
-- Weeks of high bloom but low nectar, flagged by NASA SMAP root-zone soil moisture (for example in the 2022 drought)
+- When each parcel blooms: from published heat-sum models on NASA POWER temperatures for apple, sour cherry and black
+  locust, next to the grower's declared window; for sunflower the declared window, with the NASA HLS yellowness index
+  (NDYI) shown as evidence
+- Sunflower bloom on exceptionally dry soil, flagged from NASA SMAP root-zone soil moisture as a labelled heuristic
+  (nectar at risk, for example in the 2022 drought)
 - Protected sites (Natura 2000 in the demo): hives inside one are blocked, and sites nearby trigger a warning
 - Explainable matches between a beekeeper and parcels, with reasons, missing items and confidence
 - A move calculator with the contribution after incremental costs and the benefit compared with staying put, so a

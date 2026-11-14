@@ -67,6 +67,22 @@ def _confidence(evidence: float) -> Confidence:
     return "medium" if evidence >= MEDIUM_CONFIDENCE else "low"
 
 
+def _blocks(keeper: m.Beekeeper, parcel: m.Parcel, km: float) -> list[str]:
+    """Hard filters that do not depend on the bloom timing."""
+    blocks: list[str] = []
+    if parcel.natura_status == "inside":
+        blocks.append("Inside a Natura 2000 site: hives cannot be placed")
+    if km > keeper.max_distance_km:
+        blocks.append(
+            f"Estimated road distance {km:.1f} km exceeds the beekeeper's "
+            f"{keeper.max_distance_km:g} km limit"
+        )
+    wanted = parcel.requested_colonies
+    if wanted is not None and wanted > keeper.colonies:
+        blocks.append(f"Requested {wanted} colonies, beekeeper has {keeper.colonies}")
+    return blocks
+
+
 def _assess(
     keeper: m.Beekeeper,
     parcel: m.Parcel,
@@ -83,23 +99,17 @@ def _assess(
         end=in_year(keeper.availability.end, week.starts_on.year),
     )
     overlap = _overlap_days(window, available) if window else 0
-
-    blocks: list[str] = []
-    if parcel.natura_status == "inside":
-        blocks.append("Inside a Natura 2000 site: hives cannot be placed")
-    if km > keeper.max_distance_km:
-        blocks.append(
-            f"Estimated road distance {km:.1f} km exceeds the beekeeper's "
-            f"{keeper.max_distance_km:g} km limit"
-        )
-    wanted = parcel.requested_colonies
-    if wanted is not None and wanted > keeper.colonies:
-        blocks.append(f"Requested {wanted} colonies, beekeeper has {keeper.colonies}")
+    # Bloom days the beekeeper can still cover from the selected week on.
+    still = m.Window(start=max(week.starts_on, available.start), end=available.end)
+    ahead = _overlap_days(window, still) if window else 0
+    blocks = _blocks(keeper, parcel, km)
     if window is not None and overlap == 0:
         blocks.append(
             f"Bloom window {_span(window)} does not overlap the beekeeper's "
             f"availability {_span(available)}"
         )
+    elif window is not None and ahead == 0:
+        blocks.append(f"Bloom ended {window.end:%d %b}, before the selected week")
 
     evidence = ranking.provenance_confidence[week.bloom_provenance.kind]
     warnings: list[str] = []
@@ -126,6 +136,8 @@ def _assess(
         missing.append("Bloom window (no estimate or declaration)")
     else:
         reasons.insert(0, f"Bloom window overlaps availability by {overlap} days")
+        if ahead < overlap:
+            reasons.insert(1, f"{ahead} of them left from the selected week")
     if week.bloom_state == "blooming":
         reasons.append("Blooming in the selected week")
     if week.bloom_provenance.kind != "Observed":
@@ -133,7 +145,7 @@ def _assess(
     if week.bloom_provenance.kind == "Reported":
         warnings.append("Bloom timing is only the grower's declaration")
     if week.nectar_state == "low_nectar":
-        warnings.append("Low nectar expected: dry soil (heuristic)")
+        warnings.append("Dry soil during bloom: nectar may be low (heuristic)")
 
     weights = ranking.weights
     coverage = overlap / _days(window) if window else 0.0
