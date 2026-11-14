@@ -188,8 +188,9 @@ arithmetic over a few model outputs.
 - One backtest number per event: hours of warning, hours offline, restart cycles, with vs. without hysteresis.
 - FastAPI + the ops console (`prototypes/lunar-shield-ux`) on Container Apps or a static host.
 
-Challenge fit is still the weak point (`04-feasibility-slip-day-lunar.md`: challenge 11 does not mention radiation). The
-pending report re-checks which 2026 challenge could carry this.
+Challenge fit: research flagged that challenge 11 does not mention radiation; the team judged the fit acceptable on
+14 Nov (`DECISIONS.md`). Asset limits are set by each operator: the product delivers the signal and the restart window,
+and each company decides how each robot reacts.
 
 ## 10. Roadmap after the hackathon [estimate]
 

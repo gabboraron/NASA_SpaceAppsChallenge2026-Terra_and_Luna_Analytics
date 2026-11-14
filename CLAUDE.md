@@ -90,6 +90,8 @@ Team fit (from kick-off doc): great fit → 2, 5, 6, 8, 9, 10, 11; moderate → 
 **Fit caveat for Lunar Shield:** challenge 11 is about Sun/Earth position, illumination, power and DTE comms
 at south-pole sites, not space weather. Lunar Shield fits only if it is presented as a site/date planning layer
 (e.g. radiation/space-weather risk + horizon shielding as one more factor next to light and comms), or merged with Slip Day.
+**Team position (14 Nov):** the team considers the fit acceptable, and operators set their own per-robot thresholds
+(Lunar Shield sends the event signal and restart window, not a part-failure model). See `DECISIONS.md`.
 
 **Finding:** challenge 3 (Junior Astronaut) explicitly lists DONKI (space weather) and RadLab (OSDR radiation
 dosimetry) as resources, so it is the only brief that names space-weather data. Challenge 11 does not mention radiation at all.
