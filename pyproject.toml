@@ -45,12 +45,14 @@ dev = [
     "pip-audit>=2.10.1",
     "commitizen>=4.19.3",
     "types-shapely>=2.1.0.20261030",
+    "openpyxl>=3.1.5",
+    "types-openpyxl>=3.1.5.20261017",
 ]
 
 [tool.ruff]
 line-length = 88
 target-version = "py312"
-src = ["src", "tests"]
+src = ["src", "tests", "."]
 extend-exclude = ["frontend"]
 
 [tool.ruff.lint]
@@ -78,9 +80,10 @@ convention = "google"
 
 [tool.ruff.lint.per-file-ignores]
 "tests/**" = ["S101", "D", "ANN", "PLR2004"]
+"verification/test_*.py" = ["S101", "D", "ANN", "PLR2004"]
 
 [tool.pyright]
-include = ["src", "tests"]
+include = ["src", "tests", "verification"]
 exclude = ["frontend", "**/__pycache__", ".venv"]
 typeCheckingMode = "strict"
 pythonVersion = "3.12"

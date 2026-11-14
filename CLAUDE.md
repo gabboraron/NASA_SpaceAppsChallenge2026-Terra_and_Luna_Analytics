@@ -7,6 +7,7 @@ Project summary: the `project-context` skill. Build plan: `docs/implementation_p
 ## Layout
 - `src/pollination/` FastAPI app: `models.py` (API contract), `contract.py` (routes), `config.py` (pydantic-settings),
   `datafiles.py`, `geo.py`, `state.py`, `engine/` (calculator, phenology, timeline, matching), `nasa/` (cache, POWER, HLS, SMAP)
+- `verification/` standalone checks of the model against past ground truth (hive scales, iNaturalist, PEP725); own README, not in CI
 - `tests/` pytest; `frontend/` React + Vite + TS + CSS Modules + MapLibre (+ Terra Draw)
 - `data/` committed config/geometry (parcels, Natura 2000, phenology, synthetic actors, ranking); NASA data is never committed
 - `scripts/` one-off data builders + Earthdata probe; `docs/` plan + `ENGINEERING_GUIDE.md` (git/commit/release, security, testing)
