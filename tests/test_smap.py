@@ -12,6 +12,7 @@ from pollination.geo import SmapCell
 from pollination.nasa.smap import (
     cells_geojson,
     clean_value,
+    parse_dap4_csv,
     percentile_rank,
     season,
 )
@@ -124,3 +125,29 @@ def test_cells_geojson() -> None:
         c.id for c in cells
     ]
     assert collection["features"][0]["geometry"]["type"] == "Polygon"
+
+
+# A real Hyrax DAP4 answer (window [207:210][2159:2162], granule of 2024-06-12).
+DAP_CSV = "\n".join(
+    [
+        "Dataset: SMAP_L4_SM_gph_20240612T103000_Vv8012_001.h5",
+        "/Geophysical_Data/sm_rootzone[0], 0.289269, 0.282433, 0.121605, 0.119774",
+        "/Geophysical_Data/sm_rootzone[1], 0.275841, 0.264733, 0.117211, 0.110405",
+        "/Geophysical_Data/sm_rootzone[2], 0.257042, 0.251488, 0.100152, 0.0961232",
+        "/Geophysical_Data/sm_rootzone[3], 0.234704, 0.234765, 0.0888295, 0.0822683",
+    ]
+)
+
+
+def test_parse_dap4_csv_rows_and_values() -> None:
+    """Each row of the window becomes a list of floats, in row order."""
+    rows = parse_dap4_csv(DAP_CSV)
+    assert len(rows) == 4  # four rows in the fixture
+    assert rows[0] == [0.289269, 0.282433, 0.121605, 0.119774]
+    assert rows[3][3] == pytest.approx(0.0822683)
+
+
+def test_parse_dap4_csv_rejects_an_error_page() -> None:
+    """An HTML or error answer is an error, never silently empty data."""
+    with pytest.raises(ValueError, match="No sm_rootzone rows"):
+        parse_dap4_csv("<html>HTTP Status 400</html>")

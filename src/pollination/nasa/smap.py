@@ -9,6 +9,7 @@ the region at once, so a baseline of ten years is 260 reads.
 from __future__ import annotations
 
 import math
+import re
 from collections.abc import Callable, Sequence
 from concurrent.futures import ThreadPoolExecutor
 from datetime import date
@@ -55,6 +56,29 @@ def percentile_rank(
     below = sum(h < value for h in history)
     equal = sum(h == value for h in history)
     return 100.0 * (below + 0.5 * equal) / len(history)
+
+
+def parse_dap4_csv(text: str) -> list[list[float]]:
+    """Parse a Hyrax DAP4 ``.dap.csv`` answer for ``sm_rootzone`` into rows.
+
+    Args:
+        text: Response body: a ``Dataset:`` line, then one ``name[row], v, v, ...``
+            line per row of the requested window.
+
+    Returns:
+        One list of floats per window row, in order.
+
+    Raises:
+        ValueError: If the text holds no ``sm_rootzone`` rows (e.g. an error page).
+    """
+    rows = [
+        [float(v) for v in line.split(",")[1:]]
+        for line in text.splitlines()
+        if re.match(r"/Geophysical_Data/sm_rootzone\[\d+\],", line)
+    ]
+    if not rows:
+        raise ValueError("No sm_rootzone rows in the OPeNDAP answer")
+    return rows
 
 
 def _read_cached(
