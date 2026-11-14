@@ -128,7 +128,7 @@ the working tree to keep the repo focused, and they remain in the git history.
 ## AI use
 
 Space Apps allows AI assistants. We use Claude Code and GitHub Copilot for research and code; the team came up with
-the solution idea. [`AI_USAGE.md`](AI_USAGE.md) records what each tool did.
+the solution idea. [`AI_USAGE.md`](AI_USAGE.md) lists the tools and how AI output is labelled.
 
 ## License
 

@@ -95,7 +95,7 @@ WP2 responses are synthetic fixtures; live data and verification state belong to
 - **Submission deadline: Sun 15 Nov 2026 23:59 Budapest time.** Demo = video ≤ 30 s or ≤ 7 slides (pitch team owns it).
 - ≥ 1 NASA dataset, integral to the solution · English · public final link, no login · cite all sources ·
   no promotion of commercial products · no PII · no NASA logos in generated media.
-- AI use is allowed for building; log it in `AI_USAGE.md` (date, tool, what, reviewer). Watermark AI images/video.
+- AI use is allowed for building; `AI_USAGE.md` states which tools we use (no per-change log). Watermark AI images/video.
 
 ## Team and roles
 - Patrik P. Süli: research, software architecture. Bence Majer: AI engineering, data science.
@@ -107,7 +107,7 @@ WP2 responses are synthetic fixtures; live data and verification state belong to
 - The final project link points at this repo, so it must look professional and stay public-safe.
 - `README.md` holds only stable content (what it is, how to run it, data & citations, ideas considered, team).
   No status tables, progress, CI/last-commit badges or placeholders; progress lives in GitHub issues.
-- Log every decision in `DECISIONS.md` and every AI use in `AI_USAGE.md`.
+- Log every decision in `DECISIONS.md`.
 - Large or downloaded data never goes into git: cache under `.cache/` (gitignored) and document how to re-download it.
 - License: Mozilla Public License 2.0 (`LICENSE`). Third-party data keeps its own licence; list it in the README.
 - Every claim or dataset used in the pitch needs a source URL. Never present an estimate as a fact.
