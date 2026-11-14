@@ -232,7 +232,9 @@ repos/*
 .DS_Store
 ~$*
 *.tmp
-data/
+data/*
+!data/*.json
+!data/*.geojson
 *.h5
 *.nc
 *.tif
