@@ -95,7 +95,7 @@ pythonpath = ["src"]
 name = "cz_conventional_commits"
 version_provider = "pep621"
 tag_format = "v$version"
-update_changelog_on_bump = true
+update_changelog_on_bump = false
 major_version_zero = true
 
 [tool.coverage.report]

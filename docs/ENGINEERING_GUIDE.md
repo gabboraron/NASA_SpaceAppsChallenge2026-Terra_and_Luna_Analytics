@@ -25,7 +25,7 @@ Each rule is marked **[enforced]** (a tool or CI fails when it is broken), **[co
 ├── .python-version           # pinned interpreter (3.12)
 ├── src/                      # importable code (src layout)
 ├── tests/                    # pytest tests, mirrors src/
-├── docs/                     # this guide, ADRs, design notes
+├── docs/                     # this guide, implementation plan
 ├── repos/                    # cloned reference repos (gitignored)
 ├── .github/workflows/ci.yml  # CI pipeline
 ├── .github/dependabot.yml    # weekly dependency + Actions updates
@@ -153,7 +153,7 @@ def normalize(values: Sequence[float], *, eps: float = 1e-8) -> list[float]:
 - **Composition over inheritance.** Use `Protocol`/ABC for interfaces. Keep class hierarchies shallow.
 - **Dependency injection:** pass collaborators (clients, clocks, RNG, config) in; don't reach for globals. This is what makes code testable.
 - **Pure core, impure shell:** keep computation pure and side effects (I/O, network, time, randomness) at the edges.
-- **SOLID/architecture:** dependencies point inward (domain does not import infrastructure); name things after the domain; keep layers (I/O → services → domain) explicit. Record significant decisions as short ADRs in `docs/adr/`. [convention]
+- **SOLID/architecture:** dependencies point inward (domain does not import infrastructure); name things after the domain; keep layers (I/O → services → domain) explicit. [convention]
 - **Delete code.** Dead code, commented-out code and speculative abstractions don't ship.
 - **Naming:** `snake_case` functions/variables, `PascalCase` classes, `UPPER_CASE` constants, `_private` for internals. Names say what, not how. No abbreviations beyond the well-known (`df`, `idx` fine; `proc_dat` not).
 
@@ -256,7 +256,7 @@ Format:
 
 - **Semantic Versioning** `MAJOR.MINOR.PATCH`: breaking → MAJOR, backwards-compatible feature → MINOR, fix → PATCH. `0.y.z` means "unstable API".
 - Version lives in one place (`pyproject.toml`).
-- Tag releases `vX.Y.Z` on `main` (annotated tags). Generate the changelog from Conventional Commits (`CHANGELOG.md`, [Keep a Changelog](https://keepachangelog.com) format). **[todo]** automate with `python-semantic-release` or `release-please` if/when publishing.
+- Tag releases `vX.Y.Z` on `main` (annotated tags). Release notes come from the Conventional Commit history (no `CHANGELOG.md` in the repo).
 - Hotfix: branch from the tag, fix, release a PATCH, merge back to `main`.
 - Pre-releases: `1.2.0rc1`. Never reuse or move a published tag.
 - Deprecate before removing: warn for at least one MINOR release, then remove in the next MAJOR.
@@ -283,7 +283,7 @@ CI (`.github/workflows/ci.yml`) runs on every PR and push to `main`: `uv sync --
 - Tests cover new behavior and edge cases; a bug fix has a regression test?
 - No secrets, no hard-coded config, no new unreviewed dependency?
 - Performance sane for expected data sizes? No O(n²) surprises?
-- Backwards compatibility and migration considered? Docs/changelog updated?
+- Backwards compatibility and migration considered? Docs updated?
 - Do CI and pre-commit pass?
 
 ---

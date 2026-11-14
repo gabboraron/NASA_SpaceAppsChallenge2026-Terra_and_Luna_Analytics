@@ -84,7 +84,6 @@ Checks (same as CI): `uv run ruff check . && uv run ruff format --check . && uv 
 ├── scripts/             one-off data builders and the Earthdata access probe
 ├── docs/                implementation plan, engineering guide
 ├── compose.yaml         Docker stack (api + web); Dockerfile, frontend/Dockerfile
-├── DECISIONS.md         decision log
 └── AI_USAGE.md          AI use disclosure required by Space Apps
 ```
 
