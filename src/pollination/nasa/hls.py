@@ -11,8 +11,10 @@ import hashlib
 import json
 import re
 from collections.abc import Callable, Mapping, Sequence
+from concurrent.futures import ThreadPoolExecutor
 from dataclasses import dataclass
 from datetime import date, timedelta
+from functools import partial
 from pathlib import Path
 from typing import Any, cast
 
@@ -21,7 +23,6 @@ from numpy.typing import NDArray
 from pydantic import BaseModel
 from shapely.geometry import Polygon, shape
 
-from pollination.config import Settings
 from pollination.models import (
     HlsResponse,
     Measurement,
@@ -37,6 +38,7 @@ MIN_VALID_FRACTION = 0.5
 # Bit 0 (cirrus) and the aerosol bits 6-7 are tolerated.
 _INVALID_FMASK_BITS = 0b00111110
 _COORD_DECIMALS = 6
+_WORKERS = 4  # parallel remote reads; more got connections reset by the server
 
 type Bbox = tuple[float, float, float, float]
 
@@ -184,23 +186,28 @@ class _Io:
 
 
 def _indices(
-    polygons: Mapping[str, Polygon], bbox: Bbox, days: tuple[date, date], io: _Io
+    polygons: Mapping[str, Polygon], days: tuple[date, date], io: _Io
 ) -> dict[str, list[Obs]]:
-    """Shared core of :func:`parcel_indices` and :func:`latest_for_polygon`."""
+    """Shared core of :func:`parcel_indices` and :func:`latest_for_polygon`.
+
+    Scenes are searched per parcel (only tiles that cover it) and read on a thread
+    pool, because every read is a remote round trip.
+    """
     search, read = io.search, io.read
     if search is None or read is None:
         from pollination.nasa import hls_live  # noqa: PLC0415  # lazy: needs NASA libs
 
         search = search or hls_live.search_scenes
         read = read or hls_live.read_window
-    scenes = search(bbox, days[0], days[1])
     result: dict[str, list[Obs]] = {}
     for pid, polygon in polygons.items():
-        observations = [
-            obs
-            for scene in scenes
-            if (obs := _observe(scene, polygon, read, io.cache_dir)) is not None
-        ]
+        scenes = search(polygon.bounds, days[0], days[1])
+        with ThreadPoolExecutor(max_workers=_WORKERS) as pool:
+            observe = partial(
+                _observe, polygon=polygon, read=read, cache_dir=io.cache_dir
+            )
+            found = pool.map(observe, scenes)
+            observations = [obs for obs in found if obs is not None]
         result[pid] = sorted(observations, key=lambda o: (o.day, o.scene_id))
     return result
 
@@ -232,7 +239,7 @@ def parcel_indices(  # noqa: PLR0913  # injectable search/read/cache keep it tes
     """
     polygons = {p.id: cast(Polygon, shape(p.geometry.model_dump())) for p in parcels}
     io = _Io(search, read, cache_dir)
-    return _indices(polygons, Settings().bbox, (start, end), io)
+    return _indices(polygons, (start, end), io)
 
 
 def latest_for_polygon(  # noqa: PLR0913  # injectable search/read/cache keep it testable
@@ -261,7 +268,7 @@ def latest_for_polygon(  # noqa: PLR0913  # injectable search/read/cache keep it
     start = end - timedelta(days=days)
     geom = cast(Polygon, shape(polygon.model_dump()))
     io = _Io(search, read, cache_dir)
-    found = _indices({"drawn": geom}, geom.bounds, (start, end), io)
+    found = _indices({"drawn": geom}, (start, end), io)
     observations = found["drawn"]
     if not observations:
         missing = Provenance(

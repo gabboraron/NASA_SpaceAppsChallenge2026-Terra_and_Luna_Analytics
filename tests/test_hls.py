@@ -1,5 +1,6 @@
 """Tests for the HLS client logic (no network): masking, indices, caching."""
 
+import threading
 from datetime import date
 from pathlib import Path
 
@@ -141,6 +142,7 @@ class Fakes:
     def __init__(self, windows: dict[str, BandWindow | None]) -> None:
         self.windows = windows
         self.reads = 0
+        self._lock = threading.Lock()
 
     def search(
         self, bbox: tuple[float, float, float, float], start: date, end: date
@@ -155,7 +157,8 @@ class Fakes:
     def read(self, scene: Scene, polygon: Polygon) -> BandWindow | None:
         """Return the prepared window for the scene."""
         del polygon
-        self.reads += 1
+        with self._lock:
+            self.reads += 1
         return self.windows[scene.id]
 
 

@@ -2,21 +2,28 @@
 # (basic mode: rasterio and earthaccess ship no type stubs)
 """Live NASA access for HLS: CMR search and remote band-window reads.
 
-Thin adapter around ``earthaccess`` and ``rasterio``. It is NOT unit-tested: it
-needs Earthdata credentials in ``.env`` and network access, so verify it with a
-real run (see ``scripts/hls_series.py``). All logic lives in
+Thin adapter around ``earthaccess``, ``httpx`` and ``rasterio``. It is NOT
+unit-tested: it needs ``EARTHDATA_TOKEN`` in ``.env`` and network access, so verify
+it with a real run (see ``scripts/hls_series.py``). All logic lives in
 :mod:`pollination.nasa.hls`.
+
+Reads are true range reads: the bearer token is exchanged for the presigned
+storage URL (a 303 redirect), which GDAL then reads through ``/vsicurl/``. Opening
+the earthaccess file objects instead makes rasterio download whole bands.
 """
 
 from __future__ import annotations
 
-from contextlib import ExitStack, closing
+import os
+import time
+from contextlib import ExitStack
 from datetime import date
 from functools import cache
 from pathlib import Path
 from typing import Any
 
 import earthaccess
+import httpx
 import numpy as np
 import rasterio
 import shapely
@@ -30,6 +37,16 @@ from pollination.nasa.hls import BandWindow, Bbox, Scene, scene_day
 
 SCALE = 0.0001
 FILL_VALUE = -9999
+MAX_SCENE_CLOUD_PERCENT = 80  # coarse CMR pre-filter; the parcel mask decides
+HTTP_TIMEOUT_S = 30
+REDIRECT_STATUSES = (301, 302, 303, 307)
+RETRY_STATUSES = (429, 500, 502, 503, 504)
+PRESIGN_ATTEMPTS = 5
+BACKOFF_S = 2.0
+_CLIENT = httpx.Client(  # shared: reuses connections instead of opening one per band
+    timeout=HTTP_TIMEOUT_S,
+    limits=httpx.Limits(max_connections=8, max_keepalive_connections=8),
+)
 # Band file suffix per role; the NIR band differs between Sentinel-2 and Landsat.
 _COMMON = {"blue": "B02", "green": "B03", "red": "B04", "fmask": "Fmask"}
 _PRODUCTS = {"HLSS30": {**_COMMON, "nir": "B8A"}, "HLSL30": {**_COMMON, "nir": "B05"}}
@@ -62,6 +79,7 @@ def search_scenes(bbox: Bbox, start: date, end: date) -> list[Scene]:
             short_name=short_name,
             version="2.0",
             bounding_box=bbox,
+            cloud_cover=(0, MAX_SCENE_CLOUD_PERCENT),
             temporal=(start.isoformat(), end.isoformat()),
         )
         for granule in granules:
@@ -80,6 +98,33 @@ def search_scenes(bbox: Bbox, start: date, end: date) -> list[Scene]:
     return scenes
 
 
+def _presigned(url: str) -> str:
+    """Exchange the Earthdata bearer token for the presigned storage URL.
+
+    Retries transport errors and 429/5xx answers with exponential backoff.
+    """
+    token = os.environ.get("EARTHDATA_TOKEN")
+    if not token:
+        raise RuntimeError("EARTHDATA_TOKEN is required in .env for HLS range reads")
+    headers = {"Authorization": f"Bearer {token}", "Range": "bytes=0-0"}
+    for attempt in range(PRESIGN_ATTEMPTS):
+        try:
+            response = _CLIENT.get(url, headers=headers, follow_redirects=False)
+        except httpx.TransportError:
+            if attempt == PRESIGN_ATTEMPTS - 1:
+                raise
+        else:
+            location = response.headers.get("location")
+            if response.status_code in REDIRECT_STATUSES and location:
+                return location
+            if response.status_code not in RETRY_STATUSES:
+                raise RuntimeError(
+                    f"Expected a redirect for {url}, got {response.status_code}"
+                )
+        time.sleep(BACKOFF_S * 2**attempt)
+    raise RuntimeError(f"No presigned URL for {url} after {PRESIGN_ATTEMPTS} attempts")
+
+
 def read_window(scene: Scene, polygon: Polygon) -> BandWindow | None:
     """Read the five bands of ``scene`` over a parcel's bounding box.
 
@@ -92,14 +137,20 @@ def read_window(scene: Scene, polygon: Polygon) -> BandWindow | None:
         is not fully inside this granule's tile.
     """
     _login()
-    # earthaccess annotates open() as a filesystem; it returns a list of file objects.
-    remote: list[Any] = earthaccess.open([scene.urls[role] for role in _ROLES])  # type: ignore[assignment]  # wrong return annotation upstream
-    with ExitStack() as stack:
-        bands = {
-            role: stack.enter_context(rasterio.open(stack.enter_context(closing(f))))
-            for role, f in zip(_ROLES, remote, strict=True)
-        }
-        ref = bands["red"]
+    with (
+        rasterio.Env(
+            GDAL_DISABLE_READDIR_ON_OPEN="EMPTY_DIR",
+            GDAL_HTTP_MAX_RETRY="3",
+            GDAL_HTTP_TIMEOUT=str(HTTP_TIMEOUT_S),
+        ),
+        ExitStack() as stack,
+    ):
+
+        def open_band(role: str) -> Any:
+            url = "/vsicurl/" + _presigned(scene.urls[role])
+            return stack.enter_context(rasterio.open(url))
+
+        ref = open_band("red")
         to_tile = Transformer.from_crs("EPSG:4326", ref.crs, always_xy=True)
         projected = shapely.transform(
             polygon, lambda c: np.column_stack(to_tile.transform(c[:, 0], c[:, 1]))
@@ -112,10 +163,13 @@ def read_window(scene: Scene, polygon: Polygon) -> BandWindow | None:
             or bottom < edge.bottom
             or top > edge.top
         ):
-            return None
+            return None  # another tile; checked before opening the other bands
         row0, col0 = ref.index(left, top)
         row1, col1 = ref.index(right, bottom)
         window = Window.from_slices((row0, row1 + 1), (col0, col1 + 1))
+        bands = {"red": ref} | {
+            role: open_band(role) for role in _ROLES if role != "red"
+        }
 
         def reflectance(role: str) -> np.ndarray:
             raw = bands[role].read(1, window=window)
