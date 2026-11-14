@@ -29,6 +29,7 @@ window.DATA = {
     ['../04-feasibility-trend-navigator.md', 'Feasibility: Research Navigator + LLM front-end'],
     ['../04-feasibility-sar-pollen.md', 'Feasibility: Budapest ground motion (rail, buildings), Pollen & Bee'],
     ['../04-feasibility-trailbreaker.md', 'Feasibility: Trailbreaker / Marswalk planner'],
+    ['../04-feasibility-lunar-shield-v2.md', 'Lunar Shield v2: customers, Earth side, challenge framing, real-event restart backtest, build plan'],
     ['../04-feasibility-lunar-solar-farm.md', 'Feasibility: lunar solar-farm heatmap, standalone and as a Slip Day power layer'],
     ['../04-feasibility-ai-datacenter-heat.md', 'Feasibility: GPU smuggling sticky (rejected) and its ch. 2 reframe, AI data-center heat footprint'],
     ['../04-feasibility-moon-salvage.md', 'Feasibility: lunar hardware recovery / Moon Salvage or Museum'],
@@ -471,6 +472,38 @@ window.DATA = {
       verdict: 'Drop',
       checks: { fits: 0, nasa: 0, data: 0, demo: 0, skills: 0.5, novel: 0.5, local: 0, video: 0.5 },
       report: '../04-feasibility-ai-datacenter-heat.md'
+    },
+    /* ---------------------------------------------------------------- */
+    {
+      id: 'shield-v2', sources: [["NOAA space weather scales (tested)", "https://www.swpc.noaa.gov/noaa-scales-explanation"], ["ISWA HAPI: GOES protons, LRO CRaTER (tested)", "https://iswa.gsfc.nasa.gov/IswaSystemWebApp/hapi/"], ["DONKI new host (tested, 60-day query limit)", "https://ccmc.gsfc.nasa.gov/DONKI-API/get/SEP?startDate=2024-05-01&endDate=2024-06-15"], ["May 2024 spacecraft impacts: Tzamalia et al. SpaceOps 2025", "https://publications.spaceops.org/2025/download_by_id.php?id=0475"], ["Moon Base rover and lander awards (May 2026)", "https://spacepolicyonline.com/news/nasa-awards-initial-moon-base-rover-and-lander-contracts/"], ["Interlune + Astrolab (Mar 2026)", "https://www.interlune.space/press-release/interlune-and-astrolab-collaborate-on-technology-for-harvesting-resources-and-building-infrastructure-on-the-moon"], ["Commercial space weather: 'thin market niche?' (2026)", "https://newspaceeconomy.ca/2026/04/08/commercial-space-weather-and-orbital-risk-intelligence-emerging-necessity-or-thin-market-niche/"]], short: 'Shield v2', name: 'Lunar Shield v2: ops console for lunar operators (+ Earth translation)', family: 'Moon · space weather', chNum: '11',
+      challenge: 'Lunar Landing Site Navigator (team judged fit acceptable)',
+      summary: 'Event signal + restart window for lunar surface operators (mining, ISRU, rovers). Each operator sets per-robot rules (safe/shutdown pfu, hysteresis, CME hold). Replays real events from GOES/CRaTER/DONKI; Earth side shown via NOAA S/G scales. Physics simulation and console prototype in research/prototypes/lunar-shield-ux.',
+      scores: { impact: 3, creativity: 4, validity: 4, relevance: 3, presentation: 4 },
+      scoreWhy: 'Estimated 17–18 (18 if the CME-hold demo works). Backtest on 6 real events [computed]: restarting at <10 pfu gives 21 premature restarts, a 1 h hold 6, hysteresis (6 h < 5 pfu) 2 at +27 % downtime. Pitch fact [computed]: May 2024 was G5 on Earth but only S2 on the Moon; Jan 2012 was Kp 5 on Earth but 6,310 pfu at the Moon. Gap to leaders: small market (est. USD 0.1–0.9M/yr lunar-only before 2030) and all-clear is a known need.',
+      feasible: 'Yes', effortH: '55–65 (prototype + architecture exist)', dataEffort: 'Low', teamFit: 4, riskLevel: 2,
+      coreData: 'GOES ≥10 MeV protons + LRO CRaTER dose (ISWA HAPI), DONKI FLR/CME/SEP, SEP Scoreboard (all-clear field), NOAA scales',
+      risk: 'Impact and Creativity ceiling; no live event today (S0), so the demo relies on replays.',
+      res: {
+        listed: 'Challenge 11 resources for the site context; DONKI is listed in challenge 3',
+        other: 'ISWA HAPI (GOES, CRaTER), SEP Scoreboard, NOAA scales, SPHINX validation',
+        tools: 'hapiclient, FastAPI, the prototype console (vanilla JS canvas)',
+        sponsor: 'Azure Functions + Container Apps (estimate tens of USD), GoDaddy domain, Copilot'
+      },
+      mvp: {
+        must: 'events.json for 5 real events (replaces synthetic flux/kp), operator rule editor, restart-window display, backtest panel, Earth S/G translation',
+        nice: 'Moon-vs-Earth "worst day" slider, SEP Scoreboard all-clear overlay, physics explainer scene',
+        cut: 'Own SEP forecast model (LightGBM), part-failure models, price tiers (no-promotion rule)',
+        demo: 'Nov 2025 second wave: CME hold on → robot stays safe, X4.0 flare 1 h 46 min before protons rise again. Then: "the worst day on Earth is not the worst day on the Moon."'
+      },
+      roles: [['Patrik', 'events.json pipeline (HAPI + DONKI), FastAPI, deploy'], ['Bence', 'Backtest + metrics, rule engine'], ['Benedek', 'Physics explainer, pitch, video'], ['Yhair', 'Console UI: rule editor, restart window, business framing']],
+      data: [['ISWA HAPI goesp_part_flux_P5M', 'https://iswa.gsfc.nasa.gov/IswaSystemWebApp/hapi/', 'tested'], ['ISWA HAPI CRaTER dose', 'https://iswa.gsfc.nasa.gov/IswaSystemWebApp/hapi/', 'tested'], ['DONKI API (60-day window)', 'https://ccmc.gsfc.nasa.gov/DONKI-API/get/CME', 'tested'], ['SEP Scoreboard (curl -L)', 'https://ccmc.gsfc.nasa.gov/scoreboards/sep/', 'tested']],
+      prior: ['NOAA/NASA already issue alerts; NOAA scales already translate Earth effects', 'All-clear forecasting is a known SRAG need', 'No public lunar operator space-weather ops statements found; no lunar SW API found'],
+      risks: [['Lower Impact/Creativity than leaders', 'Lead with the decoupling fact and the backtest'], ['Quiet Sun on demo day', 'Replays of real events'], ['DONKI hindcast latency', 'Say "hindcast" in the backtest']],
+      pros: ['Prototype, physics scene and architecture already built', 'Validated restart trade-off on real events', 'Strong Moon-vs-Earth story', 'Team\'s original idea'],
+      cons: ['3–5 points below the leaders (estimate)', 'Thin market', 'Relevance only accepted by team decision'],
+      verdict: 'Consider',
+      checks: { fits: 0.5, nasa: 1, data: 1, demo: 1, skills: 1, novel: 0.5, local: 0.5, video: 1 },
+      report: '../04-feasibility-lunar-shield-v2.md'
     }
 
   ]

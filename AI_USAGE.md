@@ -30,3 +30,4 @@ Pollen & Bee, lunar hardware) before the research started. AI was used to assess
 | 2026-11-14 | Claude Code + Miro MCP | Miro "Idea review" section (ranking table, idea cards with sources, method notes); `research/00-methodology.md`; evidence lists in the dashboard | _team_ |
 | 2026-11-14 | Claude Code | Feasibility of new Miro stickies (lunar solar-farm heatmap, data-center heat reframe); test scripts in `research/prototypes/`; dashboard entries | _team_ |
 | 2026-11-14 | Claude Code | Lunar Shield UX prototype (synthetic data) and solution-architecture draft (`research/05-lunar-shield-architecture.md`) | _team_ |
+| 2026-11-14 | Claude Code | Lunar Shield v2 feasibility, real-event backtest scripts (), physics-based UX simulation | _team_ |

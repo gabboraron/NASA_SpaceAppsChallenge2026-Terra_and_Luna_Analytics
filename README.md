@@ -62,6 +62,7 @@ Presentation) is rated from 1 to 5. The [decision board](#quick-start) lets you 
 | Moon Power Map (standalone) | [Lunar Landing Site Navigator](https://www.spaceappschallenge.org/2026/challenges/lunar-landing-site-navigator/) | 18/25 | Merge into Slip Day |
 | Heat & Light of the Cloud (AI data-center footprint) | [Earth System Trend Detective](https://www.spaceappschallenge.org/2026/challenges/earth-system-trend-detective/) | 20/25 (21–22 inside Navigator) | Merge into Navigator |
 | GPU smuggling from space (original sticky) | none | 9/25 | Drop |
+| Lunar Shield v2 (ops console, real-event replay, Moon + Earth) | [Lunar Landing Site Navigator](https://www.spaceappschallenge.org/2026/challenges/lunar-landing-site-navigator/) | 17–18/25 | Consider |
 
 ## Quick start
 

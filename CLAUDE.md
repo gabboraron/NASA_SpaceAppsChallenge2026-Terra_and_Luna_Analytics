@@ -104,6 +104,10 @@ engine matches NASA Glenn's 3–4 day darkness at a 10 m mast, fine-scale r = 0.
 Moon Power Map standalone 18, Merge · Heat & Light of the Cloud (ch. 2, AI data-center heat/NDVI/night-light trends) 20, or 21–22
 as Research Navigator's headline case (`04-feasibility-ai-datacenter-heat.md`) · "GPU smuggling from space" sticky 9, Drop (no
 challenge fit, not observable, conduct-rule risk). "Cross-planetary vector search" sticky = Earth's Twin Finder.
+Lunar Shield v2 (14 Nov, ): 17–18, Consider. Real-event backtest (6 events, GOES via ISWA HAPI):
+restart at <10 pfu → 21 premature restarts; 1 h hold → 6; hysteresis 6 h <5 pfu → 2 (+27 % downtime). Moon and Earth decouple:
+May 2024 G5 on Earth but S2 at the Moon; Jan 2012 Kp 5 but 6,310 pfu. DONKI new host: 60-day query limit. Prototype UX +
+physics scene: ; architecture: .
 Note: the published artifact still says "Slip Day + Shield layer = strongest". That is outdated: terrain open-sky fraction is
 0.92–0.98 at landing sites (only 2–8 % shielding), and live SEP status means nothing for a future landing date.
 Slip Day prototype facts: Horizons `coord@301` and spiceypy agree to 0.001°; LOLA LDEM_80S_80M horizon takes 0.25 s per site;
