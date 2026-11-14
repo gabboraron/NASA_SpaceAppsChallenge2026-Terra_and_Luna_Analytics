@@ -5,6 +5,7 @@ from datetime import date, timedelta
 from fastapi import APIRouter, HTTPException
 
 from pollination import models as m
+from pollination.engine import calculator
 
 router = APIRouter()
 SOURCE = "WP2 synthetic example"
@@ -130,22 +131,8 @@ def matches(beekeeper_id: str, year: m.Season, week: m.Week) -> list[m.MatchCard
 
 @router.post("/calculate")
 def calculate(inputs: m.CalculatorInput) -> m.CalculatorResult:
-    """Return the result shape; example numbers are independent of the inputs."""
-    placeholder = m.Scenario(
-        revenue=0,
-        commission=0,
-        transport_cost=0,
-        other_costs=0,
-        contribution=0,
-        benefit_vs_alternative=0,
-    )
-    return m.CalculatorResult(
-        low=placeholder,
-        base=placeholder,
-        high=placeholder,
-        verdict="do_not_move",
-        message="WP2 placeholder; no calculation performed.",
-    )
+    """Return low, base and high scenarios for a move."""
+    return calculator.calculate(inputs)
 
 
 @router.post("/parcels/{id}/verify")
