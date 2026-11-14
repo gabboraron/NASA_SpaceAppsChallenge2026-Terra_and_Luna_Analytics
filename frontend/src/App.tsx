@@ -67,7 +67,7 @@ export function App() {
     <main className={styles.page}>
       <header>
         <h1>Pollination map</h1>
-        <span>Nyírség, Hungary</span>
+        <span>Pilot region</span>
       </header>
       <div className={styles.workspace}>
         <aside>

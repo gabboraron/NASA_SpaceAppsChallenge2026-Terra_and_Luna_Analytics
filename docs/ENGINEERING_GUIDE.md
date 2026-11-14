@@ -25,7 +25,7 @@ Each rule is marked **[enforced]** (a tool or CI fails when it is broken), **[co
 ├── .python-version           # pinned interpreter (3.12)
 ├── src/                      # importable code (src layout)
 ├── tests/                    # pytest tests, mirrors src/
-├── docs/                     # this guide, ADRs, design notes
+├── docs/                     # this guide, implementation plan
 ├── repos/                    # cloned reference repos (gitignored)
 ├── .github/workflows/ci.yml  # CI pipeline
 ├── .github/dependabot.yml    # weekly dependency + Actions updates
@@ -153,7 +153,7 @@ def normalize(values: Sequence[float], *, eps: float = 1e-8) -> list[float]:
 - **Composition over inheritance.** Use `Protocol`/ABC for interfaces. Keep class hierarchies shallow.
 - **Dependency injection:** pass collaborators (clients, clocks, RNG, config) in; don't reach for globals. This is what makes code testable.
 - **Pure core, impure shell:** keep computation pure and side effects (I/O, network, time, randomness) at the edges.
-- **SOLID/architecture:** dependencies point inward (domain does not import infrastructure); name things after the domain; keep layers (I/O → services → domain) explicit. Record significant decisions as short ADRs in `docs/adr/`. [convention]
+- **SOLID/architecture:** dependencies point inward (domain does not import infrastructure); name things after the domain; keep layers (I/O → services → domain) explicit. [convention]
 - **Delete code.** Dead code, commented-out code and speculative abstractions don't ship.
 - **Naming:** `snake_case` functions/variables, `PascalCase` classes, `UPPER_CASE` constants, `_private` for internals. Names say what, not how. No abbreviations beyond the well-known (`df`, `idx` fine; `proc_dat` not).
 
