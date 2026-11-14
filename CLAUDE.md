@@ -69,6 +69,7 @@ Team fit (from kick-off doc): great fit → 2, 5, 6, 8, 9, 10, 11; moderate → 
 - Benedek (Máté Benedek Tibor) — geophysics BSc (GPR, seismic, EM field methods), CS BSc (Big Data/BI, ongoing),
   ÓE New Space Economy & Entrepreneurship Academy; pitching, narratives, technical docs.
 - Yhair Sifuentes — BI consultant (YSB Analytics), Power BI/SQL/Python; business model & finance angle.
+- Sándor Burian — team member (role/background not yet recorded; ask and fill in).
 - Strengths: software/AI/data, GIS, geophysics/radar, BI/business. Weak: medicine, combustion, astrophysics.
 - Lesson from the spring Cassini hackathon: the jury favored flashy pitches over sensor depth, so the pitch must be
   both striking and technically credible.

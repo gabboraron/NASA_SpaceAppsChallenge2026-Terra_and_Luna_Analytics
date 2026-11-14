@@ -24,7 +24,7 @@
 
 ## About
 
-[Terra & Luna Analytics](https://www.spaceappschallenge.org/2026/find-a-team/terra-and-luna-analytics/) is a four-person team at the Budapest local event of the
+[Terra & Luna Analytics](https://www.spaceappschallenge.org/2026/find-a-team/terra-and-luna-analytics/) is a five-person team at the Budapest local event of the
 [NASA International Space Apps Challenge 2026](https://www.spaceappschallenge.org/2026/), held 14 to 15 November 2026.
 This repository holds our research, our decisions, and the solution we submit for judging.
 
@@ -130,6 +130,7 @@ research files cite their sources inline. The candidate ideas draw on these NASA
 | Bence Majer | AI engineering, data science |
 | Benedek Máté | Geophysics, pitching, technical writing |
 | Yhair Sifuentes | Business intelligence, analytics, business model |
+| Sándor Burian | _to be added_ |
 
 ## AI use
 
