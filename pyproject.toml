@@ -52,7 +52,7 @@ dev = [
 [tool.ruff]
 line-length = 88
 target-version = "py312"
-src = ["src", "tests", "."]
+src = ["src", "tests"]
 extend-exclude = ["frontend"]
 
 [tool.ruff.lint]
@@ -74,6 +74,9 @@ select = [
   "T20",      # no stray print()
 ]
 ignore = ["D203", "D213", "ANN401"]
+
+[tool.ruff.lint.isort]
+known-first-party = ["pollination", "verification"]
 
 [tool.ruff.lint.pydocstyle]
 convention = "google"

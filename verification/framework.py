@@ -10,8 +10,9 @@ from dataclasses import dataclass, field
 from datetime import date
 from enum import StrEnum
 from pathlib import Path
+from typing import Annotated
 
-from pydantic import BaseModel
+from pydantic import BaseModel, BeforeValidator
 
 THRESHOLDS_FILE = Path(__file__).with_name("thresholds.toml")
 
@@ -32,15 +33,29 @@ class SignalSettings(BaseModel):
     min_flow_total_kg: float
 
 
+def _month_day(value: object) -> object:
+    """Parse "MM-DD" into (month, day); other values pass to pydantic as is."""
+    if isinstance(value, str):
+        month, day = value.split("-")
+        return int(month), int(day)
+    return value
+
+
+type MonthDayField = Annotated[MonthDay, BeforeValidator(_month_day)]
+
+
 class CropWindow(BaseModel):
     """Calendar window ("MM-DD", "MM-DD") used to attribute a flow to a crop."""
 
-    window: tuple[str, str]
+    window: tuple[MonthDayField, MonthDayField]
 
     def contains(self, day: date) -> bool:
         """Return whether ``day`` falls inside the window of its own year."""
-        start, end = (_month_day(s) for s in self.window)
-        return start <= (day.month, day.day) <= end
+        return self.window[0] <= (day.month, day.day) <= self.window[1]
+
+    def bounds(self, year: int) -> tuple[date, date]:
+        """First and last day of the window in ``year``."""
+        return date(year, *self.window[0]), date(year, *self.window[1])
 
 
 class ModelSettings(BaseModel):
@@ -61,7 +76,7 @@ class GddSettings(BaseModel):
     """Growing-degree-day accumulation compared in scenario S3."""
 
     base_temps_c: list[float]
-    start: str
+    start: MonthDayField
     cv_ok: float
 
 
@@ -107,11 +122,6 @@ def load_thresholds(path: Path = THRESHOLDS_FILE) -> Thresholds:
     return Thresholds.model_validate(tomllib.loads(path.read_text("utf-8")))
 
 
-def _month_day(text: str) -> MonthDay:
-    month, day = text.split("-")
-    return int(month), int(day)
-
-
 # --- inputs -------------------------------------------------------------------
 
 
@@ -150,10 +160,7 @@ class PhenoRecord:
 
     crop: str
     year: int
-    bbch: int
     day: date
-    lon: float
-    lat: float
 
 
 @dataclass
@@ -193,17 +200,24 @@ class Status(StrEnum):
     FAIL = "FAIL"  # gated scenario outside its limits
     REPORTED = "REPORTED"  # informative scenario, no gate
     INSUFFICIENT = "INSUFFICIENT"  # model or reference data missing; nothing judged
+    ERROR = "ERROR"  # the scenario crashed: a bug, not a data gap
 
 
 @dataclass(frozen=True)
-class Result:
-    """Outcome, numbers and explanation of one scenario."""
+class Outcome:
+    """What a scenario function returns: status, numbers and explanation."""
 
-    id: str
-    question: str
     status: Status
     metrics: dict[str, Metric] = field(default_factory=dict[str, Metric])
     notes: tuple[str, ...] = ()
+
+
+@dataclass(frozen=True)
+class Result(Outcome):
+    """An outcome labelled with its scenario."""
+
+    id: str = ""
+    question: str = ""
 
 
 @dataclass(frozen=True)
@@ -212,28 +226,24 @@ class Scenario:
 
     id: str
     question: str
-    run: Callable[[Context], Result]
+    run: Callable[[Context], Outcome]
 
 
 def run_all(
     ctx: Context, scenarios: Sequence[Scenario], only: set[str] | None = None
 ) -> list[Result]:
-    """Run scenarios in order; an exception becomes an INSUFFICIENT result."""
+    """Run scenarios in order; a crash becomes an ERROR result, not a data gap."""
     results: list[Result] = []
     for scenario in scenarios:
         if only and scenario.id not in only:
             continue
         try:
-            results.append(scenario.run(ctx))
-        except (KeyError, ValueError, ZeroDivisionError) as err:
-            results.append(
-                Result(
-                    scenario.id,
-                    scenario.question,
-                    Status.INSUFFICIENT,
-                    notes=(f"Could not evaluate: {err!r}",),
-                )
-            )
+            out = scenario.run(ctx)
+        except Exception as err:  # report every crash, keep running the others
+            out = Outcome(Status.ERROR, notes=(f"Scenario crashed: {err!r}",))
+        results.append(
+            Result(out.status, out.metrics, out.notes, scenario.id, scenario.question)
+        )
     return results
 
 

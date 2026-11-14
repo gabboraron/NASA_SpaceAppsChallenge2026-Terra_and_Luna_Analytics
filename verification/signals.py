@@ -9,6 +9,22 @@ from datetime import date, datetime, timedelta
 from verification.framework import CropWindow, ModelWeek, SignalSettings, Weather
 
 PEAK_HALF_WIDTH_DAYS = 3  # a peak is the centre of the best 7-day sum
+WEEK_DAYS = 7
+
+
+def date_range(start: date, end: date) -> list[date]:
+    """Every day from ``start`` to ``end``, both included."""
+    return [start + timedelta(days=i) for i in range((end - start).days + 1)]
+
+
+def doy(day: date) -> int:
+    """Day of year (1 = 1 January)."""
+    return day.timetuple().tm_yday
+
+
+def on_doy(year: int, day_of_year: float) -> date:
+    """The date of a (rounded) day of year in ``year``."""
+    return date(year, 1, 1) + timedelta(days=round(day_of_year) - 1)
 
 
 # --- hive weights -------------------------------------------------------------
@@ -58,10 +74,7 @@ class Flow:
 
     def days(self) -> set[date]:
         """Return every day of the flow."""
-        return {
-            self.start + timedelta(days=i)
-            for i in range((self.end - self.start).days + 1)
-        }
+        return set(date_range(self.start, self.end))
 
 
 def flows(gains: Mapping[date, float | None], s: SignalSettings) -> list[Flow]:
@@ -97,7 +110,7 @@ def flows(gains: Mapping[date, float | None], s: SignalSettings) -> list[Flow]:
     result: list[Flow] = []
     for run in runs:
         start, end = run[0], run[-1]
-        span = [start + timedelta(days=i) for i in range((end - start).days + 1)]
+        span = date_range(start, end)
         total = sum(gains.get(d) or 0.0 for d in span)
         if total >= s.min_flow_total_kg:
             result.append(Flow(start, end, _peak(span, gains), total))
@@ -114,12 +127,16 @@ def _peak(span: Sequence[date], gains: Mapping[date, float | None]) -> date:
     return max(span, key=window_sum)
 
 
+def crop_flows(all_flows: Iterable[Flow], window: CropWindow, year: int) -> list[Flow]:
+    """The flows of ``year`` attributed to a crop: their peak is in its window."""
+    return [f for f in all_flows if f.peak.year == year and window.contains(f.peak)]
+
+
 def crop_flow(all_flows: Iterable[Flow], window: CropWindow, year: int) -> Flow | None:
-    """Return the largest flow of ``year`` whose peak lies in the crop window."""
-    candidates = [
-        f for f in all_flows if f.peak.year == year and window.contains(f.peak)
-    ]
-    return max(candidates, key=lambda f: f.total_kg, default=None)
+    """Return the largest flow of a crop in ``year``."""
+    return max(
+        crop_flows(all_flows, window, year), key=lambda f: f.total_kg, default=None
+    )
 
 
 # --- model timeline -----------------------------------------------------------

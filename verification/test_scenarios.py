@@ -11,6 +11,7 @@ import pytest
 from verification.framework import (
     Context,
     ModelWeek,
+    Outcome,
     Result,
     Scenario,
     Status,
@@ -174,12 +175,13 @@ def test_no_references_is_insufficient() -> None:
     assert {r.status for r in run_all(ctx, SCENARIOS)} == {Status.INSUFFICIENT}
 
 
-def test_crashing_scenario_is_reported_not_raised() -> None:
-    def boom(_: Context) -> Result:
+def test_crashing_scenario_is_an_error_not_a_data_gap() -> None:
+    def boom(_: Context) -> Outcome:
         raise KeyError("x")
 
     results = run_all(context(), [Scenario("X", "?", boom)])
-    assert results[0].status == Status.INSUFFICIENT
+    assert results[0].status == Status.ERROR
+    assert (results[0].id, results[0].question) == ("X", "?")
 
 
 def test_only_filter_and_reports() -> None:

@@ -3,7 +3,8 @@
 This folder is a standalone test framework. It checks whether the model's weekly bloom and nectar
 output for past seasons matches what was measured on the ground. It talks to the running API like any
 client would and compares the answers with independent records. Every check ends as **PASS**, **FAIL**,
-**REPORTED** (informative, no gate) or **INSUFFICIENT** (data missing, nothing judged).
+**REPORTED** (informative, no gate), **INSUFFICIENT** (data missing, nothing judged) or **ERROR** (the
+scenario crashed: a bug in the check, never a data gap).
 
 ## Why not a pollen API
 
@@ -65,8 +66,9 @@ model output. Change them only in a reviewed PR, and never to turn a FAIL into a
 5. **Report**: printed and saved to `.cache/verification/report.md` and `report.csv`. The report is never
    committed.
 
-Downloads are cached in `.cache/verification/` and pinned by SHA-256, so every run compares against the same
-bytes.
+Hive files are downloaded to `.cache/verification/hives/` and pinned by SHA-256, so every run compares against
+the same bytes. Their daily gains are cached by file hash and signal settings, and POWER and iNaturalist responses
+share the app's `.cache/`. A repeat run therefore only calls the model API.
 
 ## Run it
 
@@ -84,7 +86,8 @@ uv run python -m verification --only S1,S2,B0
 uv run python -m verification --pep725 my_pep725_export.csv
 ```
 
-The command exits with 1 if any gated scenario fails. CI does not run this folder: CI tests only `tests/`.
+The command exits with 1 if any gated scenario fails or any scenario crashes. `--cache` sets the cache root
+(default `.cache`) and `--out` sets the report folder (default `<cache>/verification`). CI does not run this folder: CI tests only `tests/`.
 
 **PEP725 input:** register at <https://www.pep725.eu>, export the records, and normalise them to a CSV with
 the columns `crop,year,bbch,doy,lon,lat`. `crop` uses the parcel names (`apple`, `sour_cherry`, …) and `doy`
