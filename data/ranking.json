@@ -1,0 +1,14 @@
+{
+  "_note": "Design choices for the explainable ranking (plan D14), tunable, not from literature. Weights sum to 1. Vehicle consumption (12 L/100 km) and the EUR 400 alternative come from the business brief's illustrative worked example.",
+  "weights": {
+    "overlap_days": 0.5,
+    "inverse_distance": 0.3,
+    "provenance_confidence": 0.2
+  },
+  "provenance_confidence": {
+    "Observed": 1.0,
+    "Estimated": 0.7,
+    "Reported": 0.4,
+    "Missing": 0.0
+  }
+}

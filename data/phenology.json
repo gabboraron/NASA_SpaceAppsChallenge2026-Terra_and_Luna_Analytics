@@ -1,0 +1,64 @@
+{
+  "_note": "Plan D20 / WP4: every value needs a cited source and none is invented. Values stay null until someone reads the source and fills base_temp_c, gdd_bloom_start/end, uncertainty_days (and NDYI threshold for sunflower) together with the source URL or DOI. Until then the engine must use the grower-declared window only and show GDD as context (plan section 7 fallback). Leads were found by web search on 2026-11-14 and NOT read in full.",
+  "apple": {
+    "method": "gdd",
+    "base_temp_c": null,
+    "gdd_bloom_start": null,
+    "gdd_bloom_end": null,
+    "uncertainty_days": null,
+    "ndyi_bloom_threshold": null,
+    "source": null,
+    "status": "unverified: no citable value found yet",
+    "leads": [
+      "https://asr.copernicus.org/articles/18/93/2021/ (degree-day sum from 1 January, Latvia; base not confirmed)",
+      "https://www.doi.org/10.1007/S00484-012-0551-9 (apple bloom phenology model; not read)"
+    ],
+    "note": "No Hungary-specific or base-4 C calibration found."
+  },
+  "sour_cherry": {
+    "method": "gdd",
+    "base_temp_c": null,
+    "gdd_bloom_start": null,
+    "gdd_bloom_end": null,
+    "uncertainty_days": null,
+    "ndyi_bloom_threshold": null,
+    "source": null,
+    "status": "unverified: no citable value found yet",
+    "leads": [
+      "https://journal.americanpomological.org/index.php/jofaps/article/download/2840/2844/6039 (Michigan protocol counts degree days from 1 January to 50% bloom at base 4.4 C; bloom total not found)",
+      "https://ishs.org/ishs-article/1020_35 (Persely et al., Hungarian sour cherry phenology; not read)",
+      "https://ishs.org/ishs-article/1020_36/ (German sour cherry model, start date 1 March; fitted values not seen)"
+    ],
+    "note": "Candidate base 4.4 C is from a search snippet, not yet confirmed in the paper."
+  },
+  "sunflower": {
+    "method": "ndyi",
+    "base_temp_c": null,
+    "gdd_bloom_start": null,
+    "gdd_bloom_end": null,
+    "uncertainty_days": null,
+    "ndyi_bloom_threshold": null,
+    "source": null,
+    "status": "unverified: no citable value found yet",
+    "leads": [
+      "NDSU sunflower GDD model quoted at base 6.7 C, R1 569 / R5.1 883 GDD, in a Manitoba sheet that is now a 404 (https://residents.manitoba.ca/agriculture/crops/crop-management/pubs/frost-sunflowers.pdf); unverified, start point (sowing or emergence) unknown",
+      "https://nuseed.com/us/growing-degree-days-gdd-for-sunflower/ (not read)"
+    ],
+    "note": "Bloom is detected from HLS NDYI (plan D6); the NDYI threshold must be calibrated or cited."
+  },
+  "black_locust": {
+    "method": "gdd",
+    "base_temp_c": null,
+    "gdd_bloom_start": null,
+    "gdd_bloom_end": null,
+    "uncertainty_days": null,
+    "ndyi_bloom_threshold": null,
+    "source": null,
+    "status": "unverified: no citable value found yet",
+    "leads": [
+      "https://journal.uni-mate.hu/index.php/columella/article/download/2801/3272/4300 (Hungarian locust phenology; not read)",
+      "https://www.agriculturejournals.cz/artkey/jfs-202604-0002_soil-temperature-and-weather-factors-as-key-drivers-of-flowering-phenology-and-nectar-production-in-black-locus.php (Porcsin et al. 2026, Hungary; full text not read)"
+    ],
+    "note": "Hungarian sources found use monthly mean temperatures, not degree-day sums."
+  }
+}
