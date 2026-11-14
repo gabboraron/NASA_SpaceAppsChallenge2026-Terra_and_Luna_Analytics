@@ -3,6 +3,7 @@ import circle from "@turf/circle";
 import type { Feature, FeatureCollection, Point, Polygon } from "geojson";
 import type {
   Beekeeper,
+  MatchCard,
   Parcel,
   ParcelWeek,
   Season,
@@ -34,6 +35,9 @@ export const CROP_NAMES: Record<string, string> = {
   sour_cherry: "Sour cherry",
   grassland: "Grassland",
 };
+/** Display name of a parcel's crop, falling back to the raw code. */
+export const cropName = (crop: string): string => CROP_NAMES[crop] ?? crop;
+
 export const DROUGHT = "#ae4036";
 export const NATURA = "#315e48";
 export const INK = "#192b24";
@@ -156,6 +160,7 @@ export function parcelDots(parcels: Parcel[]): FeatureCollection<Point> {
 
 export function beekeeperCollection(
   beekeepers: Beekeeper[],
+  selectedId = "",
 ): FeatureCollection<Point> {
   return {
     type: "FeatureCollection",
@@ -165,6 +170,7 @@ export function beekeeperCollection(
       properties: {
         id: b.id,
         label: b.synthetic ? `${b.id} · synthetic` : b.id,
+        selected: b.id === selectedId,
       },
     })),
   };
@@ -223,6 +229,31 @@ export function foragingRings(
     ),
   );
   return { type: "FeatureCollection", features };
+}
+
+/** Rank badges at the centroids of ranked parcels (blocked ones get none). */
+export function matchLabels(
+  cards: MatchCard[],
+  parcels: Parcel[],
+): FeatureCollection<Point> {
+  const byId = new Map(parcels.map((p) => [p.id, p]));
+  return {
+    type: "FeatureCollection",
+    features: cards.flatMap((c) => {
+      const parcel = byId.get(c.parcel_id);
+      if (!parcel || c.rank === null) return [];
+      return [
+        {
+          type: "Feature" as const,
+          geometry: {
+            type: "Point" as const,
+            coordinates: centroid(parcel.geometry),
+          },
+          properties: { id: c.parcel_id, label: String(c.rank) },
+        },
+      ];
+    }),
+  };
 }
 
 /** "#rrggbb" → [r, g, b, alpha] for image data. */

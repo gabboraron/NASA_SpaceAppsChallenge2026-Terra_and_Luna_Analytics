@@ -60,7 +60,7 @@ export const getMatches = (
   signal: AbortSignal,
 ) =>
   useMocks
-    ? Promise.resolve(mocks.matches(beekeeperId))
+    ? Promise.resolve(mocks.matches(beekeeperId, year, week))
     : get<MatchCard[]>(
         `/matches?${new URLSearchParams({ beekeeper_id: beekeeperId, year: String(year), week: String(week) })}`,
         { signal },

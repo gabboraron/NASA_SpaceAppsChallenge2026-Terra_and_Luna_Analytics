@@ -137,6 +137,14 @@ const LAYERS: (LayerSpecification & { group: LayerId })[] = [
   },
   {
     group: "parcels",
+    id: "parcels-hover",
+    type: "line",
+    source: "parcels",
+    filter: ["==", ["get", "id"], ""],
+    paint: { "line-color": INK, "line-width": 5, "line-opacity": 0.6 },
+  },
+  {
+    group: "parcels",
     id: "parcels-line",
     type: "line",
     source: "parcels",
@@ -178,15 +186,59 @@ const LAYERS: (LayerSpecification & { group: LayerId })[] = [
     },
   },
   {
+    group: "parcels",
+    id: "dots-hover",
+    type: "circle",
+    source: "parcel-dots",
+    maxzoom: 12,
+    filter: ["==", ["get", "id"], ""],
+    paint: {
+      "circle-radius": 12,
+      "circle-color": "rgba(0,0,0,0)",
+      "circle-stroke-color": INK,
+      "circle-stroke-width": 3,
+    },
+  },
+  {
+    // The selected beekeeper's ranks, up and right of each parcel (WP18).
+    group: "beekeepers",
+    id: "match-badge",
+    type: "circle",
+    source: "match-labels",
+    paint: {
+      "circle-radius": 10,
+      "circle-color": INK,
+      "circle-stroke-color": "#ffffff",
+      "circle-stroke-width": 1.5,
+      "circle-translate": [13, -13],
+    },
+  },
+  {
+    group: "beekeepers",
+    id: "match-rank",
+    type: "symbol",
+    source: "match-labels",
+    layout: {
+      "text-field": ["get", "label"],
+      "text-font": ["Noto Sans Bold"],
+      "text-size": 12,
+      "text-allow-overlap": true,
+      "text-ignore-placement": true,
+    },
+    paint: { "text-color": "#ffffff", "text-translate": [13, -13] },
+  },
+  {
     group: "beekeepers",
     id: "bee-pin",
     type: "circle",
     source: "beekeepers",
     paint: {
-      "circle-radius": 9,
+      "circle-radius": ["case", ["get", "selected"], 10, 7],
       "circle-color": INK,
       "circle-stroke-color": BLOOM_COLORS.blooming,
       "circle-stroke-width": 3,
+      "circle-opacity": ["case", ["get", "selected"], 1, 0.45],
+      "circle-stroke-opacity": ["case", ["get", "selected"], 1, 0.45],
     },
   },
   {
@@ -205,6 +257,7 @@ const LAYERS: (LayerSpecification & { group: LayerId })[] = [
       "text-color": INK,
       "text-halo-color": "#ffffff",
       "text-halo-width": 1.5,
+      "text-opacity": ["case", ["get", "selected"], 1, 0.6],
     },
   },
 ];
@@ -215,11 +268,14 @@ type Props = {
   natura: FeatureCollection<Polygon>;
   rings: FeatureCollection<Polygon>;
   beekeepers: FeatureCollection<Point>;
+  matchLabels: FeatureCollection<Point>;
   smap: FeatureCollection<Polygon>;
   /** The shown week's rows by parcel id. */
   weekRows: Map<string, ParcelWeek>;
   visible: Record<LayerId, boolean>;
   selected: string;
+  /** Parcel outlined because its card or the parcel itself is hovered. */
+  hovered: string;
   onSelect: (parcelId: string) => void;
   onHover: (parcelId: string) => void;
 };
@@ -231,6 +287,7 @@ const SOURCES = [
   "parcels",
   "parcel-dots",
   "beekeepers",
+  "match-labels",
 ];
 
 function useSource(
@@ -328,6 +385,7 @@ export function MapCanvas(props: Props) {
   useSource(m, "rings", props.rings);
   useSource(m, "beekeepers", props.beekeepers);
   useSource(m, "smap", props.smap);
+  useSource(m, "match-labels", props.matchLabels);
 
   useEffect(() => {
     if (!m) return;
@@ -358,6 +416,16 @@ export function MapCanvas(props: Props) {
   useEffect(() => {
     m?.setFilter("parcels-selected", ["==", ["get", "id"], props.selected]);
   }, [m, props.selected]);
+
+  useEffect(() => {
+    const filter: ExpressionSpecification = [
+      "==",
+      ["get", "id"],
+      props.hovered,
+    ];
+    m?.setFilter("parcels-hover", filter);
+    m?.setFilter("dots-hover", filter);
+  }, [m, props.hovered]);
 
   return (
     <>

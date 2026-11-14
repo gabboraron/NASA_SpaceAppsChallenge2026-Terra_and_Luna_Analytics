@@ -33,12 +33,12 @@ describe("mock calculator mirrors the engine", () => {
     expect(verdict).toBe("move");
   });
   it("prefills a calculator input on every open match", () => {
-    for (const card of matches("B1"))
+    for (const card of matches("B1", 2024, 9))
       expect(card.calculator_input === null).toBe(card.blocked);
-    expect(matches("nobody")).toEqual([]);
+    expect(matches("nobody", 2024, 9)).toEqual([]);
   });
   it("gives the far beekeeper a do-not-move on a 20-colony orchard", () => {
-    const orchard = matches("B2").find((c) => c.parcel_id === "P2")!;
+    const orchard = matches("B2", 2024, 9).find((c) => c.parcel_id === "P2")!;
     expect(calculate(orchard.calculator_input!).verdict).toBe("do_not_move");
   });
 });
