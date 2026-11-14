@@ -218,3 +218,13 @@ __marimo__/
 
 # Streamlit
 .streamlit/secrets.toml
+
+# --- Project-specific (from pre-setup) ---
+# Cloned reference repos (keep the folder, ignore contents)
+repos/*
+!repos/.gitkeep
+# Personal Claude settings
+.claude/settings.local.json
+# Python
+.venv/
+.env.*
