@@ -1,6 +1,5 @@
 import type {
   Grower,
-  Measurement,
   Parcel,
   ParcelWeek,
   Provenance,
@@ -15,7 +14,11 @@ import {
   weekStateText,
 } from "../MapCanvas/layers";
 import { useEscape } from "../../hooks/useEscape";
-import { ProvenanceBadge, prov } from "../ProvenanceBadge/ProvenanceBadge";
+import {
+  ProvenanceBadge,
+  prov,
+  show,
+} from "../ProvenanceBadge/ProvenanceBadge";
 import styles from "./ParcelDetail.module.css";
 
 export type VerifyState = "idle" | "pending" | "error";
@@ -33,9 +36,6 @@ const range = (w: { start: string; end: string } | null | undefined) =>
   w
     ? `${DAY_MONTH.format(new Date(w.start))} – ${DAY_MONTH.format(new Date(w.end))}`
     : "—";
-
-const show = (m: Measurement | undefined, digits: number, unit = "") =>
-  m?.value == null ? "—" : `${m.value.toFixed(digits)}${unit}`;
 
 // The 3 km buffer is NATURA_BUFFER_M in the backend's geo.py (plan D15).
 const NATURA: Partial<

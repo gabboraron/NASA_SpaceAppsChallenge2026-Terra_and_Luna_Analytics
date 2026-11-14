@@ -1,4 +1,4 @@
-import type { Provenance } from "../../api/client";
+import type { Measurement, Provenance } from "../../api/client";
 import styles from "./ProvenanceBadge.module.css";
 
 const DAY = new Intl.DateTimeFormat("en-GB", {
@@ -20,6 +20,17 @@ export const prov = (
   interpolated: false,
   note,
 });
+
+/** A measurement as text, or a dash for a gap; `signed` adds "+" to gains. */
+export const show = (
+  m: Measurement | undefined,
+  digits: number,
+  unit = "",
+  signed = false,
+) =>
+  m?.value == null
+    ? "—"
+    : `${signed && m.value > 0 ? "+" : ""}${m.value.toFixed(digits)}${unit}`;
 
 /** "12 Jul 2024" from an ISO date. */
 export const formatDate = (iso: string) => DAY.format(new Date(iso));

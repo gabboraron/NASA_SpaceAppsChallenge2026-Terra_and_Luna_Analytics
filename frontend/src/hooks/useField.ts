@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import {
   getPolygonHls,
   getPolygonPower,
@@ -12,9 +12,12 @@ import {
 export type Answer<T> = { data?: T; error?: boolean };
 type Kept<T> = Answer<T> & { key: unknown };
 
-/** Run `load` whenever `key` changes; the answer of an older key is never shown. */
+/**
+ * Run `load` whenever `key` (compared by reference) changes; the answer of an
+ * older key is never shown.
+ */
 function useAnswer<T>(
-  key: unknown,
+  key: object | null,
   load: ((signal: AbortSignal) => Promise<T>) | null,
 ): Answer<T> {
   const [kept, setKept] = useState<Kept<T>>({ key: null });
@@ -37,12 +40,13 @@ function useAnswer<T>(
  * weather shows in seconds while the satellite read is still on its way.
  */
 export function useField(polygon: Polygon | null, year: Season) {
+  const season = useMemo(() => polygon && { polygon, year }, [polygon, year]);
   const power = useAnswer<PowerResponse>(
-    polygon && `${year}:${JSON.stringify(polygon)}`,
+    season,
     polygon && ((signal) => getPolygonPower(polygon, year, signal)),
   );
   const hls = useAnswer<HlsResponse>(
-    polygon && JSON.stringify(polygon),
+    polygon,
     polygon && ((signal) => getPolygonHls(polygon, signal)),
   );
   return { power, hls };

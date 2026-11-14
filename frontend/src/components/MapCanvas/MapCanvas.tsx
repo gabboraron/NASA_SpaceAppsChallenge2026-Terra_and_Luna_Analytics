@@ -529,13 +529,9 @@ export function MapCanvas(props: Props) {
   useEffect(() => {
     const sketch = m && draw.current;
     if (!sketch) return;
-    if (props.drawing) {
-      sketch.clear();
-      sketch.setMode("polygon");
-    } else {
-      sketch.setMode("static");
-      if (!props.field) sketch.clear();
-    }
+    // Starting a draw clears the field first, so this also wipes the old shape.
+    if (!props.field) sketch.clear();
+    sketch.setMode(props.drawing ? "polygon" : "static");
   }, [m, props.drawing, props.field]);
 
   useEffect(() => {
