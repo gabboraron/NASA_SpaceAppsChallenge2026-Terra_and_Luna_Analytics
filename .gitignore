@@ -218,3 +218,12 @@ __marimo__/
 
 # Streamlit
 .streamlit/secrets.toml
+
+# Project additions
+.DS_Store
+~$*
+*.tmp
+data/
+*.h5
+*.nc
+*.tif
