@@ -218,7 +218,8 @@ Format: **WP-id · title · track · depends on**, then tasks and **Done when** 
 - **Done when:** tests above green; `POST /calculate` wired.
 
 **WP10 · Geo helpers · ENGINE · WP4**
-- `geo.py`: haversine km, ×1.3 detour; 3 km buffer in a metric CRS (EPSG:3035 via pyproj) then intersect with Natura; `natura_status` per parcel; centroid; point-in-cell for SMAP.
+- `geo.py`: haversine km, ×1.3 detour; 3 km buffer in a metric CRS then intersect with Natura; `natura_status` per parcel; centroid; point-in-cell for SMAP.
+  - *As built:* the metric CRS is a Lambert azimuthal equal-area projection centred on the region, not EPSG:3035 (Europe-only; up to 25 m off at the pilot region, local LAEA < 4 cm). Any area shared with a site counts as `inside`. SMAP cells use the EASE-Grid 2.0 9 km grid (EPSG:6933), id `M09_r{row}_c{col}`.
 - **Done when:** tests on the real geometry files: the known "inside" parcels → `inside`, buffer parcel → `buffer_overlap`.
 
 ### Hour 16–24: engine logic, real data through the API

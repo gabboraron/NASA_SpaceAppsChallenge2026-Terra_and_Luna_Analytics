@@ -8,7 +8,8 @@ from typing import Literal
 
 from pydantic import BaseModel, NonNegativeFloat
 
-from pollination.models import Actors, NaturaCollection
+from pollination.geo import NaturaIndex
+from pollination.models import Actors, NaturaCollection, Parcel, Polygon
 
 type Crop = Literal["apple", "sour_cherry", "black_locust", "sunflower", "grassland"]
 
@@ -50,6 +51,32 @@ def load_natura(data_dir: Path) -> NaturaCollection:
     return NaturaCollection.model_validate_json(
         (data_dir / "natura2000.geojson").read_text("utf-8")
     )
+
+
+def load_parcels(data_dir: Path, natura: NaturaIndex) -> list[Parcel]:
+    """Load ``parcels.geojson``; the Natura status is computed here, not stored.
+
+    Args:
+        data_dir: Directory holding the committed data files.
+        natura: Protected-area index used to classify every parcel.
+
+    Returns:
+        Validated parcels in file order.
+    """
+    raw = json.loads((data_dir / "parcels.geojson").read_text("utf-8"))
+    parcels: list[Parcel] = []
+    for feature in raw["features"]:
+        geometry = Polygon.model_validate(feature["geometry"])
+        parcels.append(
+            Parcel.model_validate(
+                {
+                    **feature["properties"],
+                    "geometry": geometry,
+                    "natura_status": natura.check(geometry).status,
+                }
+            )
+        )
+    return parcels
 
 
 def load_actors(data_dir: Path) -> Actors:
