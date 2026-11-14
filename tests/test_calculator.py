@@ -8,8 +8,10 @@ once available; the expected numbers must still hold.
 
 import pytest
 
-from pollination.engine.calculator import break_even_fee, calculate
-from pollination.models import CalculatorInput
+from pollination.config import Settings
+from pollination.datafiles import CalculatorDefaults, load_catalog
+from pollination.engine.calculator import break_even_fee, calculate, prefill
+from pollination.models import Beekeeper, CalculatorInput, Parcel
 
 
 def example(**overrides: float | str) -> CalculatorInput:
@@ -90,3 +92,68 @@ def test_do_not_move_message_states_shortfall() -> None:
     shortfall = -result.base.benefit_vs_alternative
     assert result.message == f"Staying at base apiary yields €{shortfall:,.2f} more."
     assert "net profit" not in result.message.lower()
+
+
+# --- prefill from a beekeeper and a parcel (WP19) ----------------------------
+
+
+def demo() -> tuple[dict[str, Beekeeper], dict[str, Parcel], CalculatorDefaults]:
+    """Return the committed beekeepers, parcels and calculator defaults by id."""
+    data = load_catalog(Settings())
+    return (
+        {b.id: b for b in data.actors.beekeepers},
+        {p.id: p for p in data.parcels},
+        data.calculator,
+    )
+
+
+def test_prefill_every_field_has_a_provenance() -> None:
+    keepers, parcels, defaults = demo()
+    inputs = prefill(keepers["B1"], parcels["P03"], defaults)
+    fields = set(CalculatorInput.model_fields) - {"provenance"}
+    assert inputs.provenance.keys() == fields
+    assert inputs.provenance["distance_km"].kind == "Estimated"
+    assert inputs.provenance["driving_hours"].kind == "Estimated"
+    assert inputs.provenance["fee_per_colony"].kind == "Reported"
+    # Planning assumptions nobody reported are labelled Estimated.
+    assert inputs.provenance["fuel_price_per_l"].kind == "Estimated"
+    assert inputs.provenance["legs"].kind == "Estimated"
+
+
+def test_prefill_uses_listing_beekeeper_and_distance() -> None:
+    keepers, parcels, defaults = demo()
+    inputs = prefill(keepers["B1"], parcels["P03"], defaults)
+    assert inputs.colonies == 20  # the grower asks for 20; B1 has 50
+    assert inputs.fee_per_colony == 60
+    assert inputs.fuel_l_per_100km == keepers["B1"].vehicle_l_per_100km
+    assert inputs.alternative_contribution == 400
+    assert inputs.distance_km == pytest.approx(17.7, abs=0.1)
+    assert inputs.driving_hours == pytest.approx(
+        inputs.legs * inputs.distance_km / defaults.average_speed_kmh
+    )
+
+
+def test_prefill_caps_colonies_at_what_the_beekeeper_has() -> None:
+    keepers, parcels, defaults = demo()
+    assert prefill(keepers["B2"], parcels["P08"], defaults).colonies == 40
+
+
+def test_near_beekeeper_moves_far_one_does_not() -> None:
+    """Plan WP19: B1 shows a positive benefit, B2 a do-not-move, for one orchard."""
+    keepers, parcels, defaults = demo()
+    near = calculate(prefill(keepers["B1"], parcels["P03"], defaults))
+    far = calculate(prefill(keepers["B2"], parcels["P03"], defaults))
+    assert near.verdict == "move"
+    assert near.base.benefit_vs_alternative == pytest.approx(591.04, abs=0.5)
+    assert far.verdict == "do_not_move"
+    assert far.base.benefit_vs_alternative == pytest.approx(-84.85, abs=0.5)
+
+
+def test_forage_prefill_flags_the_missing_honey_margin() -> None:
+    keepers, parcels, defaults = demo()
+    inputs = prefill(keepers["B3"], parcels["P15"], defaults)
+    assert inputs.service_type == "forage"
+    assert inputs.fee_per_colony == 0
+    assert inputs.colonies == 20  # no request on forage listings: B3's colonies
+    assert inputs.honey_margin == 0
+    assert inputs.provenance["honey_margin"].kind == "Missing"

@@ -8,6 +8,19 @@ const DAY = new Intl.DateTimeFormat("en-GB", {
   timeZone: "UTC",
 });
 
+/** Provenance for a value the contract carries none for (no observation date). */
+export const prov = (
+  kind: Provenance["kind"],
+  source: string,
+  note = "",
+): Provenance => ({
+  kind,
+  source,
+  observed_at: null,
+  interpolated: false,
+  note,
+});
+
 /** "12 Jul 2024" from an ISO date. */
 export const formatDate = (iso: string) => DAY.format(new Date(iso));
 

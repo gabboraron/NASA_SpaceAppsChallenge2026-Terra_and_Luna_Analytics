@@ -6,9 +6,9 @@ import json
 from dataclasses import dataclass
 from datetime import date
 from pathlib import Path
-from typing import Annotated, Literal
+from typing import Annotated, Any, Literal
 
-from pydantic import BaseModel, Field, NonNegativeFloat
+from pydantic import BaseModel, Field, NonNegativeFloat, NonNegativeInt, PositiveFloat
 
 from pollination.config import Settings
 from pollination.geo import NaturaIndex
@@ -56,6 +56,12 @@ class Ranking(BaseModel):
     ]
 
 
+def _read_config(path: Path) -> dict[str, Any]:
+    """Read a JSON config file without its documentation keys (leading ``_``)."""
+    raw: dict[str, Any] = json.loads(path.read_text("utf-8"))
+    return {k: v for k, v in raw.items() if not k.startswith("_")}
+
+
 def load_natura(data_dir: Path) -> NaturaCollection:
     """Load and validate ``natura2000.geojson``."""
     return NaturaCollection.model_validate_json(
@@ -96,20 +102,34 @@ def load_actors(data_dir: Path) -> Actors:
 
 def load_phenology(data_dir: Path) -> dict[str, PhenologyEntry]:
     """Load ``phenology.json`` (the leading ``_note`` key is documentation)."""
-    raw = json.loads((data_dir / "phenology.json").read_text("utf-8"))
-    return {
-        crop: PhenologyEntry.model_validate(entry)
-        for crop, entry in raw.items()
-        if not crop.startswith("_")
-    }
+    raw = _read_config(data_dir / "phenology.json")
+    return {crop: PhenologyEntry.model_validate(entry) for crop, entry in raw.items()}
 
 
 def load_ranking(data_dir: Path) -> Ranking:
     """Load ``ranking.json``."""
-    raw = json.loads((data_dir / "ranking.json").read_text("utf-8"))
-    return Ranking.model_validate(
-        {k: v for k, v in raw.items() if not k.startswith("_")}
-    )
+    return Ranking.model_validate(_read_config(data_dir / "ranking.json"))
+
+
+class CalculatorDefaults(BaseModel):
+    """Assumptions that prefill the move calculator where no actor states a value."""
+
+    source: str
+    legs: NonNegativeInt
+    fuel_price_per_l: NonNegativeFloat
+    vehicle_cost_per_km: NonNegativeFloat
+    hourly_labor_cost: NonNegativeFloat
+    average_speed_kmh: PositiveFloat
+    loading_hours: NonNegativeFloat
+    extra_feed_cost: NonNegativeFloat
+    other_placement_cost: NonNegativeFloat
+    price_uncertainty: Annotated[float, Field(ge=0, le=1)]
+    extra_trips_low: NonNegativeInt
+
+
+def load_calculator(data_dir: Path) -> CalculatorDefaults:
+    """Load ``calculator.json`` (the leading ``_note`` key is documentation)."""
+    return CalculatorDefaults.model_validate(_read_config(data_dir / "calculator.json"))
 
 
 @dataclass(frozen=True)
@@ -120,10 +140,11 @@ class Catalog:
     parcels: list[Parcel]
     phenology: dict[str, PhenologyEntry]
     actors: Actors
+    calculator: CalculatorDefaults
 
 
 def load_catalog(settings: Settings) -> Catalog:
-    """Load Natura 2000, the parcels (with Natura status), phenology and actors."""
+    """Load Natura 2000, parcels (with Natura status), phenology, actors, defaults."""
     natura = load_natura(settings.data_dir)
     index = NaturaIndex.for_bbox(natura, settings.bbox)
     return Catalog(
@@ -131,4 +152,5 @@ def load_catalog(settings: Settings) -> Catalog:
         parcels=load_parcels(settings.data_dir, index),
         phenology=load_phenology(settings.data_dir),
         actors=load_actors(settings.data_dir),
+        calculator=load_calculator(settings.data_dir),
     )

@@ -32,6 +32,7 @@ import {
   ParcelDetail,
   type VerifyState,
 } from "./components/ParcelDetail/ParcelDetail";
+import { MoveCalculator } from "./components/MoveCalculator/MoveCalculator";
 import { TimeSlider } from "./components/TimeSlider/TimeSlider";
 import styles from "./App.module.css";
 
@@ -63,6 +64,8 @@ export function App() {
   const [attempt, setAttempt] = useState(0);
   const [week, setWeek] = useState(START_WEEK);
   const [verifyState, setVerifyState] = useState<VerifyState>("idle");
+  const [planning, setPlanning] = useState(false);
+  const [keeperId, setKeeperId] = useState("B1");
   // Parcels verified in this page session (server state resets on restart, D16).
   const [verifiedIds, setVerifiedIds] = useState<ReadonlySet<string>>(
     new Set(),
@@ -105,7 +108,11 @@ export function App() {
 
   const timeline = current?.data ?? null;
   const parcels = useMemo(() => base.data?.parcels ?? [], [base.data]);
-  const beekeeper = base.data?.actors.beekeepers[0];
+  const beekeepers = useMemo(
+    () => base.data?.actors.beekeepers ?? [],
+    [base.data],
+  );
+  const beekeeper = beekeepers.find((b) => b.id === keeperId) ?? beekeepers[0];
   const weeks = useMemo(() => indexWeeks(timeline), [timeline]);
   const weekRows = weeks.get(week) ?? NO_ROWS;
   const smapFc = useMemo(
@@ -158,11 +165,24 @@ export function App() {
     (id: LayerId) => setVisible((v) => ({ ...v, [id]: !v[id] })),
     [],
   );
-  const closeDetail = useCallback(() => setSelected(""), []);
+  const closeDetail = useCallback(() => {
+    setSelected("");
+    setPlanning(false);
+  }, []);
+  const closePlan = useCallback(() => setPlanning(false), []);
   const select = useCallback((id: string) => {
     setSelected(id);
     setVerifyState("idle");
+    setPlanning(false);
   }, []);
+  // Open the calculator with a beekeeper whose goal fits the parcel's service.
+  const planMove = (parcel: Parcel) => {
+    if (beekeeper?.goal !== parcel.service_type) {
+      const fit = beekeepers.find((b) => b.goal === parcel.service_type);
+      if (fit) setKeeperId(fit.id);
+    }
+    setPlanning(true);
+  };
   // The server records the photo; refetch this season and drop the other cached one.
   const verify = (id: string) => {
     setVerifyState("pending");
@@ -205,7 +225,11 @@ export function App() {
           {useMocks && <span>Mock data</span>}
         </span>
       </header>
-      <div className={styles.workspace} data-detail={!!selectedParcel}>
+      <div
+        className={styles.workspace}
+        data-detail={!!selectedParcel}
+        data-plan={!!selectedParcel && planning}
+      >
         <LayerPanel
           year={year}
           visible={visible}
@@ -269,7 +293,19 @@ export function App() {
             onWeek={setWeek}
           />
         </section>
-        {selectedParcel && (
+        {selectedParcel && planning && (
+          <MoveCalculator
+            parcel={selectedParcel}
+            beekeepers={beekeepers}
+            keeperId={beekeeper?.id ?? keeperId}
+            onKeeper={setKeeperId}
+            year={year}
+            week={week}
+            onBack={closePlan}
+            onClose={closeDetail}
+          />
+        )}
+        {selectedParcel && !planning && (
           <ParcelDetail
             parcel={selectedParcel}
             grower={base.data?.actors.growers.find(
@@ -283,6 +319,7 @@ export function App() {
             verified={verifiedIds.has(selectedParcel.id)}
             verifyState={verifyState}
             onVerify={() => verify(selectedParcel.id)}
+            onPlanMove={() => planMove(selectedParcel)}
             onClose={closeDetail}
           />
         )}

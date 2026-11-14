@@ -2,6 +2,7 @@
 
 import asyncio
 from collections.abc import Iterator
+from typing import Any
 
 import httpx
 import pytest
@@ -106,5 +107,40 @@ def test_verification_marks_blooming_weeks_observed() -> None:
             assert all(p["kind"] != "Observed" for p in before)
             assert (await client.post(f"/parcels/{parcel}/verify")).status_code == 200
             assert all(p["kind"] == "Observed" for p in await blooming())
+
+    asyncio.run(exercise())
+
+
+def test_matches_prefill_the_calculator_per_parcel() -> None:
+    """Until WP12: one card per parcel of the beekeeper's goal, ranked by distance."""
+
+    async def exercise() -> None:
+        async with httpx.AsyncClient(
+            transport=httpx.ASGITransport(app=app), base_url="http://test"
+        ) as client:
+
+            async def cards(beekeeper: str) -> list[dict[str, Any]]:
+                params = {"beekeeper_id": beekeeper, "year": 2024, "week": 9}
+                return (await client.get("/matches", params=params)).json()
+
+            b1, b2, b3 = await cards("B1"), await cards("B2"), await cards("B3")
+            parcels = {p["id"]: p for p in (await client.get("/parcels")).json()}
+            assert {parcels[c["parcel_id"]]["service_type"] for c in b1} == {
+                "pollination"
+            }
+            assert {parcels[c["parcel_id"]]["service_type"] for c in b3} == {"forage"}
+            open_b1 = [c for c in b1 if not c["blocked"]]
+            assert [c["rank"] for c in open_b1] == list(range(1, len(open_b1) + 1))
+            distances = [c["distance_km"]["value"] for c in open_b1]
+            assert distances == sorted(distances)
+            for card in b3:
+                inside = parcels[card["parcel_id"]]["natura_status"] == "inside"
+                assert card["blocked"] is inside
+                assert (card["calculator_input"] is None) is inside
+                assert (card["rank"] is None) is inside
+            far = next(c for c in b2 if c["parcel_id"] == "P03")
+            result = await client.post("/calculate", json=far["calculator_input"])
+            assert result.json()["verdict"] == "do_not_move"
+            assert await cards("nobody") == []
 
     asyncio.run(exercise())
