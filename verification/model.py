@@ -13,8 +13,9 @@ from pydantic import TypeAdapter
 from pollination.models import Parcel, ParcelWeek, TimelineResponse
 from pollination.nasa.power import daily_point
 from verification.framework import ModelWeek, Weather
+from verification.references import TIMEOUT_S
 
-TIMEOUT_S = 120.0
+LAST_MONTH = 8  # the timeline ends in August
 WEATHER_PARAMS = ("T2M_MAX", "T2M_MIN", "WS2M")
 _PARCELS = TypeAdapter(list[Parcel])
 
@@ -81,21 +82,21 @@ def _get(
 def fetch_weather(
     location: tuple[float, float], years: Sequence[int], cache_dir: Path
 ) -> list[Weather]:
-    """Daily POWER Tmax, Tmin and wind at a (lon, lat) for 1 Jan-31 Aug of each year.
+    """Daily POWER Tmax, Tmin and wind at a (lon, lat), January-August of each year.
+
+    One request covers all years; days outside those months are dropped.
 
     Raises:
         httpx.HTTPError: POWER request failed.
     """
     lon, lat = location
-    days: list[Weather] = []
-    for year in years:
-        end = min(date(year, 8, 31), date.today())
-        series = daily_point(
-            lat, lon, date(year, 1, 1), end, WEATHER_PARAMS, cache_dir=cache_dir
-        )
-        tmax, tmin, wind = (series.values[p] for p in WEATHER_PARAMS)
-        days += [
-            Weather(d, hi, lo, ws)
-            for d, hi, lo, ws in zip(series.days, tmax, tmin, wind, strict=True)
-        ]
-    return days
+    end = min(date(max(years), 8, 31), date.today())
+    series = daily_point(
+        lat, lon, date(min(years), 1, 1), end, WEATHER_PARAMS, cache_dir=cache_dir
+    )
+    tmax, tmin, wind = (series.values[p] for p in WEATHER_PARAMS)
+    return [
+        Weather(d, hi, lo, ws)
+        for d, hi, lo, ws in zip(series.days, tmax, tmin, wind, strict=True)
+        if d.year in years and d.month <= LAST_MONTH
+    ]

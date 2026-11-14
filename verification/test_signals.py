@@ -76,7 +76,7 @@ def test_crop_flow_picks_largest_in_window() -> None:
     start = date(2024, 4, 1)
     pattern = [2.0] * 4 + [0.0] * 30 + [3.0] * 5 + [0.0] * 50 + [2.0] * 5
     found = flows(daily_gains(flow_series(start, pattern), S), S)
-    window = CropWindow(window=("04-10", "06-20"))
+    window = CropWindow.model_validate({"window": ("04-10", "06-20")})
     picked = crop_flow(found, window, 2024)
     assert picked is not None
     assert picked.start == start + timedelta(days=34)
@@ -115,7 +115,7 @@ def test_flight_day_rule() -> None:
 
 
 def test_histogram_peak_ignores_out_of_season() -> None:
-    window = CropWindow(window=("04-10", "06-20"))
+    window = CropWindow.model_validate({"window": ("04-10", "06-20")})
     counts = {18: 10, 19: 30, 20: 12, 38: 500}  # week 38: seed pods
     peak = histogram_peak(counts, 2024, window)
     assert peak == (date.fromisocalendar(2024, 19, 4), 52)

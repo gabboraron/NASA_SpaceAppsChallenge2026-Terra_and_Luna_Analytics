@@ -12,14 +12,13 @@ import pytest
 from pollination.config import Settings
 from verification.__main__ import build_context
 from verification.framework import Context, Status, load_thresholds, run_all
-from verification.references import HIVE_FILES, download, read_hive
-from verification.scenarios import SCENARIOS, hive_flows
-from verification.signals import daily_gains
+from verification.references import HIVE_FILES, hive_gains
+from verification.scenarios import SCENARIOS, crop_reference
 
 pytestmark = pytest.mark.skipif(
     os.environ.get("VERIFY_LIVE") != "1", reason="set VERIFY_LIVE=1 to run"
 )
-CACHE = Settings().cache_dir / "verification"
+CACHE = Settings().cache_dir
 API = os.environ.get("VERIFY_API", "http://127.0.0.1:8000")
 
 
@@ -28,12 +27,10 @@ def test_hive_reference_reproduces_known_flows() -> None:
     t = load_thresholds()
     ctx = Context(thresholds=t)
     for hf in HIVE_FILES:
-        ctx.hives[hf.hive] = daily_gains(
-            read_hive(download(hf, CACHE / "hives")), t.signal
-        )
+        ctx.hives[hf.hive] = hive_gains(hf, t.signal, CACHE)
     weeks = {
         key: flow.peak.isocalendar().week
-        for key, flow in hive_flows(ctx, "black_locust").items()
+        for key, flow in crop_reference(ctx, "black_locust").main.items()
     }
     assert weeks[("hive12", 2022)] == weeks[("hive18", 2022)] == 21
     assert weeks[("hive12", 2024)] == weeks[("hive18", 2024)] == 18

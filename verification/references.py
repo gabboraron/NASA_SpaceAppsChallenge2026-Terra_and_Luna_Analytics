@@ -1,7 +1,7 @@
 """Past ground truth: hive-scale weights, iNaturalist counts, optional PEP725 dates.
 
-Downloads go to ``<cache>/verification`` and are checked against pinned SHA-256
-hashes, so every run compares against the same bytes.
+Hive files go to ``<cache>/verification/hives`` and are checked against pinned
+SHA-256 hashes, so every run compares against the same bytes.
 """
 
 from __future__ import annotations
@@ -11,7 +11,7 @@ import hashlib
 import io
 from collections.abc import Iterator
 from dataclasses import dataclass
-from datetime import date, datetime, timedelta
+from datetime import date, datetime
 from pathlib import Path
 from typing import Any
 
@@ -20,12 +20,31 @@ from openpyxl import load_workbook
 
 from pollination.geo import haversine_km
 from pollination.nasa.cache import get_or_fetch
-from verification.framework import PhenoRecord, Thresholds
+from verification.framework import PhenoRecord, SignalSettings, Thresholds
+from verification.signals import daily_gains, on_doy
 
 TIMEOUT_S = 120.0
 MENDELEY = "https://data.mendeley.com/public-files/datasets/3v3hhkddmz/files"
 INAT_HISTOGRAM = "https://api.inaturalist.org/v1/observations/histogram"
 USER_AGENT = "pollination-verification (NASA Space Apps 2026 project)"
+HIVE_COLUMNS = 2  # time and weight come first in every hive file
+
+
+def http_get(url: str, params: dict[str, Any] | None = None) -> httpx.Response:
+    """GET with the shared timeout and User-Agent; raises on an error status.
+
+    Raises:
+        httpx.HTTPError: The request failed or the server answered with an error.
+    """
+    response = httpx.get(
+        url,
+        params=params,
+        follow_redirects=True,
+        timeout=TIMEOUT_S,
+        headers={"User-Agent": USER_AGENT},
+    )
+    response.raise_for_status()
+    return response
 
 
 @dataclass(frozen=True)
@@ -69,34 +88,46 @@ def download(hf: HiveFile, folder: Path) -> Path:
     path = folder / hf.name
     if not path.exists():
         folder.mkdir(parents=True, exist_ok=True)
-        response = httpx.get(
-            hf.url,
-            follow_redirects=True,
-            timeout=TIMEOUT_S,
-            headers={"User-Agent": USER_AGENT},
-        )
-        response.raise_for_status()
-        path.write_bytes(response.content)
-    digest = hashlib.sha256(path.read_bytes()).hexdigest()
+        path.write_bytes(http_get(hf.url).content)
+    with path.open("rb") as handle:
+        digest = hashlib.file_digest(handle, "sha256").hexdigest()
     if digest != hf.sha256:
         raise ValueError(f"{path} has sha256 {digest}, expected {hf.sha256}")
     return path
 
 
-def read_hive(path: Path) -> list[tuple[datetime, float]]:
-    """Parse a hive file (CSV or XLSX) into (timestamp, weight kg) readings.
+def read_hive(path: Path) -> Iterator[tuple[datetime, float]]:
+    """Stream a hive file (CSV or XLSX) as (timestamp, weight kg) readings.
 
     Rows with an unparsable time or weight are skipped.
     """
     rows = _xlsx_rows(path) if path.suffix == ".xlsx" else _csv_rows(path)
-    readings: list[tuple[datetime, float]] = []
     for ts, weight in rows:
         try:
             when = ts if isinstance(ts, datetime) else datetime.fromisoformat(str(ts))
-            readings.append((when, float(str(weight))))
+            yield when, float(str(weight))
         except ValueError:
             continue
-    return readings
+
+
+def hive_gains(
+    hf: HiveFile, s: SignalSettings, cache_dir: Path
+) -> dict[date, float | None]:
+    """Daily gains of one hive; parsed once, then cached by file hash and settings.
+
+    Raises:
+        ValueError: The downloaded file has another hash.
+        httpx.HTTPError: The download failed.
+    """
+
+    def compute() -> dict[str, Any]:
+        path = download(hf, cache_dir / "verification" / "hives")
+        gains = daily_gains(read_hive(path), s)
+        return {"gains": {d.isoformat(): g for d, g in gains.items()}}
+
+    key = {"sha256": hf.sha256, **s.model_dump()}
+    cached = get_or_fetch("verification-hive-gains", key, compute, cache_dir)
+    return {date.fromisoformat(d): g for d, g in cached["gains"].items()}
 
 
 def _csv_rows(path: Path) -> Iterator[tuple[object, object]]:
@@ -107,7 +138,7 @@ def _csv_rows(path: Path) -> Iterator[tuple[object, object]]:
             if line.startswith('"') and line.endswith('"'):
                 line = line[1:-1].replace('""', '"')
             row = next(csv.reader(io.StringIO(line)), list[str]())
-            if len(row) >= 2:  # noqa: PLR2004 -- time and weight columns
+            if len(row) >= HIVE_COLUMNS:
                 yield row[0], row[1]
 
 
@@ -116,8 +147,10 @@ def _xlsx_rows(path: Path) -> Iterator[tuple[object, object]]:
     workbook = load_workbook(path, read_only=True)
     try:
         for sheet in workbook.worksheets:
-            for row in sheet.iter_rows(min_row=2, values_only=True):
-                if len(row) >= 2:  # noqa: PLR2004 -- time and weight columns
+            for row in sheet.iter_rows(
+                min_row=2, max_col=HIVE_COLUMNS, values_only=True
+            ):
+                if len(row) >= HIVE_COLUMNS:
                     yield row[0], row[1]
     finally:
         workbook.close()
@@ -146,14 +179,7 @@ def inat_histogram(year: int, t: Thresholds, cache_dir: Path) -> dict[int, int]:
     }
 
     def fetch() -> dict[str, Any]:
-        response = httpx.get(
-            INAT_HISTOGRAM,
-            params=query,
-            timeout=TIMEOUT_S,
-            headers={"User-Agent": USER_AGENT},
-        )
-        response.raise_for_status()
-        return response.json()
+        return http_get(INAT_HISTOGRAM, query).json()
 
     payload = get_or_fetch("inaturalist", query, fetch, cache_dir)
     weeks: dict[str, int] = payload["results"]["week_of_year"]
@@ -175,6 +201,7 @@ def read_pep725(path: Path, t: Thresholds) -> list[PhenoRecord]:
             far = haversine_km((lon, lat), t.reference_location) > t.pep725.radius_km
             if far or bbch not in t.pep725.bbch:
                 continue
-            day = date(year, 1, 1) + timedelta(days=int(row["doy"]) - 1)
-            records.append(PhenoRecord(row["crop"], year, bbch, day, lon, lat))
+            records.append(
+                PhenoRecord(row["crop"], year, on_doy(year, int(row["doy"])))
+            )
     return records
