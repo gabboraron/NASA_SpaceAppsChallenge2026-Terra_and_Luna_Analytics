@@ -51,6 +51,17 @@ _PRODUCTS = {"HLSS30": {**_COMMON, "nir": "B8A"}, "HLSL30": {**_COMMON, "nir": "
 _ROLES = ("blue", "green", "red", "nir", "fmask")
 
 
+def _cloud(granule: Any) -> float | None:
+    """Scene cloud cover in percent from the CMR ``CLOUD_COVERAGE`` attribute."""
+    for attribute in granule["umm"].get("AdditionalAttributes", []):
+        if attribute.get("Name") == "CLOUD_COVERAGE":
+            try:
+                return float(attribute["Values"][0])
+            except (KeyError, IndexError, ValueError):
+                return None
+    return None
+
+
 def search_scenes(bbox: Bbox, start: date, end: date) -> list[Scene]:
     """Find HLS S30 and L30 v2.0 granules intersecting ``bbox`` between two days.
 
@@ -84,7 +95,9 @@ def search_scenes(bbox: Bbox, start: date, end: date) -> list[Scene]:
             }
             if len(urls) == len(_ROLES):
                 granule_id = granule["umm"]["GranuleUR"]
-                scenes.append(Scene(granule_id, scene_day(granule_id), urls))
+                scenes.append(
+                    Scene(granule_id, scene_day(granule_id), urls, _cloud(granule))
+                )
     return scenes
 
 

@@ -39,6 +39,8 @@ MIN_VALID_FRACTION = 0.5
 _INVALID_FMASK_BITS = 0b00111110
 _COORD_DECIMALS = 6
 _WORKERS = 4  # parallel remote reads; more got connections reset by the server
+DEFAULT_PER_WEEK = 2  # usable observations kept per parcel and 7-day block
+_UNKNOWN_CLOUD = 100.0
 
 type Bbox = tuple[float, float, float, float]
 
@@ -60,6 +62,7 @@ class Scene:
     id: str
     day: date
     urls: dict[str, str]
+    cloud: float | None = None  # CMR scene cloud cover in percent, if known
 
 
 @dataclass
@@ -146,30 +149,52 @@ def summarize(win: BandWindow) -> tuple[float, float, float] | None:
     return float(ndvi.mean()), float(ndyi.mean()), valid_fraction
 
 
-def dedupe_overlaps(observations: Sequence[Obs]) -> list[Obs]:
-    """Collapse one overpass seen through overlapping tiles into a single value.
+def _overpass_key(scene_id: str) -> tuple[str, str]:
+    """Return ``(sensor, acquisition timestamp)`` of a granule id, tile excluded."""
+    _, sensor, _, stamp, *_ = scene_id.split(".")
+    return sensor, stamp
 
-    HLS tiles overlap, so the same sensor pass over a parcel can come back from two
-    tiles that differ only in the tile id. Keep the one with the most valid pixels.
+
+def passes(scenes: Sequence[Scene]) -> list[list[Scene]]:
+    """Group scenes that are one sensor pass seen through overlapping tiles.
+
+    HLS tiles overlap, so a parcel there is covered twice by the same pass; the
+    tiles differ only in the tile id. Reading one of them is enough.
 
     Args:
-        observations: Observations of one parcel.
+        scenes: Scenes found for one parcel.
 
     Returns:
-        Observations in their original order, one per sensor and acquisition time.
+        One group per pass, tiles sorted by id, groups sorted by day.
     """
-    best: dict[tuple[str, str], Obs] = {}
-    for obs in observations:
-        key = _overpass(obs)
-        if key not in best or obs.valid_fraction > best[key].valid_fraction:
-            best[key] = obs
-    return [o for o in observations if best[_overpass(o)] is o]
+    groups: dict[tuple[str, str], list[Scene]] = {}
+    for scene in sorted(scenes, key=lambda s: s.id):
+        groups.setdefault(_overpass_key(scene.id), []).append(scene)
+    return sorted(groups.values(), key=lambda g: (g[0].day, g[0].id))
 
 
-def _overpass(obs: Obs) -> tuple[str, str]:
-    """Return ``(sensor, acquisition timestamp)`` of an observation's scene id."""
-    _, sensor, _, stamp, *_ = obs.scene_id.split(".")
-    return sensor, stamp
+def weeks_of_passes(
+    groups: Sequence[list[Scene]], start: date
+) -> list[list[list[Scene]]]:
+    """Split passes into 7-day blocks counted from ``start``, clearest first.
+
+    Args:
+        groups: Output of :func:`passes`.
+        start: First day of the search; block 0 is its first seven days.
+
+    Returns:
+        One list of passes per block with data, ordered by CMR cloud cover (unknown
+        counts as 100 percent), then day.
+    """
+    blocks: dict[int, list[list[Scene]]] = {}
+    for group in groups:
+        blocks.setdefault((group[0].day - start).days // 7, []).append(group)
+
+    def clearness(group: list[Scene]) -> tuple[float, date, str]:
+        clouds = [s.cloud for s in group if s.cloud is not None]
+        return (min(clouds, default=_UNKNOWN_CLOUD), group[0].day, group[0].id)
+
+    return [sorted(blocks[k], key=clearness) for k in sorted(blocks)]
 
 
 def _geometry_hash(polygon: Polygon) -> str:
@@ -202,13 +227,71 @@ def _observe(
     return Obs(day=scene.day, scene_id=scene.id, **obs)
 
 
+def _scenes(
+    search: SearchFn, bounds: Bbox, days: tuple[date, date], cache_dir: Path | None
+) -> list[Scene]:
+    """Scenes of a period; a finished period is searched once and cached.
+
+    A warm cache then needs no CMR round trip. A period that includes today is
+    searched live every time, because new scenes keep arriving.
+    """
+    if days[1] >= date.today():  # calendar day of the server
+        return search(bounds, *days)
+    key = {
+        "search": [round(b, _COORD_DECIMALS) for b in bounds],
+        "start": days[0].isoformat(),
+        "end": days[1].isoformat(),
+    }
+
+    def fetch() -> dict[str, Any]:
+        found = search(bounds, *days)
+        return {
+            "scenes": [
+                {"id": s.id, "day": s.day.isoformat(), "urls": s.urls, "cloud": s.cloud}
+                for s in found
+            ]
+        }
+
+    listed: list[dict[str, Any]] = get_or_fetch("hls", key, fetch, cache_dir)["scenes"]
+    return [
+        Scene(x["id"], date.fromisoformat(x["day"]), x["urls"], x["cloud"])
+        for x in listed
+    ]
+
+
+def _observe_week(
+    week: list[list[Scene]],
+    polygon: Polygon,
+    read: ReadFn,
+    cache_dir: Path | None,
+    per_week: int | None,
+) -> list[Obs]:
+    """Usable observations of one block, reading passes clearest first.
+
+    One tile per pass is read (the next tile only if the first has no data for the
+    parcel); reading stops at ``per_week`` observations.
+    """
+    found: list[Obs] = []
+    for group in week:
+        obs = next(
+            (o for s in group if (o := _observe(s, polygon, read, cache_dir))),
+            None,
+        )
+        if obs is not None:
+            found.append(obs)
+            if per_week is not None and len(found) >= per_week:
+                break
+    return found
+
+
 @dataclass(frozen=True)
 class _Io:
-    """Injectable scene search, scene reader and cache location."""
+    """Injectable scene search, scene reader, cache location and weekly cap."""
 
     search: SearchFn | None
     read: ReadFn | None
     cache_dir: Path | None
+    per_week: int | None
 
 
 def _indices(
@@ -216,8 +299,8 @@ def _indices(
 ) -> dict[str, list[Obs]]:
     """Shared core of :func:`parcel_indices` and :func:`latest_for_polygon`.
 
-    Scenes are searched per parcel (only tiles that cover it) and read on a thread
-    pool, because every read is a remote round trip.
+    Scenes are searched per parcel (only tiles that cover it); the 7-day blocks are
+    read on a thread pool, because every read is a remote round trip.
     """
     search, read = io.search, io.read
     if search is None or read is None:
@@ -227,16 +310,18 @@ def _indices(
         read = read or hls_live.read_window
     result: dict[str, list[Obs]] = {}
     for pid, polygon in polygons.items():
-        scenes = search(polygon.bounds, days[0], days[1])
-        with ThreadPoolExecutor(max_workers=_WORKERS) as pool:
-            observe = partial(
-                _observe, polygon=polygon, read=read, cache_dir=io.cache_dir
-            )
-            found = pool.map(observe, scenes)
-            observations = [obs for obs in found if obs is not None]
-        result[pid] = sorted(
-            dedupe_overlaps(observations), key=lambda o: (o.day, o.scene_id)
+        scenes = _scenes(search, polygon.bounds, days, io.cache_dir)
+        weeks = weeks_of_passes(passes(scenes), days[0])
+        observe = partial(
+            _observe_week,
+            polygon=polygon,
+            read=read,
+            cache_dir=io.cache_dir,
+            per_week=io.per_week,
         )
+        with ThreadPoolExecutor(max_workers=_WORKERS) as pool:
+            observations = [o for week in pool.map(observe, weeks) for o in week]
+        result[pid] = sorted(observations, key=lambda o: (o.day, o.scene_id))
     return result
 
 
@@ -248,11 +333,14 @@ def parcel_indices(  # noqa: PLR0913  # injectable search/read/cache keep it tes
     search: SearchFn | None = None,
     read: ReadFn | None = None,
     cache_dir: Path | None = None,
+    per_week: int | None = DEFAULT_PER_WEEK,
 ) -> dict[str, list[Obs]]:
     """Return NDVI/NDYI observations per parcel between two dates.
 
-    Scenes with fewer than 50 percent usable pixels over a parcel are dropped.
-    Results are cached per scene and parcel geometry.
+    Scenes with fewer than 50 percent usable pixels over a parcel are dropped. Per
+    7-day block the clearest passes are read until ``per_week`` usable observations
+    are found, and a pass seen through two overlapping tiles is read once. Results
+    are cached per scene and parcel geometry.
 
     Args:
         parcels: Parcels to observe.
@@ -261,12 +349,13 @@ def parcel_indices(  # noqa: PLR0913  # injectable search/read/cache keep it tes
         search: Scene search; defaults to NASA CMR via earthaccess.
         read: Scene window reader; defaults to remote cloud-optimised GeoTIFF reads.
         cache_dir: Cache root; defaults to the configured one.
+        per_week: Usable observations wanted per 7-day block; None reads all passes.
 
     Returns:
         Observations keyed by parcel id, sorted by date.
     """
     polygons = {p.id: cast(Polygon, shape(p.geometry.model_dump())) for p in parcels}
-    io = _Io(search, read, cache_dir)
+    io = _Io(search, read, cache_dir, per_week)
     return _indices(polygons, (start, end), io)
 
 
@@ -295,7 +384,7 @@ def latest_for_polygon(  # noqa: PLR0913  # injectable search/read/cache keep it
     end = today or date.today()  # calendar day of the server
     start = end - timedelta(days=days)
     geom = cast(Polygon, shape(polygon.model_dump()))
-    io = _Io(search, read, cache_dir)
+    io = _Io(search, read, cache_dir, None)  # newest usable one: look at every pass
     found = _indices({"drawn": geom}, (start, end), io)
     observations = found["drawn"]
     if not observations:
