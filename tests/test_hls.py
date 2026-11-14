@@ -1,7 +1,7 @@
 """Tests for the HLS client logic (no network): masking, indices, caching."""
 
 import threading
-from datetime import date
+from datetime import date, timedelta
 from pathlib import Path
 
 import numpy as np
@@ -14,13 +14,14 @@ from pollination.nasa.hls import (
     BandWindow,
     Obs,
     Scene,
-    dedupe_overlaps,
     latest_for_polygon,
     normalized_difference,
     parcel_indices,
+    passes,
     scene_day,
     summarize,
     valid_mask,
+    weeks_of_passes,
 )
 
 SQUARE = [[21.7, 47.8], [21.71, 47.8], [21.71, 47.81], [21.7, 47.81], [21.7, 47.8]]
@@ -242,33 +243,178 @@ def test_latest_for_polygon_missing_explains_why(tmp_path: Path) -> None:
     assert response.ndvi.provenance.note
 
 
-def obs(scene_id: str, valid: float, ndyi: float = 0.3) -> Obs:
-    """Build an observation for the dedupe tests."""
-    return Obs(
-        day=date(2024, 7, 5),
-        ndvi=0.7,
-        ndyi=ndyi,
-        valid_fraction=valid,
-        scene_id=scene_id,
-    )
+def scene(
+    tile: str, doy: int, cloud: float | None = None, stamp: str = "094031"
+) -> Scene:
+    """A scene of tile ``tile`` on day-of-year ``doy`` (2024) with CMR cloud cover."""
+    sid = f"HLS.S30.{tile}.2024{doy:03d}T{stamp}.v2.0"
+    return Scene(id=sid, day=scene_day(sid), urls={}, cloud=cloud)
 
 
-def test_dedupe_keeps_best_of_the_same_overpass_in_overlapping_tiles() -> None:
-    """One overpass seen through two tiles counts once, with the most valid pixels."""
-    result = dedupe_overlaps(
-        [
-            obs("HLS.S30.T34TET.2024189T094041.v2.0", 0.8),
-            obs("HLS.S30.T34UEU.2024189T094041.v2.0", 1.0),
-        ]
-    )
-    assert [o.scene_id for o in result] == ["HLS.S30.T34UEU.2024189T094041.v2.0"]
+class SceneFakes:
+    """Search and read fakes over explicit scenes; windows are looked up by scene id."""
+
+    def __init__(self, windows: dict[str, BandWindow | None]) -> None:
+        self.windows = windows
+        self.read_ids: list[str] = []
+        self._lock = threading.Lock()
+
+    def search(
+        self, bbox: tuple[float, float, float, float], start: date, end: date
+    ) -> list[Scene]:
+        """Return every scene that has a prepared window."""
+        del bbox, start, end
+        return [scene_from_id(sid) for sid in self.windows]
+
+    def read(self, scene: Scene, polygon: Polygon) -> BandWindow | None:
+        """Record the read and return the prepared window."""
+        del polygon
+        with self._lock:
+            self.read_ids.append(scene.id)
+        return self.windows[scene.id]
 
 
-def test_dedupe_keeps_different_overpasses_and_sensors() -> None:
-    """Another time or another sensor on the same day is a separate observation."""
-    kept = [
-        obs("HLS.S30.T34TET.2024189T094041.v2.0", 1.0),
-        obs("HLS.S30.T34TET.2024189T094141.v2.0", 1.0),
-        obs("HLS.L30.T34TET.2024189T092620.v2.0", 1.0),
+CLOUDS: dict[str, float] = {}
+
+
+def scene_from_id(sid: str) -> Scene:
+    """Rebuild a scene from its id, with the cloud cover registered in CLOUDS."""
+    return Scene(id=sid, day=scene_day(sid), urls={}, cloud=CLOUDS.get(sid))
+
+
+def test_passes_group_overlapping_tiles_of_one_overpass() -> None:
+    """The same sensor pass seen through two tiles is one group, tiles sorted."""
+    a = scene("T34UEU", 189, stamp="094041")
+    b = scene("T34TET", 189, stamp="094041")
+    other_pass = scene("T34TET", 189, stamp="094141")
+    other_day = scene("T34TET", 191, stamp="092549")
+    groups = passes([a, other_day, b, other_pass])
+    assert [[s.id for s in g] for g in groups] == [
+        [b.id, a.id],
+        [other_pass.id],
+        [other_day.id],
     ]
-    assert dedupe_overlaps(kept) == kept
+
+
+def test_weeks_of_passes_split_on_seven_day_blocks_and_sort_by_cloud() -> None:
+    """Passes fall in 7-day blocks counted from the search start, clearest first."""
+    start = date(2024, 7, 1)  # day-of-year 183
+    clear = scene("T34TET", 186, cloud=5)  # Jul 4, week 0
+    hazy = scene("T34TET", 184, cloud=60)  # Jul 2, week 0
+    unknown = scene("T34TET", 185)  # no cloud info counts as 100
+    next_week = scene("T34TET", 191, cloud=90)  # Jul 9, week 1
+    weeks = weeks_of_passes(passes([hazy, next_week, unknown, clear]), start)
+    assert [[g[0].id for g in week] for week in weeks] == [
+        [clear.id, hazy.id, unknown.id],
+        [next_week.id],
+    ]
+
+
+def run_scenes(fakes: SceneFakes, tmp_path: Path, **kwargs: int | None) -> list[Obs]:
+    """Observe the parcel over July 2024 with the fakes."""
+    result = parcel_indices(
+        [parcel()],
+        date(2024, 7, 1),
+        date(2024, 7, 31),
+        search=fakes.search,
+        read=fakes.read,
+        cache_dir=tmp_path,
+        **kwargs,
+    )
+    return result["P01"]
+
+
+def test_reads_one_tile_per_overpass(tmp_path: Path) -> None:
+    """A parcel in the tile overlap is read once, not once per tile."""
+    a, b = scene("T34TET", 189), scene("T34UEU", 189)
+    fakes = SceneFakes({a.id: window(), b.id: window()})
+    observations = run_scenes(fakes, tmp_path)
+    assert fakes.read_ids == [a.id]
+    assert [o.scene_id for o in observations] == [a.id]
+
+
+def test_falls_back_to_the_next_tile_when_the_first_has_no_data(tmp_path: Path) -> None:
+    """A parcel outside the first tile is found in the second."""
+    a, b = scene("T34TET", 189), scene("T34UEU", 189)
+    fakes = SceneFakes({a.id: None, b.id: window()})
+    observations = run_scenes(fakes, tmp_path)
+    assert fakes.read_ids == [a.id, b.id]
+    assert [o.scene_id for o in observations] == [b.id]
+
+
+def test_default_cap_reads_the_two_clearest_passes_of_a_week(tmp_path: Path) -> None:
+    """With four good passes in one week only the two least cloudy are read."""
+    scenes = [scene("T34TET", 184 + i, cloud=c) for i, c in enumerate((40, 10, 30, 20))]
+    CLOUDS.update({s.id: s.cloud for s in scenes if s.cloud is not None})
+    fakes = SceneFakes({s.id: window() for s in scenes})
+    observations = run_scenes(fakes, tmp_path)
+    assert sorted(fakes.read_ids) == sorted([scenes[1].id, scenes[3].id])
+    assert len(observations) == 2  # the default cap
+
+
+def test_cap_keeps_going_past_unusable_passes(tmp_path: Path) -> None:
+    """A clear scene that is cloudy over the parcel does not count towards the cap."""
+    scenes = [scene("T34TET", 184 + i, cloud=c) for i, c in enumerate((10, 20, 30, 40))]
+    CLOUDS.update({s.id: s.cloud for s in scenes if s.cloud is not None})
+    windows: dict[str, BandWindow | None] = {s.id: window() for s in scenes}
+    windows[scenes[0].id] = window(fmask=0b10)  # the clearest scene is cloudy here
+    fakes = SceneFakes(windows)
+    observations = run_scenes(fakes, tmp_path)
+    assert fakes.read_ids == [scenes[0].id, scenes[1].id, scenes[2].id]
+    assert [o.scene_id for o in observations] == [scenes[1].id, scenes[2].id]
+
+
+def test_no_cap_reads_every_pass(tmp_path: Path) -> None:
+    """``per_week=None`` reads all passes of the week."""
+    scenes = [scene("T34TET", 184 + i, cloud=10 * i) for i in range(4)]
+    CLOUDS.update({s.id: s.cloud for s in scenes if s.cloud is not None})
+    fakes = SceneFakes({s.id: window() for s in scenes})
+    observations = run_scenes(fakes, tmp_path, per_week=None)
+    assert len(fakes.read_ids) == 4
+    assert len(observations) == 4
+
+
+class CountingSearch(SceneFakes):
+    """SceneFakes that also counts how often the scene search runs."""
+
+    def __init__(self, windows: dict[str, BandWindow | None]) -> None:
+        super().__init__(windows)
+        self.searches = 0
+
+    def search(
+        self, bbox: tuple[float, float, float, float], start: date, end: date
+    ) -> list[Scene]:
+        """Count the call, then search as usual."""
+        self.searches += 1
+        return super().search(bbox, start, end)
+
+
+def test_search_of_a_finished_period_is_cached(tmp_path: Path) -> None:
+    """A warm cache needs no CMR search at all for a season that is over."""
+    a = scene("T34TET", 189)
+    fakes = CountingSearch({a.id: window()})
+    first = run_scenes(fakes, tmp_path)
+    assert fakes.searches == 1
+    assert run_scenes(fakes, tmp_path) == first
+    assert fakes.searches == 1
+
+
+def test_search_of_a_running_period_is_not_cached(tmp_path: Path) -> None:
+    """Scenes keep arriving until the period ends, so it is searched live each time."""
+    a = scene("T34TET", 189)
+    fakes = CountingSearch({a.id: window()})
+    today = date.today()  # the property under test is relative to today
+
+    def run() -> None:
+        parcel_indices(
+            [parcel()],
+            today - timedelta(days=30),
+            today,
+            search=fakes.search,
+            read=fakes.read,
+            cache_dir=tmp_path,
+        )
+
+    run()
+    run()
+    assert fakes.searches == 2

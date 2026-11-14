@@ -235,6 +235,10 @@ repos/*
 data/*
 !data/*.json
 !data/*.geojson
+!data/nasa-cache.zip
 *.h5
 *.nc
 *.tif
+
+# Stray cache exports stay out of git; the one committed zip lives in data/
+/nasa-cache*.zip
