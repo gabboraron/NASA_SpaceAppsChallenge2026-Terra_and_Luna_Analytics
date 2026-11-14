@@ -1,4 +1,4 @@
-"""Prove remote HLS and SMAP access at one Nyírbátor location."""
+"""Prove remote HLS and SMAP access at one pilot-region location."""
 
 import logging
 import math

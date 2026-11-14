@@ -1,13 +1,12 @@
 <div align="center">
 
-# Terra & Luna Analytics: Nyírség Pollination Marketplace
+# Pollination Marketplace
 
-**Our NASA Space Apps Challenge 2026 entry, built in Budapest**
+**by Terra & Luna Analytics · NASA Space Apps Challenge 2026**
 
 *NASA Earth observations tell beekeepers and growers when and where crops bloom, and whether moving hives there pays off.*
 
 [![NASA Space Apps 2026](https://img.shields.io/badge/NASA%20Space%20Apps-2026-0B3D91?style=for-the-badge&logo=nasa&logoColor=white)](https://www.spaceappschallenge.org/2026/)
-[![Local event](https://img.shields.io/badge/Local%20event-Budapest-E4572E?style=for-the-badge)](https://www.spaceappschallenge.org/2026/local-events/budapest/)
 
 [![License](https://img.shields.io/badge/license-MPL--2.0-blue?style=flat-square)](LICENSE)
 [![Python](https://img.shields.io/badge/python-3.12-3776AB?style=flat-square&logo=python&logoColor=white)](https://www.python.org/)
@@ -20,18 +19,18 @@
 
 ## About
 
-Migratory beekeepers and fruit, sunflower and black-locust growers in the Nyírség (north-east Hungary) need to
-meet at the right place in the right week. Our map shows, week by week from March to August:
+Migratory beekeepers and growers of insect-pollinated crops (orchards, sunflower, black locust and more) need to meet
+at the right place in the right week, anywhere in the world. Our map shows, week by week through the season:
 
 - **Bloom state per parcel.** For sunflower this comes from NASA HLS satellite imagery (NDYI). For apple, sour cherry
   and black locust it comes from a heat-unit (GDD) model on NASA POWER weather, next to the grower's declared window.
 - **Drought stress.** NASA SMAP root-zone soil moisture flags "High Bloom / Low Nectar" weeks, for example the 2022 drought.
-- **Protected areas.** Natura 2000 sites block or warn about placements.
+- **Protected areas.** Hives inside a protected site are blocked; sites nearby trigger a warning (the demo uses Natura 2000).
 - **Explainable matches** between a beekeeper and parcels, with reasons, missing items and confidence.
 - **A move calculator.** It shows the contribution after incremental costs and the benefit compared with staying put, so a beekeeper sees when *not* to move.
 
-Every number carries its provenance: Observed, Estimated, Reported or Missing, plus a date. Actors are synthetic and
-parcels are illustrative; NASA data is fetched live.
+Every number carries its provenance: Observed, Estimated, Reported or Missing, plus a date. NASA data is global and
+fetched live; the demo runs on one pilot region with synthetic actors and illustrative parcels.
 
 The build follows the [48-hour MVP plan (v3)](docs/implementation_plans/nasa_space_apps_48_hour_hackathon_mvp_planv3.md).
 Work is tracked as one GitHub issue per work package (WP0–WP25).
@@ -117,4 +116,4 @@ the solution idea. [`AI_USAGE.md`](AI_USAGE.md) lists the tools and how AI outpu
 
 Code: [Mozilla Public License 2.0](LICENSE). Third-party data keeps its own licence (see [Data and citations](#data-and-citations)).
 
-<div align="center"><sub>Made in Budapest for NASA Space Apps 2026 · not affiliated with or endorsed by NASA</sub></div>
+<div align="center"><sub>Built for NASA Space Apps 2026 · not affiliated with or endorsed by NASA</sub></div>

@@ -173,7 +173,7 @@ Format: **WP-id · title · track · depends on**, then tasks and **Done when** 
 - `tokens.css`: palette (bloom yellows, orchard pinks, drought reds, Natura greens), type scale, spacing. No Tailwind.
 - `vite.config.ts` proxy `/api` → `localhost:8000`; `VITE_USE_MOCKS=true` flag switching the API client to typed mock fixtures.
 - Add a `frontend` job to `.github/workflows/ci.yml`: `npm ci`, `tsc --noEmit`, `eslint`, `vite build`.
-- **Done when:** map renders OpenFreeMap basemap centered on the Nyírség; CI frontend job green.
+- **Done when:** map renders OpenFreeMap basemap centered on the pilot region; CI frontend job green.
 
 **WP4 · Geometry & config files · DATA · none**
 - Bbox around the Újfehértó–Nyírbátor–Mátészalka triangle (≈ lon 21.6–22.4, lat 47.7–48.05; refine).

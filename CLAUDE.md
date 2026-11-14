@@ -1,4 +1,4 @@
-# NASA Space Apps Challenge 2026: Nyírség Pollination Marketplace
+# NASA Space Apps Challenge 2026: Pollination Marketplace
 
 Python backend + TypeScript frontend. The repo contains only this project; earlier candidate ideas live in git history only.
 Project summary: the `project-context` skill. Build plan: `docs/implementation_plans/nasa_space_apps_48_hour_hackathon_mvp_planv3.md`
@@ -81,7 +81,8 @@ prefix in the frontend proxy (Vite in dev, nginx in Docker). Timeline weeks are 
 WP2 responses are synthetic fixtures; live data and verification state belong to WP13.
 
 ## Domain rules (from the plan; don't break them)
-- Region: Nyírség bbox lon 21.6–22.4, lat 47.7–48.05 (`Settings.bbox`). Demo years 2022 (drought) vs 2024.
+- Present the product as general and worldwide; never name the pilot region in public-facing text (README, UI).
+  Pilot region bbox: lon 21.6–22.4, lat 47.7–48.05 (`Settings.bbox`). Demo years 2022 (drought) vs 2024.
 - Every displayed value carries a `Provenance` (Reported / Observed / Estimated / Missing, source, `observed_at`,
   interpolated, note). Interpolated weeks are never presented as observations. NASA failures → `Missing` with a reason, never fabricated values.
 - Bloom: sunflower from HLS NDYI; apple, sour cherry, black locust from POWER GDD + grower-declared window.
@@ -92,7 +93,7 @@ WP2 responses are synthetic fixtures; live data and verification state belong to
   no "score/100", no yield claims.
 
 ## Hackathon rules that affect the build
-- **Submission deadline: Sun 15 Nov 2026 23:59 Budapest time.** Demo = video ≤ 30 s or ≤ 7 slides (pitch team owns it).
+- **Submission deadline: Sun 15 Nov 2026 23:59 CET.** Demo = video ≤ 30 s or ≤ 7 slides (pitch team owns it).
 - ≥ 1 NASA dataset, integral to the solution · English · public final link, no login · cite all sources ·
   no promotion of commercial products · no PII · no NASA logos in generated media.
 - AI use is allowed for building; `AI_USAGE.md` states which tools we use (no per-change log). Watermark AI images/video.
