@@ -1,0 +1,296 @@
+"""Weekly timeline engine on synthetic NASA inputs (no network)."""
+
+from datetime import date, timedelta
+from pathlib import Path
+
+import pytest
+from pytest_httpx import HTTPXMock
+
+from pollination import models as m
+from pollination.config import Settings
+from pollination.datafiles import PhenologyEntry, load_phenology
+from pollination.engine import timeline as tl
+from pollination.geo import centroid, smap_cell
+from pollination.nasa.hls import Obs
+from pollination.nasa.power import PowerDaily
+
+PHENOLOGY = load_phenology(Settings().data_dir)
+SHAPE = m.Polygon(
+    coordinates=[[(22.12, 47.83), (22.13, 47.83), (22.13, 47.84), (22.12, 47.83)]]
+)
+DECLARED = m.Window(start=date(2024, 7, 5), end=date(2024, 7, 30))
+
+
+def parcel(
+    crop: str = "black_locust",
+    *,
+    irrigated: bool = False,
+    declared: m.Window | None = DECLARED,
+    pid: str = "P1",
+) -> m.Parcel:
+    return m.Parcel(
+        id=pid,
+        grower_id="G1",
+        crop=crop,
+        area_ha=3,
+        geometry=SHAPE,
+        illustrative=True,
+        service_type="forage",
+        requested_colonies=None,
+        declared_bloom=declared,
+        irrigated=irrigated,
+        natura_status="clear",
+    )
+
+
+def power(year: int, mean_c: float) -> PowerDaily:
+    """Constant daily mean temperature from 1 Jan to 31 Aug."""
+    first = date(year, 1, 1)
+    days = [
+        first + timedelta(days=i) for i in range((date(year, 8, 31) - first).days + 1)
+    ]
+    flat: list[float | None] = [mean_c] * len(days)
+    return PowerDaily(
+        lat=48.0, lon=21.875, days=days, values={"T2M_MAX": flat, "T2M_MIN": flat}
+    )
+
+
+def weeks_of(
+    p: m.Parcel, year: int = 2024, daily: PowerDaily | str | None = None
+) -> list[m.ParcelWeek]:
+    return tl.parcel_weeks(
+        p,
+        PHENOLOGY.get(p.crop),
+        year,
+        power=power(year, 15.0) if daily is None else daily,
+        observations="n/a",
+        smap="SMAP missing",
+    )
+
+
+def test_week_numbering_starts_on_1_march() -> None:
+    assert tl.week_start(2024, 1) == date(2024, 3, 1)
+    assert tl.week_start(2024, 26) == date(2024, 8, 23)
+    assert tl.week_of(2024, date(2024, 3, 7)) == 1
+    assert tl.week_of(2024, date(2024, 3, 8)) == 2
+    assert tl.week_of(2024, date(2024, 2, 29)) is None
+    assert tl.week_of(2024, date(2024, 8, 30)) is None  # after week 26
+
+
+def test_gdd_window_drives_locust_bloom() -> None:
+    # base 5, mean 15 -> 10 GDD/day from 1 Mar; 365 on day 37 (6 Apr), 520 on day 52.
+    weeks = weeks_of(parcel())
+    blooming = [w for w in weeks if w.bloom_state == "blooming"]
+    assert (
+        blooming[0].starts_on
+        <= date(2024, 4, 6)
+        <= blooming[0].starts_on + timedelta(6)
+    )
+    assert blooming[-1].starts_on <= date(2024, 4, 21)
+    assert weeks[0].bloom_state == "pre_bloom"
+    assert weeks[-1].bloom_state == "post_bloom"
+    first = blooming[0]
+    assert first.estimated_bloom == m.Window(
+        start=date(2024, 4, 6), end=date(2024, 4, 21)
+    )
+    assert first.bloom_provenance.kind == "Estimated"
+    assert "AI estimate" in first.bloom_provenance.note  # honest about thresholds
+    assert first.gdd.value == pytest.approx(
+        10.0 * ((first.starts_on - date(2024, 3, 1)).days + 7)
+    )
+    assert first.smap_cell_id == smap_cell(centroid(SHAPE)).id
+
+
+def test_missing_power_falls_back_to_declared_window_of_that_year() -> None:
+    weeks = weeks_of(
+        parcel(), year=2022, daily="NASA POWER request failed (ConnectError)"
+    )
+    july = next(w for w in weeks if w.starts_on == date(2022, 7, 5))
+    assert july.bloom_state == "blooming"
+    prov = july.bloom_provenance
+    assert prov.kind == "Reported"
+    assert "ConnectError" in prov.note
+    assert "declared for 2024" in prov.note
+    assert july.gdd.value is None
+    assert july.gdd.provenance.kind == "Missing"
+    assert july.estimated_bloom is None
+
+
+def test_grassland_has_no_bloom_model() -> None:
+    weeks = weeks_of(parcel("grassland", declared=None))
+    assert {w.bloom_state for w in weeks} == {"none"}
+    assert weeks[0].bloom_provenance.kind == "Missing"
+    assert weeks[0].nectar_state == "unknown"
+
+
+def obs(day: date, ndyi: float) -> Obs:
+    return Obs(day=day, ndvi=0.5, ndyi=ndyi, valid_fraction=0.9, scene_id="S")
+
+
+def test_weekly_index_observes_interpolates_and_leaves_gaps() -> None:
+    series = [
+        obs(date(2024, 6, 5), 0.0),  # week 14 (31 May - 6 Jun)
+        obs(date(2024, 6, 19), 0.2),  # week 16, two weeks later
+        obs(date(2024, 8, 14), 0.1),  # week 24, eight weeks later
+    ]
+    values = tl.weekly_index(series, 2024, lambda o: o.ndyi)
+    w14, w15, w16, w20 = values[13], values[14], values[15], values[19]
+    assert w14.provenance.kind == "Observed"
+    assert w14.provenance.observed_at == date(2024, 6, 5)
+    assert w15.provenance.interpolated
+    assert w15.provenance.kind == "Estimated"
+    assert w15.provenance.observed_at == date(2024, 6, 5)  # D4: last real obs
+    # mid-week 15 is 10 Jun: 5 of 14 days from 0.0 to 0.2
+    assert w15.value == pytest.approx(0.2 * 5 / 14)
+    assert w16.provenance.kind == "Observed"
+    assert w20.value is None  # 56-day gap is not filled
+    assert w20.provenance.kind == "Missing"
+    assert values[0].value is None  # before the first observation
+
+
+def sunflower_entry(threshold: float | None) -> PhenologyEntry:
+    return PHENOLOGY["sunflower"].model_copy(update={"ndyi_bloom_threshold": threshold})
+
+
+def test_sunflower_without_threshold_uses_declared_window() -> None:
+    p = parcel("sunflower")
+    weeks = tl.parcel_weeks(
+        p,
+        sunflower_entry(None),
+        2024,
+        power="n/a",
+        observations=[obs(date(2024, 7, 10), 0.3)],
+        smap="n/a",
+    )
+    july = next(w for w in weeks if w.starts_on == date(2024, 7, 5))
+    assert july.bloom_state == "blooming"
+    assert july.bloom_provenance.kind == "Reported"
+    assert "not yet calibrated" in july.bloom_provenance.note
+    assert july.ndyi.value is not None  # NDYI still shown as context
+
+
+def test_sunflower_ndyi_threshold_decides_bloom() -> None:
+    series = [
+        obs(date(2024, 6, 19), 0.02),  # week 16
+        obs(date(2024, 7, 3), 0.15),  # week 18
+        obs(date(2024, 7, 17), 0.10),  # week 20
+        obs(date(2024, 7, 31), 0.01),  # week 22
+    ]
+    weeks = tl.parcel_weeks(
+        parcel("sunflower", declared=None),
+        sunflower_entry(0.08),
+        2024,
+        power="n/a",
+        observations=series,
+        smap="n/a",
+    )
+    by_week = {w.week: w for w in weeks}
+    assert by_week[16].bloom_state == "pre_bloom"
+    assert by_week[18].bloom_state == "blooming"
+    assert by_week[19].bloom_state == "blooming"  # interpolated 0.125
+    assert by_week[19].bloom_provenance.interpolated
+    assert by_week[22].bloom_state == "post_bloom"
+    assert by_week[18].bloom_provenance.source.startswith("NDYI")
+    assert by_week[18].estimated_bloom == m.Window(
+        start=tl.week_start(2024, 18), end=tl.week_start(2024, 21) - timedelta(1)
+    )
+    assert by_week[5].bloom_state == "none"  # no NDYI and nothing declared
+    assert by_week[5].bloom_provenance.kind == "Missing"
+
+
+SMAP_DAY = date(2024, 7, 17)
+
+
+@pytest.mark.parametrize(
+    ("crop", "irrigated", "bloom", "smap", "expected"),
+    [
+        ("apple", True, "blooming", "missing", "normal"),
+        ("sunflower", True, "blooming", 5.0, "normal"),  # irrigated
+        ("sunflower", False, "blooming", 15.0, "low_nectar"),
+        ("black_locust", False, "blooming", 19.9, "low_nectar"),
+        ("sunflower", False, "blooming", 20.0, "normal"),  # strictly below 20
+        ("sunflower", False, "pre_bloom", 5.0, "normal"),  # not flowering
+        ("sunflower", False, "blooming", "missing", "unknown"),
+        ("sunflower", False, "blooming", None, "unknown"),  # no percentile
+        ("grassland", False, "none", 5.0, "unknown"),
+    ],
+)
+def test_nectar_rule(
+    crop: str,
+    irrigated: bool,  # parametrized test argument
+    bloom: m.BloomState,
+    smap: float | str | None,
+    expected: m.NectarState,
+) -> None:
+    week = (
+        "SMAP missing"
+        if isinstance(smap, str)
+        else tl.SmapWeek(value=0.2, percentile=smap, observed_at=SMAP_DAY)
+    )
+    state, prov = tl.nectar(parcel(crop, irrigated=irrigated), bloom, week, "2015-2024")
+    assert state == expected
+    if state == "unknown":
+        assert prov.kind == "Missing"
+    else:
+        assert prov.kind == "Estimated"
+        assert "Heuristic" in prov.note
+
+
+def smap_season(p: m.Parcel, percentile: float) -> tl.SmapSeason:
+    cell = smap_cell(centroid(p.geometry))
+    weeks = {
+        w: tl.SmapWeek(0.2, percentile, tl.week_start(2022, w) + timedelta(3))
+        for w in tl.WEEKS
+    }
+    return tl.SmapSeason(weeks={cell: weeks}, baseline="2015-2024")
+
+
+def test_done_when_drought_year_flags_low_nectar_in_july() -> None:
+    """Issue #17: 2022 sunflower blooming + low_nectar in July, 2024 normal."""
+    p = parcel("sunflower", pid="P07")
+    outcome: dict[int, set[str]] = {}
+    for year, pct in ((2022, 8.0), (2024, 55.0)):
+        inputs = tl.SeasonInputs(
+            power={"P07": power(year, 15.0)}, hls="n/a", smap=smap_season(p, pct)
+        )
+        result = tl.build_timeline(m.Season(year), [p], PHENOLOGY, inputs, {})
+        july = [w for w in result.parcel_weeks if w.starts_on.month == 7]
+        outcome[year] = {w.nectar_state for w in july if w.bloom_state == "blooming"}
+        assert len(result.smap_cells) == 26
+    assert outcome[2022] == {"low_nectar"}
+    assert outcome[2024] == {"normal"}
+
+
+def test_verification_marks_only_blooming_weeks() -> None:
+    p = parcel()
+    verified = m.Provenance(
+        kind="Observed", source="Grower field photo", observed_at=date(2026, 11, 14)
+    )
+    inputs = tl.SeasonInputs(power={"P1": power(2024, 15.0)}, hls="n/a", smap="n/a")
+    result = tl.build_timeline(m.Season(2024), [p], PHENOLOGY, inputs, {"P1": verified})
+    for week in result.parcel_weeks:
+        if week.bloom_state == "blooming":
+            assert week.bloom_provenance == verified
+        else:
+            assert week.bloom_provenance.kind == "Estimated"
+
+
+def test_every_parcel_gets_26_weeks() -> None:
+    parcels = [parcel(pid="A"), parcel("apple", irrigated=True, pid="B")]
+    inputs = tl.SeasonInputs(power={"A": power(2024, 12.0)}, hls={}, smap="n/a")
+    result = tl.build_timeline(m.Season(2024), parcels, PHENOLOGY, inputs, {})
+    assert [w.week for w in result.parcel_weeks] == list(tl.WEEKS) * 2
+    b = [w for w in result.parcel_weeks if w.parcel_id == "B"]
+    assert b[0].gdd.provenance.note == "No POWER request for this parcel"
+
+
+def test_fetch_inputs_turns_failures_into_reasons(
+    httpx_mock: HTTPXMock, tmp_path: Path
+) -> None:
+    httpx_mock.add_response(status_code=503)
+    inputs = tl.fetch_inputs(2024, [parcel()], tmp_path, earthdata=False)
+    assert inputs.power["P1"] == "NASA POWER request failed (HTTPStatusError)"
+    assert inputs.failed  # a failed request is retried, not kept
+    assert isinstance(inputs.hls, str)
+    assert "token" in inputs.hls
+    assert isinstance(inputs.smap, str)

@@ -225,7 +225,7 @@ Format: **WP-id · title · track · depends on**, then tasks and **Done when** 
 ### Hour 16–24: engine logic, real data through the API
 
 **WP11 · Phenology & timeline · ENGINE · WP6, WP7, WP8, WP4**
-- `engine/phenology.py`: GDD = Σ max(0, (Tmax+Tmin)/2 − base) from 1 Jan using POWER at parcel centroid; bloom window = dates where cumulative GDD crosses start/end thresholds; ± `uncertainty_days`.
+- `engine/phenology.py`: GDD = Σ max(0, (Tmax+Tmin)/2 − base) from the crop's `gdd_start` in `phenology.json` (1 March for the current thresholds, which were derived from that day; 1 January put 2024 sour-cherry bloom on 29 Feb) using POWER at parcel centroid; bloom window = dates where cumulative GDD crosses start/end thresholds; ± `uncertainty_days`.
 - `engine/timeline.py`: for each week × parcel:
   - Sunflower: `bloom_state` from NDYI (threshold in `phenology.json`), weekly value = nearest valid obs; gap weeks linearly interpolated with `interpolated: true` (D4).
   - Orchard/locust: `bloom_state` from GDD window (Estimated) alongside declared window (Reported).

@@ -76,6 +76,7 @@ class Parcel(BaseModel):
     service_type: ServiceType
     requested_colonies: NonNegativeInt | None
     declared_bloom: Window | None
+    irrigated: bool
     natura_status: Literal["inside", "buffer_overlap", "clear"]
 
 

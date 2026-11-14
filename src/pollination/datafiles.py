@@ -3,15 +3,16 @@
 from __future__ import annotations
 
 import json
+from dataclasses import dataclass
+from datetime import date
 from pathlib import Path
-from typing import Literal
+from typing import Annotated, Literal
 
-from pydantic import BaseModel, NonNegativeFloat
+from pydantic import BaseModel, Field, NonNegativeFloat
 
+from pollination.config import Settings
 from pollination.geo import NaturaIndex
 from pollination.models import Actors, NaturaCollection, Parcel, Polygon
-
-type Crop = Literal["apple", "sour_cherry", "black_locust", "sunflower", "grassland"]
 
 
 class PhenologyEntry(BaseModel):
@@ -19,6 +20,8 @@ class PhenologyEntry(BaseModel):
 
     method: Literal["gdd", "ndyi"]
     base_temp_c: float | None
+    # First day of GDD accumulation (MM-DD); the thresholds are only valid with it.
+    gdd_start: Annotated[str, Field(pattern=r"^\d{2}-\d{2}$")] | None
     gdd_bloom_start: NonNegativeFloat | None
     gdd_bloom_end: NonNegativeFloat | None
     uncertainty_days: NonNegativeFloat | None
@@ -27,6 +30,13 @@ class PhenologyEntry(BaseModel):
     status: str
     leads: list[str]
     note: str
+
+    def gdd_start_in(self, year: int) -> date | None:
+        """The day GDD accumulation starts in ``year``, if set."""
+        if self.gdd_start is None:
+            return None
+        month, day = (int(x) for x in self.gdd_start.split("-"))
+        return date(year, month, day)
 
 
 class RankingWeights(BaseModel):
@@ -84,7 +94,7 @@ def load_actors(data_dir: Path) -> Actors:
     return Actors.model_validate_json((data_dir / "actors.json").read_text("utf-8"))
 
 
-def load_phenology(data_dir: Path) -> dict[Crop, PhenologyEntry]:
+def load_phenology(data_dir: Path) -> dict[str, PhenologyEntry]:
     """Load ``phenology.json`` (the leading ``_note`` key is documentation)."""
     raw = json.loads((data_dir / "phenology.json").read_text("utf-8"))
     return {
@@ -99,4 +109,24 @@ def load_ranking(data_dir: Path) -> Ranking:
     raw = json.loads((data_dir / "ranking.json").read_text("utf-8"))
     return Ranking.model_validate(
         {k: v for k, v in raw.items() if not k.startswith("_")}
+    )
+
+
+@dataclass(frozen=True)
+class Catalog:
+    """All committed data files the API serves, validated."""
+
+    natura: NaturaCollection
+    parcels: list[Parcel]
+    phenology: dict[str, PhenologyEntry]
+
+
+def load_catalog(settings: Settings) -> Catalog:
+    """Load Natura 2000, the parcels (with their Natura status) and phenology."""
+    natura = load_natura(settings.data_dir)
+    index = NaturaIndex.for_bbox(natura, settings.bbox)
+    return Catalog(
+        natura=natura,
+        parcels=load_parcels(settings.data_dir, index),
+        phenology=load_phenology(settings.data_dir),
     )

@@ -39,6 +39,7 @@ def parcel(pid: str = "P01") -> Parcel:
             "service_type": "pollination",
             "requested_colonies": 20,
             "declared_bloom": None,
+            "irrigated": False,
             "natura_status": "clear",
         }
     )

@@ -3,6 +3,7 @@
   "apple": {
     "method": "gdd",
     "base_temp_c": 5.0,
+    "gdd_start": "03-01",
     "gdd_bloom_start": 175,
     "gdd_bloom_end": 320,
     "uncertainty_days": 7,
@@ -18,6 +19,7 @@
   "sour_cherry": {
     "method": "gdd",
     "base_temp_c": 4.4,
+    "gdd_start": "03-01",
     "gdd_bloom_start": 110,
     "gdd_bloom_end": 215,
     "uncertainty_days": 7,
@@ -34,6 +36,7 @@
   "sunflower": {
     "method": "ndyi",
     "base_temp_c": null,
+    "gdd_start": null,
     "gdd_bloom_start": null,
     "gdd_bloom_end": null,
     "uncertainty_days": 7,
@@ -49,6 +52,7 @@
   "black_locust": {
     "method": "gdd",
     "base_temp_c": 5.0,
+    "gdd_start": "03-01",
     "gdd_bloom_start": 365,
     "gdd_bloom_end": 520,
     "uncertainty_days": 7,
