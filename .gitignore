@@ -228,3 +228,11 @@ repos/*
 # Python
 .venv/
 .env.*
+# Project additions
+.DS_Store
+~$*
+*.tmp
+data/
+*.h5
+*.nc
+*.tif
