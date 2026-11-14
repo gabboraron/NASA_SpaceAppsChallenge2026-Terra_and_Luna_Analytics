@@ -568,8 +568,8 @@ def fetch_inputs(
     """Fetch POWER, HLS and SMAP inputs for a season; failures become reasons.
 
     POWER is requested once per MERRA-2 grid node under the parcel centroids. HLS
-    is read for sunflower parcels only, and only with an Earthdata token. A cold
-    HLS cache takes minutes; warm it first (WP14).
+    is read for sunflower parcels only, and SMAP for the whole region; both need an
+    Earthdata token. A cold HLS or SMAP cache takes minutes; warm it first (WP14).
 
     Args:
         year: Season.
@@ -610,5 +610,17 @@ def fetch_inputs(
             log.warning("HLS fetch failed: %s", exc)
             observed = f"NASA HLS request failed ({type(exc).__name__})"
             failed = True
-    smap = "SMAP root-zone soil moisture not available yet"
+    smap: SmapSeason | str
+    if not earthdata:
+        smap = "No Earthdata token configured; SMAP not queried"
+    else:
+        # Lazy: the SMAP client imports this module for SmapSeason and the weeks.
+        from pollination.nasa import smap as smap_client  # noqa: PLC0415
+
+        try:
+            smap = smap_client.season(year, cache_dir=cache_dir)
+        except Exception as exc:  # any NASA failure becomes Missing
+            log.warning("SMAP fetch failed: %s", exc)
+            smap = f"NASA SMAP request failed ({type(exc).__name__})"
+            failed = True
     return SeasonInputs(power=power, hls=observed, smap=smap, failed=failed)

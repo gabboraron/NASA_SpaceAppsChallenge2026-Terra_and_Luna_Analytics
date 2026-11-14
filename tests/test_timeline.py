@@ -11,6 +11,7 @@ from pollination.config import Settings
 from pollination.datafiles import PhenologyEntry, load_phenology
 from pollination.engine import timeline as tl
 from pollination.geo import centroid, smap_cell
+from pollination.nasa import smap as smap_client
 from pollination.nasa.hls import Obs
 from pollination.nasa.power import PowerDaily
 
@@ -294,3 +295,52 @@ def test_fetch_inputs_turns_failures_into_reasons(
     assert isinstance(inputs.hls, str)
     assert "token" in inputs.hls
     assert isinstance(inputs.smap, str)
+    assert "token" in inputs.smap
+
+
+def with_token(monkeypatch: pytest.MonkeyPatch) -> None:
+    """Stub POWER and HLS so only the SMAP step of ``fetch_inputs`` is under test."""
+    daily = PowerDaily(lat=47.5, lon=21.875, days=[], values={})
+
+    def fake_power(*args: object, **kwargs: object) -> PowerDaily:
+        return daily
+
+    def fake_hls(*args: object, **kwargs: object) -> dict[str, list[Obs]]:
+        return {}
+
+    monkeypatch.setattr(tl, "daily_point", fake_power)
+    monkeypatch.setattr(tl.hls, "parcel_indices", fake_hls)
+
+
+def test_fetch_inputs_reads_smap_when_a_token_is_set(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+) -> None:
+    """With Earthdata configured the season's SMAP values replace the stub."""
+    with_token(monkeypatch)
+    season = tl.SmapSeason({}, "2015-2024")
+    seen: dict[str, object] = {}
+
+    def fake_season(year: int, **kwargs: object) -> tl.SmapSeason:
+        seen.update(year=year, **kwargs)
+        return season
+
+    monkeypatch.setattr(smap_client, "season", fake_season)
+    inputs = tl.fetch_inputs(2022, [parcel()], tmp_path, earthdata=True)
+    assert inputs.smap is season
+    assert not inputs.failed
+    assert seen == {"year": 2022, "cache_dir": tmp_path}
+
+
+def test_fetch_inputs_turns_a_smap_failure_into_a_reason(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+) -> None:
+    """A failed SMAP read is a Missing reason and is retried next time."""
+    with_token(monkeypatch)
+
+    def broken(year: int, **kwargs: object) -> tl.SmapSeason:
+        raise RuntimeError("OPeNDAP down")
+
+    monkeypatch.setattr(smap_client, "season", broken)
+    inputs = tl.fetch_inputs(2022, [parcel()], tmp_path, earthdata=True)
+    assert inputs.smap == "NASA SMAP request failed (RuntimeError)"
+    assert inputs.failed
