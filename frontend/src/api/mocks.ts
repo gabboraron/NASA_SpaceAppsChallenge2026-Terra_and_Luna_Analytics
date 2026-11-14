@@ -4,12 +4,14 @@ import type {
   Beekeeper,
   CalculatorInput,
   CalculatorResult,
+  HlsResponse,
   MatchCard,
   Measurement,
   Natura,
   Parcel,
   ParcelWeek,
   Polygon,
+  PowerResponse,
   Provenance,
   Season,
   Timeline,
@@ -346,4 +348,28 @@ export function calculate(i: CalculatorInput): CalculatorResult {
         ? `Staying at base apiary yields €${eur} more.`
         : `Moving yields €${eur} more than the alternative.`,
   };
+}
+
+/** Mirrors POST /polygon/power with fixed numbers. */
+export function polygonPower(year: Season): PowerResponse {
+  const p: Provenance = {
+    ...prov("Estimated", "Fixed mock numbers, not a NASA read"),
+    observed_at: `${year}-08-31`,
+  };
+  return {
+    gdd_series: [{ day: `${year}-08-31`, gdd: 1840 }],
+    gdd_provenance: p,
+    precipitation_total_mm: value(year === 2022 ? 182 : 301, p),
+    precipitation_anomaly_mm: value(year === 2022 ? -96 : 23, p),
+    bee_flight_weather_days: value(142, p),
+  };
+}
+
+/** Mirrors POST /polygon/hls when no Earthdata token is configured. */
+export function polygonHls(): HlsResponse {
+  const gap: Measurement = {
+    value: null,
+    provenance: prov("Missing", "Mock data: HLS not queried"),
+  };
+  return { observed_at: null, ndvi: gap, ndyi: gap };
 }

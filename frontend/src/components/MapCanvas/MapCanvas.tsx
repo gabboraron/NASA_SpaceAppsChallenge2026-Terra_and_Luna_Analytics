@@ -7,7 +7,13 @@ import maplibregl, {
   type LayerSpecification,
 } from "maplibre-gl";
 import type { FeatureCollection, Point, Polygon } from "geojson";
-import type { ParcelWeek } from "../../api/client";
+import {
+  TerraDraw,
+  TerraDrawPolygonMode,
+  ValidateNotSelfIntersecting,
+} from "terra-draw";
+import { TerraDrawMapLibreGLAdapter } from "terra-draw-maplibre-gl-adapter";
+import type { ParcelWeek, Polygon as ApiPolygon } from "../../api/client";
 import {
   BLOOM_COLORS,
   CROP_COLORS,
@@ -29,6 +35,8 @@ const REGION = new maplibregl.LngLatBounds([21.6, 47.7], [22.4, 48.05]);
 const BASEMAP = "https://tiles.openfreemap.org/styles/liberty";
 const IMAGERY =
   "https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}";
+// Same blue as --focus: not a crop, bloom or drought colour.
+const FIELD = "#1f5f8b";
 const EMPTY: FeatureCollection = { type: "FeatureCollection", features: [] };
 
 /** Draw a `width` × `height` px icon on a canvas and return its pixels for `addImage`. */
@@ -344,6 +352,11 @@ type Props = {
   hovered: string;
   onSelect: (parcelId: string) => void;
   onHover: (parcelId: string) => void;
+  /** True while the user draws a polygon; parcel clicks are off meanwhile. */
+  drawing: boolean;
+  /** The finished polygon, kept on the map until cleared. */
+  field: ApiPolygon | null;
+  onDrawn: (polygon: ApiPolygon) => void;
 };
 
 const SOURCES = [
@@ -370,6 +383,7 @@ function useSource(
 export function MapCanvas(props: Props) {
   const container = useRef<HTMLDivElement>(null);
   const map = useRef<maplibregl.Map | null>(null);
+  const draw = useRef<TerraDraw | null>(null);
   const [ready, setReady] = useState(false);
   const [error, setError] = useState("");
   const latest = useRef(props);
@@ -425,10 +439,12 @@ export function MapCanvas(props: Props) {
           },
         } as LayerSpecification);
       instance.on("click", PARCEL_HIT, (e) => {
+        if (latest.current.drawing) return;
         const id = e.features?.[0]?.properties.id;
         if (typeof id === "string") latest.current.onSelect(id);
       });
       instance.on("mousemove", PARCEL_HIT, (e) => {
+        if (latest.current.drawing) return;
         instance.getCanvas().style.cursor = "pointer";
         const id = e.features?.[0]?.properties.id;
         if (typeof id === "string") latest.current.onHover(id);
@@ -437,10 +453,38 @@ export function MapCanvas(props: Props) {
         instance.getCanvas().style.cursor = "";
         latest.current.onHover("");
       });
+      // Terra Draw adds its own layers, so it starts after ours (drawn on top).
+      const sketch = new TerraDraw({
+        adapter: new TerraDrawMapLibreGLAdapter({ map: instance }),
+        modes: [
+          new TerraDrawPolygonMode({
+            validation: (feature, { updateType }) =>
+              updateType === "finish" || updateType === "commit"
+                ? ValidateNotSelfIntersecting(feature)
+                : { valid: true },
+            styles: {
+              fillColor: FIELD,
+              fillOpacity: 0.2,
+              outlineColor: FIELD,
+              outlineWidth: 2,
+              closingPointColor: FIELD,
+            },
+          }),
+        ],
+      });
+      sketch.start();
+      sketch.on("finish", (id) => {
+        const geometry = sketch.getSnapshotFeature(id)?.geometry;
+        if (geometry?.type === "Polygon")
+          latest.current.onDrawn(geometry as ApiPolygon);
+      });
+      draw.current = sketch;
       setError("");
       setReady(true);
     });
     return () => {
+      draw.current?.stop();
+      draw.current = null;
       map.current = null;
       setReady(false);
       instance.remove();
@@ -481,6 +525,14 @@ export function MapCanvas(props: Props) {
         props.visible[group] ? "visible" : "none",
       );
   }, [m, props.visible]);
+
+  useEffect(() => {
+    const sketch = m && draw.current;
+    if (!sketch) return;
+    // Starting a draw clears the field first, so this also wipes the old shape.
+    if (!props.field) sketch.clear();
+    sketch.setMode(props.drawing ? "polygon" : "static");
+  }, [m, props.drawing, props.field]);
 
   useEffect(() => {
     m?.setFilter("parcels-selected", ["==", ["get", "id"], props.selected]);

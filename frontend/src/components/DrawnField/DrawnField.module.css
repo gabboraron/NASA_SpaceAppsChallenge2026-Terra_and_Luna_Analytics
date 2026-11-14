@@ -1,0 +1,55 @@
+/* Result card of a drawn field, floating over the map with the status cards. */
+.card {
+  composes: card from "../../App.module.css";
+  gap: 0.4rem;
+  max-height: 55vh;
+  overflow-y: auto;
+  border-left: 4px solid var(--focus);
+}
+.head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+}
+.close {
+  composes: iconButton from "../panel.module.css";
+  margin: -0.4rem -0.5rem -0.4rem 0;
+  cursor: pointer;
+}
+.card h3 {
+  margin: 0.4rem 0 0;
+  font-size: 0.7rem;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+.card p {
+  margin: 0;
+  color: var(--muted);
+}
+.rows {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.5rem 0.75rem;
+  margin: 0;
+}
+.rows dt {
+  color: var(--muted);
+  font-size: 0.78rem;
+}
+.rows dd {
+  margin: 0;
+}
+.rows small {
+  color: var(--muted);
+  font-size: 0.72rem;
+  line-height: 1.3;
+}
+.value {
+  font-family: var(--font-mono);
+  font-size: 1.05rem;
+  font-weight: 500;
+  font-variant-numeric: tabular-nums;
+}

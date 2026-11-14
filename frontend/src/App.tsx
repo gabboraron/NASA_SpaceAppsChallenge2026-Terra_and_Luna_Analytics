@@ -10,9 +10,11 @@ import {
   type Actors,
   type Natura,
   type Parcel,
+  type Polygon as FieldPolygon,
   type Season,
   type Timeline,
 } from "./api/client";
+import { DrawnField } from "./components/DrawnField/DrawnField";
 import { LayerPanel } from "./components/LayerPanel/LayerPanel";
 import { MapCanvas } from "./components/MapCanvas/MapCanvas";
 import {
@@ -38,6 +40,7 @@ import { MoveCalculator } from "./components/MoveCalculator/MoveCalculator";
 import { TimeSlider } from "./components/TimeSlider/TimeSlider";
 import { SEASONS, SEASON_LABELS, WEEKS, isSeason } from "./domain/season";
 import { useEscape } from "./hooks/useEscape";
+import { useField } from "./hooks/useField";
 import { useMatches } from "./hooks/useMatches";
 import { SiteHeader } from "./site/SiteHeader";
 import styles from "./App.module.css";
@@ -116,6 +119,20 @@ export function App() {
       stale = true;
     };
   }, [attempt]);
+
+  // A polygon drawn on the map gets live POWER and HLS reads (any place, not
+  // only the listed parcels).
+  const [drawing, setDrawing] = useState(false);
+  const [fieldPolygon, setFieldPolygon] = useState<FieldPolygon | null>(null);
+  const field = useField(fieldPolygon, year);
+  const onDrawn = useCallback((polygon: FieldPolygon) => {
+    setFieldPolygon(polygon);
+    setDrawing(false);
+  }, []);
+  const startDrawing = () => {
+    setFieldPolygon(null);
+    setDrawing(true);
+  };
 
   // Escape closes the tablet layers popover.
   const closeLayers = useCallback(() => setLayersOpen(false), []);
@@ -324,8 +341,38 @@ export function App() {
             hovered={hovered}
             onSelect={select}
             onHover={setHovered}
+            drawing={drawing}
+            field={fieldPolygon}
+            onDrawn={onDrawn}
           />
           <div className={styles.cards}>
+            <button
+              type="button"
+              className={styles.draw}
+              aria-pressed={drawing}
+              onClick={drawing ? () => setDrawing(false) : startDrawing}
+            >
+              {drawing
+                ? "Cancel drawing"
+                : fieldPolygon
+                  ? "Draw another field"
+                  : "Draw a field"}
+            </button>
+            {drawing && (
+              <div role="status" className={`${styles.card} ${styles.busy}`}>
+                <strong>Click the corners of a field</strong>
+                <span>
+                  Click the first point again, or press Enter, to finish.
+                </span>
+              </div>
+            )}
+            {fieldPolygon && (
+              <DrawnField
+                year={year}
+                field={field}
+                onClose={() => setFieldPolygon(null)}
+              />
+            )}
             {error ? (
               <div role="alert" className={`${styles.card} ${styles.alert}`}>
                 <strong>{error}</strong>
