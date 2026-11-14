@@ -16,6 +16,7 @@ import {
   NATURA,
   OTHER_CROP,
   hatch,
+  isInterpolated,
   rgba,
   type LayerId,
 } from "./layers";
@@ -142,6 +143,24 @@ const LAYERS: (LayerSpecification & { group: LayerId })[] = [
     paint: {
       "line-color": ["case", low, DROUGHT, cropColor],
       "line-width": ["case", low, 4, 3],
+    },
+  },
+  {
+    // Gap-filled weeks (D4): a white dash over the outline, so it reads as broken.
+    group: "parcels",
+    id: "parcels-interp",
+    type: "line",
+    source: "parcels",
+    paint: {
+      "line-color": "#ffffff",
+      "line-width": 2,
+      "line-dasharray": [2, 2],
+      "line-opacity": [
+        "case",
+        ["boolean", ["feature-state", "interp"], false],
+        1,
+        0,
+      ],
     },
   },
   {
@@ -317,7 +336,11 @@ export function MapCanvas(props: Props) {
       for (const [id, w] of props.weekRows)
         m.setFeatureState(
           { source, id },
-          { bloom: w.bloom_state, nectar: w.nectar_state },
+          {
+            bloom: w.bloom_state,
+            nectar: w.nectar_state,
+            interp: isInterpolated(w),
+          },
         );
     }
   }, [m, props.weekRows, props.parcels]);

@@ -2,5 +2,7 @@
 
 from pollination.models import Provenance
 
+PHOTO_SOURCE = "Grower field photo (simulated)"
+
 verifications: dict[str, Provenance] = {}
 """Bloom verification by parcel id; the timeline applies it to blooming weeks."""

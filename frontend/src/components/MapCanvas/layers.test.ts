@@ -1,10 +1,15 @@
 import { describe, expect, it } from "vitest";
-import { parcels, timeline } from "../../api/mocks";
+import { parcels, timeline, verify } from "../../api/mocks";
 import {
+  WEEKS,
   centroid,
   foragingRings,
   hatch,
   indexWeeks,
+  isHighBloomLowNectar,
+  isInterpolated,
+  monthTicks,
+  weekSummary,
   rgba,
   parcelCollection,
   parcelDots,
@@ -39,7 +44,7 @@ describe("indexWeeks", () => {
     const index = indexWeeks(timeline(2022));
     expect(index.size).toBe(26);
     const w = index.get(20)!;
-    expect([...w.keys()].sort()).toEqual(["P1", "P2"]);
+    expect([...w.keys()].sort()).toEqual(["P1", "P2", "P3"]);
     expect(w.get("P1")).toMatchObject({
       bloom_state: "blooming",
       nectar_state: "low_nectar",
@@ -79,11 +84,12 @@ describe("parcels", () => {
     expect(fc.features.map((f) => f.properties)).toEqual([
       { id: "P1", crop: "sunflower" },
       { id: "P2", crop: "apple" },
+      { id: "P3", crop: "black_locust" },
     ]);
   });
   it("get one dot each at the centroid for low zoom", () => {
     const dots = parcelDots(parcels);
-    expect(dots.features).toHaveLength(2);
+    expect(dots.features).toHaveLength(parcels.length);
     expect(dots.features[0].properties).toEqual({
       id: "P1",
       crop: "sunflower",
@@ -130,5 +136,59 @@ describe("hatch", () => {
     expect(px(0, 0)).toEqual([1, 2, 3, 255]);
     expect(px(3, 1)).toEqual([1, 2, 3, 255]);
     expect(px(1, 0)).toEqual([0, 0, 0, 0]);
+  });
+});
+
+describe("monthTicks", () => {
+  it("puts each month at the fractional week it starts in", () => {
+    const ticks = monthTicks(2024);
+    expect(ticks.map((t) => t.label)).toEqual([
+      "Mar",
+      "Apr",
+      "May",
+      "Jun",
+      "Jul",
+      "Aug",
+    ]);
+    expect(ticks[0].week).toBe(1);
+    expect(ticks[1].week).toBeCloseTo(1 + 31 / 7);
+    expect(ticks.at(-1)!.week).toBeLessThanOrEqual(WEEKS);
+  });
+});
+
+describe("week states", () => {
+  const rows = (year: 2022 | 2024, week: number) =>
+    timeline(year).parcel_weeks.filter((r) => r.week === week);
+
+  it("flags 2022 July sunflower as high bloom / low nectar, not 2024", () => {
+    const sunflower = (y: 2022 | 2024) =>
+      rows(y, 20).find((r) => r.parcel_id === "P1")!;
+    expect(isHighBloomLowNectar(sunflower(2022))).toBe(true);
+    expect(isHighBloomLowNectar(sunflower(2024))).toBe(false);
+  });
+
+  it("marks gap-filled weeks as interpolated", () => {
+    const p1 = (w: number) => rows(2024, w).find((r) => r.parcel_id === "P1")!;
+    expect(isInterpolated(p1(19))).toBe(true);
+    expect(isInterpolated(p1(20))).toBe(false);
+  });
+
+  it("summarises bloom and low nectar per week for the slider strip", () => {
+    const summary = weekSummary(indexWeeks(timeline(2022)));
+    expect(summary).toHaveLength(WEEKS);
+    expect(summary[19]).toEqual({ blooming: 1, low: 1 });
+    expect(summary[0]).toEqual({ blooming: 0, low: 0 });
+    expect(weekSummary(new Map())[5]).toEqual({ blooming: 0, low: 0 });
+  });
+});
+
+describe("mock verification", () => {
+  it("turns only the parcel's blooming weeks Observed", () => {
+    expect(verify("P1").kind).toBe("Observed");
+    const p1 = timeline(2024).parcel_weeks.filter((r) => r.parcel_id === "P1");
+    for (const r of p1)
+      expect(r.bloom_provenance.kind === "Observed").toBe(
+        r.bloom_state === "blooming",
+      );
   });
 });

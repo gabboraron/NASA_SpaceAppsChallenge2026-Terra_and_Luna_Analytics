@@ -6,6 +6,7 @@ import {
   getParcels,
   getTimeline,
   useMocks,
+  verifyParcel,
   type Actors,
   type Natura,
   type Parcel,
@@ -15,9 +16,7 @@ import {
 import { LayerPanel } from "./components/LayerPanel/LayerPanel";
 import { MapCanvas } from "./components/MapCanvas/MapCanvas";
 import {
-  BLOOM_LABELS,
   CROP_NAMES,
-  NECTAR_LABELS,
   beekeeperCollection,
   centroid,
   foragingRings,
@@ -25,13 +24,19 @@ import {
   parcelCollection,
   parcelDots,
   smapCollection,
-  weekLabel,
+  weekStateText,
+  weekSummary,
   type LayerId,
 } from "./components/MapCanvas/layers";
+import {
+  ParcelDetail,
+  type VerifyState,
+} from "./components/ParcelDetail/ParcelDetail";
+import { TimeSlider } from "./components/TimeSlider/TimeSlider";
 import styles from "./App.module.css";
 
-// Fixed until the time slider (WP16) drives it; week 20 = mid-July sunflower bloom.
-const WEEK = 20;
+// Week 20 = mid-July, sunflower bloom: the demo's opening view.
+const START_WEEK = 20;
 const ALL_ON: Record<LayerId, boolean> = {
   parcels: true,
   natura: true,
@@ -56,6 +61,12 @@ export function App() {
   const [selected, setSelected] = useState("");
   const [hovered, setHovered] = useState("");
   const [attempt, setAttempt] = useState(0);
+  const [week, setWeek] = useState(START_WEEK);
+  const [verifyState, setVerifyState] = useState<VerifyState>("idle");
+  // Parcels verified in this page session (server state resets on restart, D16).
+  const [verifiedIds, setVerifiedIds] = useState<ReadonlySet<string>>(
+    new Set(),
+  );
 
   useEffect(() => {
     const controller = new AbortController();
@@ -96,8 +107,19 @@ export function App() {
   const parcels = useMemo(() => base.data?.parcels ?? [], [base.data]);
   const beekeeper = base.data?.actors.beekeepers[0];
   const weeks = useMemo(() => indexWeeks(timeline), [timeline]);
-  const weekRows = weeks.get(WEEK) ?? NO_ROWS;
-  const smapFc = useMemo(() => smapCollection(timeline, WEEK), [timeline]);
+  const weekRows = weeks.get(week) ?? NO_ROWS;
+  const smapFc = useMemo(
+    () => smapCollection(timeline, week),
+    [timeline, week],
+  );
+  const summary = useMemo(() => weekSummary(weeks), [weeks]);
+  const smapIndex = useMemo(
+    () =>
+      new Map(
+        (timeline?.smap_cells ?? []).map((c) => [`${c.cell_id}:${c.week}`, c]),
+      ),
+    [timeline],
+  );
 
   const layers = useMemo(
     () => ({
@@ -112,6 +134,15 @@ export function App() {
     [base.data, parcels],
   );
   const selectedParcel = parcels.find((p) => p.id === selected);
+  // Verification only rewrites blooming weeks, so a non-blooming week keeps the
+  // model's own provenance for the season's bloom estimate.
+  const estimate = useMemo(
+    () =>
+      timeline?.parcel_weeks.find(
+        (w) => w.parcel_id === selected && w.bloom_state !== "blooming",
+      )?.bloom_provenance,
+    [timeline, selected],
+  );
   const rings = useMemo(() => {
     const centres: Parameters<typeof foragingRings>[0] = [];
     if (beekeeper) centres.push({ center: beekeeper.home, kind: "beekeeper" });
@@ -127,15 +158,39 @@ export function App() {
     (id: LayerId) => setVisible((v) => ({ ...v, [id]: !v[id] })),
     [],
   );
+  const closeDetail = useCallback(() => setSelected(""), []);
+  const select = useCallback((id: string) => {
+    setSelected(id);
+    setVerifyState("idle");
+  }, []);
+  // The server records the photo; refetch this season and drop the other cached one.
+  const verify = (id: string) => {
+    setVerifyState("pending");
+    verifyParcel(id)
+      .then(() => getTimeline(year))
+      .then((data) => {
+        setTimelines({ [year]: { data } });
+        setVerifiedIds((ids) => new Set(ids).add(id));
+        setVerifyState("idle");
+      })
+      .catch(() => setVerifyState("error"));
+  };
   const retry = () => {
     setBase((b) => (b.error ? {} : b));
     setTimelines((t) => ({ ...t, [year]: undefined }));
     setAttempt((a) => a + 1);
   };
 
-  const info = parcels.find((p) => p.id === (hovered || selected));
+  const info =
+    hovered && hovered !== selected
+      ? parcels.find((p) => p.id === hovered)
+      : undefined;
   const infoWeek = info && weekRows.get(info.id);
   const error = base.error ?? current?.error;
+  const selectedRow = selectedParcel && weekRows.get(selectedParcel.id);
+  const selectedSmap = selectedRow?.smap_cell_id
+    ? smapIndex.get(`${selectedRow.smap_cell_id}:${week}`)
+    : undefined;
 
   return (
     <main className={styles.page}>
@@ -150,10 +205,9 @@ export function App() {
           {useMocks && <span>Mock data</span>}
         </span>
       </header>
-      <div className={styles.workspace}>
+      <div className={styles.workspace} data-detail={!!selectedParcel}>
         <LayerPanel
           year={year}
-          weekText={`Week ${WEEK} · ${weekLabel(year, WEEK)}`}
           visible={visible}
           onYear={setYear}
           onToggle={toggle}
@@ -169,7 +223,7 @@ export function App() {
             weekRows={weekRows}
             visible={visible}
             selected={selected}
-            onSelect={setSelected}
+            onSelect={select}
             onHover={setHovered}
           />
           <div className={styles.cards}>
@@ -203,22 +257,35 @@ export function App() {
                 <strong>
                   {CROP_NAMES[info.crop] ?? info.crop} · {info.id}
                 </strong>
-                <span>
-                  {infoWeek
-                    ? `${BLOOM_LABELS[infoWeek.bloom_state]} · ${NECTAR_LABELS[infoWeek.nectar_state]}`
-                    : "No data for this week"}
-                </span>
-                {infoWeek && (
-                  <small>
-                    {infoWeek.nectar_state === "low_nectar"
-                      ? infoWeek.nectar_provenance.note || "Heuristic"
-                      : `${infoWeek.bloom_provenance.kind}: ${infoWeek.bloom_provenance.source}`}
-                  </small>
-                )}
+                <span>{weekStateText(infoWeek)}</span>
+                <small>Click for details</small>
               </div>
             )}
           </div>
+          <TimeSlider
+            year={year}
+            week={week}
+            summary={summary}
+            onWeek={setWeek}
+          />
         </section>
+        {selectedParcel && (
+          <ParcelDetail
+            parcel={selectedParcel}
+            grower={base.data?.actors.growers.find(
+              (g) => g.id === selectedParcel.grower_id,
+            )}
+            year={year}
+            week={week}
+            row={selectedRow}
+            smap={selectedSmap}
+            estimate={estimate}
+            verified={verifiedIds.has(selectedParcel.id)}
+            verifyState={verifyState}
+            onVerify={() => verify(selectedParcel.id)}
+            onClose={closeDetail}
+          />
+        )}
       </div>
     </main>
   );

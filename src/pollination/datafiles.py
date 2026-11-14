@@ -119,14 +119,16 @@ class Catalog:
     natura: NaturaCollection
     parcels: list[Parcel]
     phenology: dict[str, PhenologyEntry]
+    actors: Actors
 
 
 def load_catalog(settings: Settings) -> Catalog:
-    """Load Natura 2000, the parcels (with their Natura status) and phenology."""
+    """Load Natura 2000, the parcels (with Natura status), phenology and actors."""
     natura = load_natura(settings.data_dir)
     index = NaturaIndex.for_bbox(natura, settings.bbox)
     return Catalog(
         natura=natura,
         parcels=load_parcels(settings.data_dir, index),
         phenology=load_phenology(settings.data_dir),
+        actors=load_actors(settings.data_dir),
     )

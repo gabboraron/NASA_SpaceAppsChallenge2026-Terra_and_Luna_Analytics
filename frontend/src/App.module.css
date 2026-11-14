@@ -37,6 +37,9 @@
   display: grid;
   grid-template-columns: minmax(17rem, 21rem) 1fr;
 }
+.workspace[data-detail="true"] {
+  grid-template-columns: minmax(15rem, 19rem) 1fr minmax(20rem, 24rem);
+}
 .panel {
   position: relative;
   min-height: 60dvh;
@@ -86,7 +89,8 @@
     height: auto;
     min-height: 100dvh;
   }
-  .workspace {
+  .workspace,
+  .workspace[data-detail="true"] {
     grid-template-columns: 1fr;
   }
   .workspace > aside {

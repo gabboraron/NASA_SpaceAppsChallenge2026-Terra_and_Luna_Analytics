@@ -41,20 +41,13 @@ const LAYER_ROWS: { id: LayerId; label: string; caption: string }[] = [
 
 type Props = {
   year: Season;
-  weekText: string;
   visible: Record<LayerId, boolean>;
   onYear: (year: Season) => void;
   onToggle: (id: LayerId) => void;
 };
 
 /** Season switch, layer toggles and legend. */
-export function LayerPanel({
-  year,
-  weekText,
-  visible,
-  onYear,
-  onToggle,
-}: Props) {
+export function LayerPanel({ year, visible, onYear, onToggle }: Props) {
   return (
     <aside className={styles.panel}>
       <section aria-labelledby="season-h">
@@ -72,7 +65,6 @@ export function LayerPanel({
             </button>
           ))}
         </div>
-        <p className={styles.week}>{weekText}</p>
       </section>
 
       <section aria-labelledby="layers-h">
@@ -119,7 +111,11 @@ export function LayerPanel({
               className={`${styles.chip} ${styles.low}`}
               style={{ borderColor: DROUGHT }}
             />
-            Low nectar
+            High bloom / Low nectar
+          </li>
+          <li>
+            <span className={`${styles.chip} ${styles.gap}`} />
+            Gap-filled week (interpolated)
           </li>
           <li>
             <span
