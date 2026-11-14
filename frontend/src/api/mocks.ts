@@ -1,6 +1,10 @@
 // Offline fixtures for VITE_USE_MOCKS (the default). Shapes follow the API contract.
 import type {
   Actors,
+  Beekeeper,
+  CalculatorInput,
+  CalculatorResult,
+  MatchCard,
   Measurement,
   Natura,
   Parcel,
@@ -10,7 +14,7 @@ import type {
   Season,
   Timeline,
 } from "./client";
-import { WEEKS, weekStart } from "../components/MapCanvas/layers";
+import { WEEKS, centroid, weekStart } from "../components/MapCanvas/layers";
 
 const square = (lon: number, lat: number, d: number): Polygon => ({
   type: "Polygon",
@@ -39,6 +43,7 @@ const parcel = (
   illustrative: true,
   service_type: "pollination",
   requested_colonies: 50,
+  fee_eur_per_colony: 60,
   declared_bloom: null,
   irrigated: false,
   natura_status: "clear",
@@ -59,6 +64,7 @@ export const parcels: Parcel[] = [
     grower_id: "G4",
     service_type: "forage",
     requested_colonies: null,
+    fee_eur_per_colony: null,
     natura_status: "inside",
   }),
 ];
@@ -74,6 +80,27 @@ export const natura: Natura = {
   ],
 };
 
+function keeper(
+  id: string,
+  home: [number, number],
+  colonies: number,
+  goal: Beekeeper["goal"],
+  alternative: number,
+): Beekeeper {
+  return {
+    id,
+    name: `Example beekeeper ${id}`,
+    synthetic: true,
+    home,
+    colonies,
+    max_distance_km: 250,
+    goal,
+    availability: { start: "2024-03-01", end: "2024-08-31" },
+    vehicle_l_per_100km: 12,
+    alternative_contribution_eur: alternative,
+  };
+}
+
 export const actors: Actors = {
   growers: [
     { id: "G1", name: "Synthetic grower G1 (orchard)", synthetic: true },
@@ -81,16 +108,9 @@ export const actors: Actors = {
     { id: "G4", name: "Synthetic host G4 (forage)", synthetic: true },
   ],
   beekeepers: [
-    {
-      id: "B1",
-      name: "Example beekeeper",
-      synthetic: true,
-      home: [22.1, 47.82],
-      colonies: 50,
-      max_distance_km: 40,
-      goal: "pollination",
-      availability: { start: "2024-03-01", end: "2024-08-31" },
-    },
+    keeper("B1", [22.1, 47.82], 50, "pollination", 400),
+    keeper("B2", [20.33, 46.42], 40, "pollination", 400),
+    keeper("B3", [21.86, 47.77], 20, "forage", 0),
   ],
 };
 
@@ -190,5 +210,126 @@ export function timeline(year: Season): Timeline {
         provenance: prov("Observed"),
       },
     })),
+  };
+}
+
+// --- matches and calculator (mirror the backend's prefill and calculate) ----
+
+const assumed = prov("Estimated", "Illustrative default");
+
+/** Straight line x 1.3 detour (plan D22), as geo.travel_distance_km. */
+function roadKm([lon1, lat1]: number[], [lon2, lat2]: number[]): number {
+  const rad = Math.PI / 180;
+  const h =
+    Math.sin(((lat2 - lat1) * rad) / 2) ** 2 +
+    Math.cos(lat1 * rad) *
+      Math.cos(lat2 * rad) *
+      Math.sin(((lon2 - lon1) * rad) / 2) ** 2;
+  return 2 * 6371.0088 * Math.asin(Math.sqrt(h)) * 1.3;
+}
+
+function prefill(b: Beekeeper, p: Parcel): CalculatorInput {
+  const km = roadKm(b.home, centroid(p.geometry));
+  const forage = p.service_type === "forage";
+  const wanted = p.requested_colonies ?? b.colonies;
+  const input: Omit<CalculatorInput, "provenance"> = {
+    service_type: p.service_type,
+    colonies: Math.max(20, Math.min(100, wanted, b.colonies)),
+    distance_km: km,
+    fee_per_colony: forage ? 0 : (p.fee_eur_per_colony ?? 0),
+    legs: 4,
+    fuel_l_per_100km: b.vehicle_l_per_100km,
+    fuel_price_per_l: 1.65,
+    vehicle_cost_per_km: 0.3,
+    driving_hours: (4 * km) / 60,
+    loading_hours: 4,
+    hourly_labor_cost: 15,
+    extra_feed_cost: 0,
+    other_placement_cost: 0,
+    honey_margin: 0,
+    alternative_contribution: b.alternative_contribution_eur,
+    price_uncertainty: 0.2,
+    extra_trips_low: 1,
+  };
+  const provenance = Object.fromEntries(
+    Object.keys(input).map((k) => [k, assumed]),
+  );
+  provenance.distance_km = prov("Estimated", "Straight line x 1.3 detour");
+  provenance.driving_hours = prov("Estimated", "Trips x distance at 60 km/h");
+  if (forage)
+    provenance.honey_margin = prov(
+      "Missing",
+      "Forage moves earn through honey; enter your margin",
+    );
+  return { ...input, provenance };
+}
+
+/** Mirrors GET /matches until WP12: parcels of the beekeeper's goal, nearest first. */
+export function matches(beekeeperId: string): MatchCard[] {
+  const b = actors.beekeepers.find((k) => k.id === beekeeperId);
+  if (!b) return [];
+  return parcels
+    .filter((p) => p.service_type === b.goal)
+    .map((p) => {
+      const input = prefill(b, p);
+      const blocked = p.natura_status === "inside";
+      return {
+        beekeeper_id: b.id,
+        parcel_id: p.id,
+        rank: blocked ? null : 1,
+        blocked,
+        reasons: [],
+        missing_items: [],
+        warnings: [MOCK],
+        confidence: "low" as const,
+        distance_km: {
+          value: input.distance_km,
+          provenance: input.provenance!.distance_km,
+        },
+        calculator_input: blocked ? null : input,
+      };
+    });
+}
+
+/** Mirrors engine/calculator.py (8 % commission on pollination fees only). */
+export function calculate(i: CalculatorInput): CalculatorResult {
+  const scenario = (factor: number, extraLegs: number) => {
+    const legs = i.legs + extraLegs;
+    const km = legs * i.distance_km;
+    const perLeg = i.legs ? i.driving_hours / i.legs : 0;
+    const transport =
+      (km * i.fuel_l_per_100km * i.fuel_price_per_l) / 100 +
+      km * i.vehicle_cost_per_km +
+      legs * perLeg * i.hourly_labor_cost;
+    const other =
+      i.loading_hours * i.hourly_labor_cost +
+      i.extra_feed_cost +
+      i.other_placement_cost;
+    const revenue = i.colonies * i.fee_per_colony * factor;
+    const commission = i.service_type === "pollination" ? 0.08 * revenue : 0;
+    const contribution =
+      revenue - commission - transport - other + i.honey_margin;
+    return {
+      revenue,
+      commission,
+      transport_cost: transport,
+      other_costs: other,
+      contribution,
+      benefit_vs_alternative: contribution - i.alternative_contribution,
+    };
+  };
+  const u = i.price_uncertainty;
+  const base = scenario(1, 0);
+  const benefit = base.benefit_vs_alternative;
+  const eur = Math.abs(benefit).toFixed(2);
+  return {
+    low: scenario(1 - u, 2 * i.extra_trips_low),
+    base,
+    high: scenario(1 + u, 0),
+    verdict: benefit < 0 ? "do_not_move" : "move",
+    message:
+      benefit < 0
+        ? `Staying at base apiary yields €${eur} more.`
+        : `Moving yields €${eur} more than the alternative.`,
   };
 }

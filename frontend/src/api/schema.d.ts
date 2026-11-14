@@ -53,7 +53,7 @@ export interface paths {
         };
         /**
          * Actors
-         * @description Return synthetic participants.
+         * @description Return the synthetic growers and beekeepers.
          */
         get: operations["actors_actors_get"];
         put?: never;
@@ -93,7 +93,10 @@ export interface paths {
         };
         /**
          * Matches
-         * @description Return an illustrative card with calculator inputs.
+         * @description Return one card per parcel of the beekeeper's goal, nearest first.
+         *
+         *     A placeholder ranking until the matching engine (WP12): distance only, low
+         *     confidence, but every open card carries prefilled calculator inputs.
          */
         get: operations["matches_matches_get"];
         put?: never;
@@ -135,7 +138,10 @@ export interface paths {
         put?: never;
         /**
          * Verify
-         * @description Return a simulated verification example without recording state.
+         * @description Record a simulated grower field photo confirming the parcel's bloom (D16).
+         *
+         *     The timeline then reports the parcel's blooming weeks as Observed. The state
+         *     lives in memory and resets when the server restarts.
          */
         post: operations["verify_parcels__id__verify_post"];
         delete?: never;
@@ -236,6 +242,10 @@ export interface components {
             max_distance_km: number;
             goal: components["schemas"]["ServiceType"];
             availability: components["schemas"]["Window"];
+            /** Vehicle L Per 100Km */
+            vehicle_l_per_100km: number;
+            /** Alternative Contribution Eur */
+            alternative_contribution_eur: number;
         };
         /** @enum {string} */
         BloomState: "none" | "pre_bloom" | "blooming" | "post_bloom";
@@ -435,6 +445,8 @@ export interface components {
             service_type: components["schemas"]["ServiceType"];
             /** Requested Colonies */
             requested_colonies: number | null;
+            /** Fee Eur Per Colony */
+            fee_eur_per_colony?: number | null;
             declared_bloom: components["schemas"]["Window"] | null;
             /** Irrigated */
             irrigated: boolean;

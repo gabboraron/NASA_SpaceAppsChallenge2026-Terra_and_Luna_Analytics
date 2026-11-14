@@ -1,0 +1,14 @@
+{
+  "_note": "Illustrative defaults for prefilling the move calculator (plan WP9, WP19). Not from literature: fuel price, vehicle cost and labour rate mirror the worked example reconstructed in tests/test_calculator.py; average speed and loading time are planning assumptions. Every value is shown in the UI as Estimated and editable.",
+  "source": "Illustrative default; edit to your case",
+  "legs": 4,
+  "fuel_price_per_l": 1.65,
+  "vehicle_cost_per_km": 0.3,
+  "hourly_labor_cost": 15,
+  "average_speed_kmh": 60,
+  "loading_hours": 4,
+  "extra_feed_cost": 0,
+  "other_placement_cost": 0,
+  "price_uncertainty": 0.2,
+  "extra_trips_low": 1
+}

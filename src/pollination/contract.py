@@ -1,7 +1,8 @@
 """API routes.
 
-Parcels, Natura 2000, actors, the timeline and grower verification are real; the
-rest are WP2 fixtures until WP12/WP13.
+Parcels, Natura 2000, actors, the timeline, grower verification and the calculator
+are real; matches rank by distance only until WP12; the polygon routes are WP2
+fixtures until WP13.
 """
 
 from datetime import date
@@ -15,6 +16,7 @@ from pollination import state
 from pollination.config import Settings
 from pollination.datafiles import Catalog, load_catalog
 from pollination.engine import calculator
+from pollination.engine.matching import match
 from pollination.engine.timeline import SeasonInputs, build_timeline, fetch_inputs
 
 router = APIRouter()
@@ -53,27 +55,6 @@ MISSING = m.Provenance(
     kind="Missing", source=SOURCE, observed_at=None, note="No NASA query performed."
 )
 GAP = m.Measurement(value=None, provenance=MISSING)
-INPUT = m.CalculatorInput(
-    service_type="pollination",
-    colonies=50,
-    distance_km=15,
-    fee_per_colony=60,
-    legs=4,
-    fuel_l_per_100km=12,
-    fuel_price_per_l=1.65,
-    vehicle_cost_per_km=0.3,
-    driving_hours=2,
-    loading_hours=2,
-    hourly_labor_cost=15,
-    extra_feed_cost=0,
-    other_placement_cost=0,
-    alternative_contribution=400,
-)
-INPUT.provenance = {
-    key: m.Provenance(kind="Reported", source=SOURCE, observed_at=None)
-    for key in type(INPUT).model_fields
-    if key != "provenance"
-}
 
 
 @router.get("/parcels")
@@ -107,25 +88,12 @@ def timeline(
 
 @router.get("/matches")
 def matches(beekeeper_id: str, year: m.Season, week: m.Week) -> list[m.MatchCard]:
-    """Return an illustrative card with calculator inputs."""
-    if beekeeper_id != "B1":
+    """Return the beekeeper's candidate parcels, ranked by distance until WP12."""
+    data = catalog()
+    keeper = next((b for b in data.actors.beekeepers if b.id == beekeeper_id), None)
+    if keeper is None:
         return []
-    return [
-        m.MatchCard(
-            beekeeper_id=beekeeper_id,
-            parcel_id=catalog().parcels[0].id,
-            rank=1,
-            blocked=False,
-            reasons=[f"Synthetic example for {year.value}, week {week}"],
-            missing_items=["Field confirmation"],
-            warnings=[SOURCE],
-            confidence="low",
-            distance_km=m.Measurement(
-                value=INPUT.distance_km, provenance=INPUT.provenance["distance_km"]
-            ),
-            calculator_input=INPUT,
-        )
-    ]
+    return match(keeper, data.parcels, data.calculator, f"{year.value}, week {week}")
 
 
 @router.post("/calculate")

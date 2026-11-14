@@ -10,6 +10,8 @@ from pydantic import BaseModel, Field, NonNegativeFloat, NonNegativeInt, model_v
 
 type BloomState = Literal["none", "pre_bloom", "blooming", "post_bloom"]
 type NectarState = Literal["normal", "low_nectar", "unknown"]
+MIN_COLONIES, MAX_COLONIES = 20, 100  # calculator range (business brief)
+
 type ServiceType = Literal["pollination", "forage"]
 type Week = Annotated[int, Field(ge=1, le=26)]
 type Position = tuple[
@@ -75,6 +77,7 @@ class Parcel(BaseModel):
     illustrative: bool
     service_type: ServiceType
     requested_colonies: NonNegativeInt | None
+    fee_eur_per_colony: NonNegativeFloat | None = None
     declared_bloom: Window | None
     irrigated: bool
     natura_status: Literal["inside", "buffer_overlap", "clear"]
@@ -99,6 +102,8 @@ class Beekeeper(BaseModel):
     max_distance_km: NonNegativeFloat
     goal: ServiceType
     availability: Window
+    vehicle_l_per_100km: NonNegativeFloat
+    alternative_contribution_eur: float
 
 
 class Actors(BaseModel):
@@ -162,7 +167,7 @@ class CalculatorInput(BaseModel):
     """Editable EUR scenario assumptions and provenance keyed by field name."""
 
     service_type: ServiceType
-    colonies: Annotated[int, Field(ge=20, le=100)]
+    colonies: Annotated[int, Field(ge=MIN_COLONIES, le=MAX_COLONIES)]
     distance_km: NonNegativeFloat
     fee_per_colony: NonNegativeFloat
     legs: NonNegativeInt

@@ -14,6 +14,9 @@ export type Provenance = Schemas["Provenance"];
 export type Measurement = Schemas["Measurement"];
 export type Grower = Schemas["Grower"];
 export type SoilMoistureWeek = Schemas["SoilMoistureWeek"];
+export type MatchCard = Schemas["MatchCard"];
+export type CalculatorInput = Schemas["CalculatorInput"];
+export type CalculatorResult = Schemas["CalculatorResult"];
 
 export const useMocks = import.meta.env.VITE_USE_MOCKS !== "false";
 
@@ -48,4 +51,28 @@ export const verifyParcel = (id: string) =>
     ? Promise.resolve(mocks.verify(id))
     : get<Provenance>(`/parcels/${encodeURIComponent(id)}/verify`, {
         method: "POST",
+      });
+
+export const getMatches = (
+  beekeeperId: string,
+  year: Season,
+  week: number,
+  signal: AbortSignal,
+) =>
+  useMocks
+    ? Promise.resolve(mocks.matches(beekeeperId))
+    : get<MatchCard[]>(
+        `/matches?${new URLSearchParams({ beekeeper_id: beekeeperId, year: String(year), week: String(week) })}`,
+        { signal },
+      );
+
+/** Low / base / high economics of a move (contribution, benefit vs the alternative). */
+export const calculate = (input: CalculatorInput, signal: AbortSignal) =>
+  useMocks
+    ? Promise.resolve(mocks.calculate(input))
+    : get<CalculatorResult>("/calculate", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(input),
+        signal,
       });

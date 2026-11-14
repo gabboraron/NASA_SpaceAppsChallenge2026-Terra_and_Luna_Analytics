@@ -24,7 +24,7 @@
   "beekeepers": [
     {
       "id": "B1",
-      "name": "Synthetic beekeeper B1 (near Nagykallo, about 15 km)",
+      "name": "Synthetic beekeeper B1 (nearby, pollination)",
       "synthetic": true,
       "home": [
         21.85,
@@ -42,7 +42,7 @@
     },
     {
       "id": "B2",
-      "name": "Synthetic beekeeper B2 (Hodmezovasarhely area, about 180 km)",
+      "name": "Synthetic beekeeper B2 (distant, pollination)",
       "synthetic": true,
       "home": [
         20.33,
@@ -60,7 +60,7 @@
     },
     {
       "id": "B3",
-      "name": "Synthetic beekeeper B3 (forage seeker, near Balkany)",
+      "name": "Synthetic beekeeper B3 (nearby, forage seeker)",
       "synthetic": true,
       "home": [
         21.86,

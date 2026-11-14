@@ -2,10 +2,22 @@
 
 from typing import Literal
 
-from pollination.models import CalculatorInput, CalculatorResult, Scenario
+from pollination.datafiles import CalculatorDefaults
+from pollination.geo import centroid, travel_distance_km
+from pollination.models import (
+    MAX_COLONIES,
+    MIN_COLONIES,
+    Beekeeper,
+    CalculatorInput,
+    CalculatorResult,
+    Parcel,
+    Provenance,
+    Scenario,
+)
 
 COMMISSION_RATE = 0.08
 ROUND_TRIP_LEGS = 2
+LISTING = "Grower listing (illustrative)"
 
 
 def _scenario(
@@ -93,3 +105,94 @@ def break_even_fee(inputs: CalculatorInput) -> float:
     at_zero = _scenario(inputs.model_copy(update={"fee_per_colony": 0}), 1, 0)
     net_rate = 1 - (COMMISSION_RATE if inputs.service_type == "pollination" else 0)
     return -at_zero.benefit_vs_alternative / (inputs.colonies * net_rate)
+
+
+def _source(
+    kind: Literal["Reported", "Estimated", "Missing"], source: str, note: str = ""
+) -> Provenance:
+    return Provenance(kind=kind, source=source, observed_at=None, note=note)
+
+
+def prefill(
+    beekeeper: Beekeeper, parcel: Parcel, defaults: CalculatorDefaults
+) -> CalculatorInput:
+    """Build editable calculator inputs for moving a beekeeper's hives to a parcel.
+
+    Listing values (fee, requested colonies) are Reported by the grower, vehicle and
+    alternative by the beekeeper; distance and driving time are Estimated (plan D22);
+    the rest are Estimated planning assumptions from ``data/calculator.json``.
+
+    Args:
+        beekeeper: Who moves the hives.
+        parcel: Where the hives go.
+        defaults: Assumptions for values no actor states.
+
+    Returns:
+        Inputs with a provenance for every field.
+    """
+    keeper = f"Beekeeper {beekeeper.id} profile (synthetic)"
+    distance = travel_distance_km(beekeeper.home, centroid(parcel.geometry))
+    km = distance.value or 0.0
+    forage = parcel.service_type == "forage"
+    has = beekeeper.colonies
+    if listed := parcel.requested_colonies:
+        wanted = min(listed, has)
+        colonies_source = _source(
+            "Reported", LISTING, f"Requested {listed}, beekeeper has {has}"
+        )
+    else:
+        wanted = has
+        colonies_source = _source("Reported", keeper, f"Beekeeper has {has}")
+    colonies = max(MIN_COLONIES, min(MAX_COLONIES, wanted))
+    assumed = _source("Estimated", defaults.source)
+    return CalculatorInput(
+        service_type=parcel.service_type,
+        colonies=colonies,
+        distance_km=km,
+        fee_per_colony=0 if forage else parcel.fee_eur_per_colony or 0,
+        legs=defaults.legs,
+        fuel_l_per_100km=beekeeper.vehicle_l_per_100km,
+        fuel_price_per_l=defaults.fuel_price_per_l,
+        vehicle_cost_per_km=defaults.vehicle_cost_per_km,
+        driving_hours=defaults.legs * km / defaults.average_speed_kmh,
+        loading_hours=defaults.loading_hours,
+        hourly_labor_cost=defaults.hourly_labor_cost,
+        extra_feed_cost=defaults.extra_feed_cost,
+        other_placement_cost=defaults.other_placement_cost,
+        honey_margin=0,
+        alternative_contribution=beekeeper.alternative_contribution_eur,
+        price_uncertainty=defaults.price_uncertainty,
+        extra_trips_low=defaults.extra_trips_low,
+        provenance={
+            "service_type": _source("Reported", LISTING),
+            "colonies": colonies_source,
+            "distance_km": distance.provenance,
+            "fee_per_colony": _source(
+                "Reported", LISTING, "Forage hosts pay no fee" if forage else ""
+            ),
+            "legs": _source("Estimated", defaults.source, "Deliver and collect"),
+            "fuel_l_per_100km": _source("Reported", keeper),
+            "fuel_price_per_l": assumed,
+            "vehicle_cost_per_km": assumed,
+            "driving_hours": _source(
+                "Estimated",
+                f"Trips x distance at {defaults.average_speed_kmh:g} km/h",
+            ),
+            "loading_hours": assumed,
+            "hourly_labor_cost": assumed,
+            "extra_feed_cost": assumed,
+            "other_placement_cost": assumed,
+            "honey_margin": _source(
+                "Missing",
+                "No honey estimate",
+                "Forage moves earn through honey; enter your margin",
+            )
+            if forage
+            else _source("Estimated", defaults.source, "Optional"),
+            "alternative_contribution": _source(
+                "Reported", keeper, "Staying at the home apiary"
+            ),
+            "price_uncertainty": assumed,
+            "extra_trips_low": assumed,
+        },
+    )

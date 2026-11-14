@@ -1,4 +1,3 @@
-import { useEffect } from "react";
 import type {
   Grower,
   Measurement,
@@ -15,23 +14,11 @@ import {
   weekLabel,
   weekStateText,
 } from "../MapCanvas/layers";
-import { ProvenanceBadge } from "../ProvenanceBadge/ProvenanceBadge";
+import { useEscape } from "../../hooks/useEscape";
+import { ProvenanceBadge, prov } from "../ProvenanceBadge/ProvenanceBadge";
 import styles from "./ParcelDetail.module.css";
 
 export type VerifyState = "idle" | "pending" | "error";
-
-/** Provenance for values the contract does not carry one for (listing fields, gaps). */
-const prov = (
-  kind: Provenance["kind"],
-  source: string,
-  note = "",
-): Provenance => ({
-  kind,
-  source,
-  observed_at: null,
-  interpolated: false,
-  note,
-});
 
 // Same source label as the backend's DECLARED_SOURCE.
 const DECLARED = "Grower declaration";
@@ -84,6 +71,7 @@ type Props = {
   verified: boolean;
   verifyState: VerifyState;
   onVerify: () => void;
+  onPlanMove: () => void;
   onClose: () => void;
 };
 
@@ -99,13 +87,10 @@ export function ParcelDetail({
   verified,
   verifyState,
   onVerify,
+  onPlanMove,
   onClose,
 }: Props) {
-  useEffect(() => {
-    const close = (e: KeyboardEvent) => e.key === "Escape" && onClose();
-    window.addEventListener("keydown", close);
-    return () => window.removeEventListener("keydown", close);
-  }, [onClose]);
+  useEscape(onClose);
 
   const natura = NATURA[parcel.natura_status];
   const metrics = [
@@ -260,37 +245,49 @@ export function ParcelDetail({
       </section>
 
       {parcel.natura_status !== "inside" && (
-        <section className={styles.verify}>
-          {verified ? (
-            <div role="status" className={styles.done}>
-              <strong>Bloom confirmed by field photo</strong>
-              <span>
-                Simulated. Blooming weeks of {year} now show Observed.
-              </span>
-            </div>
-          ) : (
-            <>
-              <button
-                type="button"
-                onClick={onVerify}
-                disabled={verifyState === "pending"}
-              >
-                {verifyState === "pending"
-                  ? "Sending photo…"
-                  : "Simulate grower field photo"}
-              </button>
-              <small>
-                Stands in for a geotagged photo. Marks this parcel&apos;s
-                blooming weeks as Observed. Demo only, resets on restart.
-              </small>
-              {verifyState === "error" && (
-                <small role="alert" className={styles.error}>
-                  The verification failed. Check that the API is running.
+        <>
+          <section className={styles.plan}>
+            <h3>Plan a move</h3>
+            <button type="button" onClick={onPlanMove}>
+              Calculate a move here
+            </button>
+            <small>
+              Compares bringing hives here with keeping them at the home apiary.
+              Prefilled from the listing and a synthetic beekeeper.
+            </small>
+          </section>
+          <section className={styles.verify}>
+            {verified ? (
+              <div role="status" className={styles.done}>
+                <strong>Bloom confirmed by field photo</strong>
+                <span>
+                  Simulated. Blooming weeks of {year} now show Observed.
+                </span>
+              </div>
+            ) : (
+              <>
+                <button
+                  type="button"
+                  onClick={onVerify}
+                  disabled={verifyState === "pending"}
+                >
+                  {verifyState === "pending"
+                    ? "Sending photo…"
+                    : "Simulate grower field photo"}
+                </button>
+                <small>
+                  Stands in for a geotagged photo. Marks this parcel&apos;s
+                  blooming weeks as Observed. Demo only, resets on restart.
                 </small>
-              )}
-            </>
-          )}
-        </section>
+                {verifyState === "error" && (
+                  <small role="alert" className={styles.error}>
+                    The verification failed. Check that the API is running.
+                  </small>
+                )}
+              </>
+            )}
+          </section>
+        </>
       )}
     </aside>
   );

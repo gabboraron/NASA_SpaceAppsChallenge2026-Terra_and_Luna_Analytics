@@ -131,6 +131,24 @@
   background: var(--wash);
   font-size: 0.75rem;
 }
+.plan {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+  padding-top: 0.9rem;
+  border-top: 1px solid var(--line);
+}
+.plan h3 {
+  margin: 0;
+}
+.plan button {
+  min-height: 48px;
+  border: 1.5px solid var(--ink);
+  border-radius: 10px;
+  background: white;
+  color: var(--ink);
+  font-weight: 700;
+}
 .verify {
   display: flex;
   flex-direction: column;
