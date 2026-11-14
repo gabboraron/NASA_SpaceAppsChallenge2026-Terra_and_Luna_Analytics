@@ -16,6 +16,7 @@ from pollination.config import Settings
 from pollination.datafiles import (
     PhenologyEntry,
     load_actors,
+    load_catalog,
     load_natura,
     load_phenology,
     load_ranking,
@@ -197,3 +198,9 @@ def test_heat_threshold_needs_exactly_one_end_rule() -> None:
         PhenologyEntry.model_validate({**entry, "bloom_days": None})
     with pytest.raises(ValueError, match="exactly one"):
         PhenologyEntry.model_validate({**entry, "heat_bloom_end": 300})
+
+
+def test_catalog_carries_the_ranking_weights() -> None:
+    """The matching engine reads its weights from the catalog, not from code."""
+    catalog = load_catalog(Settings())
+    assert sum(catalog.ranking.weights.model_dump().values()) == pytest.approx(1.0)
