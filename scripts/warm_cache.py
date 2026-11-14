@@ -23,18 +23,18 @@ from concurrent.futures import ThreadPoolExecutor
 from pollination.config import Settings
 from pollination.datafiles import Catalog, load_catalog
 from pollination.engine.timeline import fetch_inputs
+from pollination.models import Season
 from pollination.nasa import smap
+from pollination.nasa.cache_share import SHARED
 
 log = logging.getLogger(__name__)
-DEMO_YEARS = (2022, 2024)
-NAMESPACES = ("power", "hls", "smap")
+DEMO_YEARS = tuple(int(season) for season in Season)
 
 
 def entries(settings: Settings) -> dict[str, int]:
     """Count cache entries per namespace."""
     return {
-        ns: sum(1 for _ in (settings.cache_dir / ns).glob("*.json"))
-        for ns in NAMESPACES
+        ns: sum(1 for _ in (settings.cache_dir / ns).glob("*.json")) for ns in SHARED
     }
 
 

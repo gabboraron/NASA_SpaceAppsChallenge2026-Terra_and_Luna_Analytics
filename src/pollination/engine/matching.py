@@ -14,8 +14,8 @@ from typing import Literal
 from pollination import models as m
 from pollination.datafiles import CalculatorDefaults, Ranking
 from pollination.engine.calculator import prefill
-from pollination.engine.timeline import in_year
 from pollination.geo import NATURA_BUFFER_M, centroid, travel_distance_km
+from pollination.weeks import window_in_year
 
 type Confidence = Literal["low", "medium", "high"]
 
@@ -37,11 +37,7 @@ def _bloom_window(parcel: m.Parcel, week: m.ParcelWeek) -> m.Window | None:
         return week.estimated_bloom
     if parcel.declared_bloom is None:
         return None
-    year = week.starts_on.year
-    return m.Window(
-        start=in_year(parcel.declared_bloom.start, year),
-        end=in_year(parcel.declared_bloom.end, year),
-    )
+    return window_in_year(parcel.declared_bloom, week.starts_on.year)
 
 
 def _days(window: m.Window) -> int:
@@ -94,10 +90,7 @@ def _assess(
     distance = travel_distance_km(keeper.home, centroid(parcel.geometry))
     km = distance.value or 0.0
     window = _bloom_window(parcel, week)
-    available = m.Window(
-        start=in_year(keeper.availability.start, week.starts_on.year),
-        end=in_year(keeper.availability.end, week.starts_on.year),
-    )
+    available = window_in_year(keeper.availability, week.starts_on.year)
     overlap = _overlap_days(window, available) if window else 0
     # Bloom days the beekeeper can still cover from the selected week on.
     still = m.Window(start=max(week.starts_on, available.start), end=available.end)

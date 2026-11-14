@@ -2,7 +2,6 @@ import { useEffect, useMemo, useState } from "react";
 import { useEscape } from "../../hooks/useEscape";
 import {
   calculate,
-  getMatches,
   type Beekeeper,
   type CalculatorInput,
   type CalculatorResult,
@@ -10,7 +9,8 @@ import {
   type Season,
 } from "../../api/client";
 import { BeekeeperPicker } from "../BeekeeperPicker/BeekeeperPicker";
-import { cropName } from "../MapCanvas/layers";
+import { cropName } from "../../domain/season";
+import { loadMatches } from "../../hooks/useMatches";
 import { ProvenanceBadge } from "../ProvenanceBadge/ProvenanceBadge";
 import {
   ALL_FIELDS,
@@ -93,7 +93,7 @@ export function MoveCalculator({
   // The match's calculator input for this beekeeper and parcel.
   useEffect(() => {
     const controller = new AbortController();
-    getMatches(keeperId, year, openWeek, controller.signal)
+    loadMatches(keeperId, year, openWeek, controller.signal)
       .then((cards) => {
         const input = cards.find(
           (c) => c.parcel_id === parcel.id,

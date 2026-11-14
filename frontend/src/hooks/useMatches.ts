@@ -10,6 +10,22 @@ const cache = new Map<string, MatchCard[]>();
 // Each beekeeper's latest cards, shown while another week loads.
 const latest = new Map<string, MatchCard[]>();
 
+/** GET /matches through the session cache, so every caller shares one answer. */
+export async function loadMatches(
+  keeperId: string,
+  year: Season,
+  week: number,
+  signal: AbortSignal,
+): Promise<MatchCard[]> {
+  const key = `${keeperId}|${year}|${week}`;
+  const cached = cache.get(key);
+  if (cached) return cached;
+  const cards = await getMatches(keeperId, year, week, signal);
+  cache.set(key, cards);
+  latest.set(keeperId, cards);
+  return cards;
+}
+
 export type Matches = {
   /** The selected beekeeper's cards; the last week's stay while a new week loads. */
   cards?: MatchCard[];
@@ -34,12 +50,8 @@ export function useMatches(
     if (cache.has(key)) return;
     const controller = new AbortController();
     const timer = setTimeout(() => {
-      getMatches(keeperId, year, week, controller.signal)
-        .then((cards) => {
-          cache.set(key, cards);
-          latest.set(keeperId, cards);
-          setDone({ key, error: false });
-        })
+      loadMatches(keeperId, year, week, controller.signal)
+        .then(() => setDone({ key, error: false }))
         .catch(() => {
           if (!controller.signal.aborted) setDone({ key, error: true });
         });

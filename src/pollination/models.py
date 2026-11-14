@@ -35,12 +35,22 @@ class Provenance(BaseModel):
     interpolated: bool = False
     note: str = ""
 
+    @classmethod
+    def missing(cls, source: str, note: str) -> Provenance:
+        """A value that is absent, with the reason in ``note``."""
+        return cls(kind="Missing", source=source, observed_at=None, note=note)
+
 
 class Measurement(BaseModel):
     """A numeric indicator or an explained gap."""
 
     value: float | None
     provenance: Provenance
+
+    @classmethod
+    def missing(cls, source: str, note: str) -> Measurement:
+        """An explained gap: no value, and the reason in the provenance note."""
+        return cls(value=None, provenance=Provenance.missing(source, note))
 
 
 class Polygon(BaseModel):

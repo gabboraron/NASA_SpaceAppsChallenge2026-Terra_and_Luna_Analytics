@@ -4,6 +4,10 @@ import type { ParcelWeek, Season, Timeline } from "../api/client";
 
 /** Demo seasons: 2022 (drought) and 2024. */
 export const SEASONS = [2022, 2024] as const satisfies readonly Season[];
+export const SEASON_LABELS: Record<Season, string> = {
+  2022: "Drought year",
+  2024: "Comparison year",
+};
 export const isSeason = (n: number): n is Season =>
   (SEASONS as readonly number[]).includes(n);
 

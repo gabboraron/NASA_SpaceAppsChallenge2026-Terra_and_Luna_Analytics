@@ -10,25 +10,42 @@ from __future__ import annotations
 
 import math
 import re
-from collections.abc import Callable, Sequence
+from collections.abc import Callable, Mapping, Sequence
 from concurrent.futures import ThreadPoolExecutor
+from dataclasses import dataclass
 from datetime import date
 from functools import partial
 from pathlib import Path
 from typing import Any
 
 from pollination.config import Settings
-from pollination.engine.timeline import WEEKS, SmapSeason, SmapWeek, week_mid
-from pollination.geo import SmapCell, smap_cells
+from pollination.geo import Bbox, SmapCell, smap_cells
 from pollination.nasa.cache import get_or_fetch
+from pollination.weeks import WEEKS, week_mid
 
 DEFAULT_BASELINE = tuple(range(2015, 2025))
 MIN_BASELINE_YEARS = 5  # fewer same-week values than this: no percentile
 _WORKERS = 4  # parallel remote reads
 
-type Bbox = tuple[float, float, float, float]
 type DayValues = dict[str, float | None]
 type ReadFn = Callable[[date, Sequence[SmapCell]], DayValues | None]
+
+
+@dataclass(frozen=True)
+class SmapWeek:
+    """Root-zone soil moisture of one SMAP cell in one week (output of WP8)."""
+
+    value: float | None  # m3/m3
+    percentile: float | None  # 0-100, against the same week of the baseline years
+    observed_at: date
+
+
+@dataclass(frozen=True)
+class SmapSeason:
+    """SMAP weekly values per cell, with the baseline years used for percentiles."""
+
+    weeks: Mapping[SmapCell, Mapping[int, SmapWeek]]
+    baseline: str  # e.g. "2015-2024"
 
 
 def clean_value(raw: float) -> float | None:

@@ -93,10 +93,7 @@ export interface paths {
         };
         /**
          * Matches
-         * @description Return one card per parcel of the beekeeper's goal, nearest first.
-         *
-         *     A placeholder ranking until the matching engine (WP12): distance only, low
-         *     confidence, but every open card carries prefilled calculator inputs.
+         * @description Return the beekeeper's candidates for a week: ranked, blocked ones last.
          */
         get: operations["matches_matches_get"];
         put?: never;
@@ -161,7 +158,11 @@ export interface paths {
         put?: never;
         /**
          * Power
-         * @description Return missing indicators until the POWER integration is available.
+         * @description Return heat units, rain and bee-flight weather at a drawn polygon.
+         *
+         *     One POWER node under the polygon's centre serves the season (March to August of
+         *     ``year``) and the 2015-2024 rain baseline; a failed request is a ``Missing``
+         *     value with its reason.
          */
         post: operations["power_polygon_power_post"];
         delete?: never;
@@ -180,10 +181,12 @@ export interface paths {
         get?: never;
         put?: never;
         /**
-         * Hls
-         * @description Return the optical response shape without fetching imagery.
+         * Hls Latest
+         * @description Return the latest usable HLS scene of a drawn polygon (last 30 days).
+         *
+         *     Slow on a cold cache (remote reads); needs an Earthdata token.
          */
-        post: operations["hls_polygon_hls_post"];
+        post: operations["hls_latest_polygon_hls_post"];
         delete?: never;
         options?: never;
         head?: never;
@@ -718,8 +721,8 @@ export interface operations {
         parameters: {
             query: {
                 beekeeper_id: string;
-                year: components["schemas"]["Season"];
                 week: number;
+                year: components["schemas"]["Season"];
             };
             header?: never;
             path?: never;
@@ -813,7 +816,9 @@ export interface operations {
     };
     power_polygon_power_post: {
         parameters: {
-            query?: never;
+            query?: {
+                year?: components["schemas"]["Season"];
+            };
             header?: never;
             path?: never;
             cookie?: never;
@@ -844,7 +849,7 @@ export interface operations {
             };
         };
     };
-    hls_polygon_hls_post: {
+    hls_latest_polygon_hls_post: {
         parameters: {
             query?: never;
             header?: never;

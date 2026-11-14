@@ -14,7 +14,8 @@ import type {
   Season,
   Timeline,
 } from "./client";
-import { WEEKS, centroid, weekStart } from "../components/MapCanvas/layers";
+import { centroid } from "../components/MapCanvas/layers";
+import { WEEKS, weekStart } from "../domain/season";
 
 const square = (lon: number, lat: number, d: number): Polygon => ({
   type: "Polygon",

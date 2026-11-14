@@ -36,7 +36,7 @@ import {
 import { MatchPanel } from "./components/MatchPanel/MatchPanel";
 import { MoveCalculator } from "./components/MoveCalculator/MoveCalculator";
 import { TimeSlider } from "./components/TimeSlider/TimeSlider";
-import { SEASONS, WEEKS, isSeason } from "./domain/season";
+import { SEASONS, SEASON_LABELS, WEEKS, isSeason } from "./domain/season";
 import { useEscape } from "./hooks/useEscape";
 import { useMatches } from "./hooks/useMatches";
 import { SiteHeader } from "./site/SiteHeader";
@@ -81,12 +81,13 @@ export function App() {
   const [timelines, setTimelines] = useState<
     Partial<Record<Season, Load<Timeline>>>
   >({});
-  const [year, setYear] = useState<Season>(() => linkedView().year);
+  const [linked] = useState(linkedView);
+  const [year, setYear] = useState<Season>(linked.year);
   const [visible, setVisible] = useState(ALL_ON);
   const [selected, setSelected] = useState("");
   const [hovered, setHovered] = useState("");
   const [attempt, setAttempt] = useState(0);
-  const [week, setWeek] = useState(() => linkedView().week);
+  const [week, setWeek] = useState(linked.week);
   // Which side panel shows (and the phone tab); kept in step with the selection.
   const [sheet, setSheet] = useState<Sheet>("matches");
   const [layersOpen, setLayersOpen] = useState(false);
@@ -289,12 +290,12 @@ export function App() {
                 key={y}
                 type="button"
                 aria-pressed={year === y}
-                title={y === 2022 ? "Drought year" : "Comparison year"}
+                title={SEASON_LABELS[y]}
                 onClick={() => setYear(y)}
               >
                 {y}
                 <span className="sr-only">
-                  {y === 2022 ? ", drought year" : ", comparison year"}
+                  {`, ${SEASON_LABELS[y].toLowerCase()}`}
                 </span>
               </button>
             ))}

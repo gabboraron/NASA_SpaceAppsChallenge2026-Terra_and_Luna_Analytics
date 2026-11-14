@@ -15,8 +15,6 @@ server instead: a few hundred bytes in about two seconds.
 
 from __future__ import annotations
 
-import os
-import time
 from collections.abc import Sequence
 from datetime import date
 
@@ -24,6 +22,7 @@ import earthaccess
 import httpx
 
 from pollination.geo import SmapCell
+from pollination.nasa import earthdata
 from pollination.nasa.earthdata import login
 from pollination.nasa.smap import DayValues, clean_value, parse_dap4_csv
 
@@ -33,40 +32,22 @@ VARIABLE = "/Geophysical_Data/sm_rootzone"
 # 10:30 UTC granule, covering 09:00-12:00) is the weekly sample.
 SAMPLE_WINDOW = ("12:00:00Z", "15:00:00Z")
 HTTP_TIMEOUT_S = 120
-ATTEMPTS = 5
-BACKOFF_S = 2.0
-RETRY_STATUSES = (429, 500, 502, 503, 504)
-_CLIENT = httpx.Client(
-    timeout=HTTP_TIMEOUT_S,
-    limits=httpx.Limits(max_connections=8, max_keepalive_connections=8),
-)
 
 
 def _get_csv(base_url: str, constraint: str) -> str:
     """GET a DAP4 CSV subset with the bearer token, retrying transient failures."""
-    token = os.environ.get("EARTHDATA_TOKEN")
-    if not token:
-        raise RuntimeError("EARTHDATA_TOKEN is required in .env for SMAP OPeNDAP")
-    for attempt in range(ATTEMPTS):
-        try:
-            response = _CLIENT.get(
-                f"{base_url}.dap.csv",
-                params={"dap4.ce": constraint},
-                headers={"Authorization": f"Bearer {token}"},
-                follow_redirects=True,
-            )
-        except httpx.TransportError:
-            if attempt == ATTEMPTS - 1:
-                raise
-        else:
-            if response.status_code == httpx.codes.OK:
-                return response.text
-            if response.status_code not in RETRY_STATUSES:
-                raise RuntimeError(
-                    f"OPeNDAP answered {response.status_code}: {response.text[:200]}"
-                )
-        time.sleep(BACKOFF_S * 2**attempt)
-    raise RuntimeError(f"OPeNDAP gave no answer after {ATTEMPTS} attempts")
+    response = earthdata.get(
+        f"{base_url}.dap.csv",
+        purpose="SMAP OPeNDAP",
+        timeout=HTTP_TIMEOUT_S,
+        params={"dap4.ce": constraint},
+        follow_redirects=True,
+    )
+    if response.status_code == httpx.codes.OK:
+        return response.text
+    raise RuntimeError(
+        f"OPeNDAP answered {response.status_code}: {response.text[:200]}"
+    )
 
 
 def read_day(day: date, cells: Sequence[SmapCell]) -> DayValues | None:

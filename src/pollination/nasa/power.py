@@ -49,6 +49,11 @@ def snap(coord: float, step: float) -> float:
     return round(math.floor(coord / step + 0.5) * step, 4)
 
 
+def grid_node(lat: float, lon: float) -> tuple[float, float]:
+    """The MERRA-2 grid node (latitude, longitude) nearest to a point."""
+    return snap(lat, GRID_LAT_DEG), snap(lon, GRID_LON_DEG)
+
+
 def _parse(payload: dict[str, Any], lat: float, lon: float) -> PowerDaily:
     """Turn a raw POWER GeoJSON response into a ``PowerDaily``."""
     series: dict[str, dict[str, float]] = payload["properties"]["parameter"]
@@ -96,7 +101,7 @@ def daily_point(  # noqa: PLR0913 -- plan WP6 signature plus injectable client/c
     Raises:
         httpx.HTTPError: The request failed or POWER returned an error status.
     """
-    slat, slon = snap(lat, GRID_LAT_DEG), snap(lon, GRID_LON_DEG)
+    slat, slon = grid_node(lat, lon)
     query = {
         "parameters": ",".join(params),
         "community": "AG",

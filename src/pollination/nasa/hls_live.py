@@ -14,14 +14,11 @@ the earthaccess file objects instead makes rasterio download whole bands.
 
 from __future__ import annotations
 
-import os
-import time
 from contextlib import ExitStack
 from datetime import date
 from typing import Any
 
 import earthaccess
-import httpx
 import numpy as np
 import rasterio
 import shapely
@@ -30,21 +27,16 @@ from rasterio.features import geometry_mask
 from rasterio.windows import Window
 from shapely.geometry import Polygon, mapping
 
+from pollination.geo import Bbox
+from pollination.nasa import earthdata
 from pollination.nasa.earthdata import login
-from pollination.nasa.hls import BandWindow, Bbox, Scene, scene_day
+from pollination.nasa.hls import BandWindow, Scene, scene_day
 
 SCALE = 0.0001
 FILL_VALUE = -9999
 MAX_SCENE_CLOUD_PERCENT = 80  # coarse CMR pre-filter; the parcel mask decides
 HTTP_TIMEOUT_S = 30
 REDIRECT_STATUSES = (301, 302, 303, 307)
-RETRY_STATUSES = (429, 500, 502, 503, 504)
-PRESIGN_ATTEMPTS = 5
-BACKOFF_S = 2.0
-_CLIENT = httpx.Client(  # shared: reuses connections instead of opening one per band
-    timeout=HTTP_TIMEOUT_S,
-    limits=httpx.Limits(max_connections=8, max_keepalive_connections=8),
-)
 # Band file suffix per role; the NIR band differs between Sentinel-2 and Landsat.
 _COMMON = {"blue": "B02", "green": "B03", "red": "B04", "fmask": "Fmask"}
 _PRODUCTS = {"HLSS30": {**_COMMON, "nir": "B8A"}, "HLSL30": {**_COMMON, "nir": "B05"}}
@@ -102,30 +94,18 @@ def search_scenes(bbox: Bbox, start: date, end: date) -> list[Scene]:
 
 
 def _presigned(url: str) -> str:
-    """Exchange the Earthdata bearer token for the presigned storage URL.
-
-    Retries transport errors and 429/5xx answers with exponential backoff.
-    """
-    token = os.environ.get("EARTHDATA_TOKEN")
-    if not token:
-        raise RuntimeError("EARTHDATA_TOKEN is required in .env for HLS range reads")
-    headers = {"Authorization": f"Bearer {token}", "Range": "bytes=0-0"}
-    for attempt in range(PRESIGN_ATTEMPTS):
-        try:
-            response = _CLIENT.get(url, headers=headers, follow_redirects=False)
-        except httpx.TransportError:
-            if attempt == PRESIGN_ATTEMPTS - 1:
-                raise
-        else:
-            location = response.headers.get("location")
-            if response.status_code in REDIRECT_STATUSES and location:
-                return location
-            if response.status_code not in RETRY_STATUSES:
-                raise RuntimeError(
-                    f"Expected a redirect for {url}, got {response.status_code}"
-                )
-        time.sleep(BACKOFF_S * 2**attempt)
-    raise RuntimeError(f"No presigned URL for {url} after {PRESIGN_ATTEMPTS} attempts")
+    """Exchange the Earthdata bearer token for the presigned storage URL."""
+    response = earthdata.get(
+        url,
+        purpose="HLS range reads",
+        timeout=HTTP_TIMEOUT_S,
+        headers={"Range": "bytes=0-0"},
+        follow_redirects=False,
+    )
+    location = response.headers.get("location")
+    if response.status_code in REDIRECT_STATUSES and location:
+        return location
+    raise RuntimeError(f"Expected a redirect for {url}, got {response.status_code}")
 
 
 def read_window(scene: Scene, polygon: Polygon) -> BandWindow | None:
