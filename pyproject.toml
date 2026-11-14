@@ -3,10 +3,30 @@ name = "nasa-spaceapps-2026"
 version = "0.1.0"
 description = "NASA Space Apps Challenge 2026"
 requires-python = ">=3.12"
-dependencies = []
+dependencies = [
+    "fastapi",
+    "uvicorn",
+    "pydantic",
+    "pydantic-settings",
+    "httpx",
+    "shapely",
+    "pyproj",
+    "numpy",
+]
+
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools]
+package-dir = {"" = "src"}
+py-modules = ["logging_config"]
+
+[tool.setuptools.packages.find]
+where = ["src"]
+include = ["pollination*"]
 
 [tool.uv]
-package = false
 required-version = ">=0.9"
 
 [dependency-groups]
@@ -14,6 +34,7 @@ dev = [
     "ruff",
     "pyright",
     "pytest",
+    "pytest-httpx",
     "pytest-cov",
     "pre-commit",
     "pip-audit>=2.10.1",
@@ -25,7 +46,7 @@ line-length = 88
 target-version = "py312"
 src = ["src", "tests"]
 # research/ holds throwaway feasibility prototypes, not product code
-extend-exclude = ["research"]
+extend-exclude = ["research", "frontend"]
 
 [tool.ruff.lint]
 select = [
@@ -55,6 +76,7 @@ convention = "google"
 
 [tool.pyright]
 include = ["src", "tests"]
+exclude = ["frontend", "**/__pycache__", ".venv"]
 typeCheckingMode = "strict"
 pythonVersion = "3.12"
 extraPaths = ["src"]
