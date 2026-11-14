@@ -1,0 +1,48 @@
+# Verification settings and pass/fail gates.
+# Fixed before the first run on real model output; change them only in a reviewed PR,
+# never to make a failing scenario pass.
+
+# Where the reference hives stand ("near Debrecen", the dataset gives no coordinates).
+reference_location = [21.63, 47.53] # lon, lat
+reference_years = [2021, 2022, 2023, 2024, 2025]
+
+[signal]
+night_hour_end = 5          # the last reading before 05:00 is the colony at rest
+max_daily_jump_kg = 5.0     # larger day-to-day changes are hive work (supers, harvest)
+min_flow_day_kg = 0.3       # a day with at least this net gain is a foraging day
+max_gap_days = 2            # non-flow days (rain) allowed inside one flow
+min_flow_total_kg = 3.0     # a flow below this total is "no flow"
+
+# Calendar windows used to attribute a flow to a crop (month-day, inclusive).
+# The flow with the largest gain inside the window is taken.
+[crops.black_locust]
+window = ["04-10", "06-20"]
+
+[crops.sunflower]
+window = ["06-15", "08-31"]
+
+[model]
+bloom_share = 0.5           # a week is "blooming" when half of a crop's parcels bloom
+
+[gates]
+onset_days = 10             # S1: black-locust onset error per year
+shift_days = 7              # S2: model shift minus observed shift
+sunflower_peak_days = 14    # S4: sunflower peak error per year
+
+[gdd]
+base_temps_c = [0.0, 5.0, 10.0]  # S3 compares these; none is assumed to be right
+start = "01-01"
+cv_ok = 0.15                # S3 flags GDD-at-onset spread below this as stable
+
+[flight]
+tmax_c = 15.0               # plan WP13 flight-weather rule: Tmax >= 15 C ...
+wind_ms = 5.0               # ... and daily mean wind below this (assumption)
+
+[inat]
+taxon_id = 56088            # Robinia pseudoacacia
+bbox = [16.1, 45.7, 22.9, 48.6]  # west, south, east, north; widened: the bbox alone has too few records
+min_obs = 30
+
+[pep725]
+radius_km = 150.0
+bbch = [60, 61]             # beginning of flowering
