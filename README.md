@@ -116,13 +116,11 @@ the working tree to keep the repo focused, and they remain in the git history.
 
 ## Team
 
-| Member | Focus |
-|---|---|
-| Patrik P. Süli | Research, software architecture |
-| Bence Majer | AI engineering, data science |
-| Benedek Máté | Geophysics, pitching, technical writing |
-| Yhair Sifuentes | Business intelligence, analytics, business model |
-| Sándor Burian | Team member |
+- Patrik P. Süli
+- Bence Majer
+- Benedek Máté
+- Yhair Sifuentes
+- Sándor Burian
 
 ## AI use
 
