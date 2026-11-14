@@ -7,7 +7,6 @@ import pytest
 
 from pollination.engine.phenology import (
     accumulate,
-    bloom_window,
     chill_days,
     chill_rates,
     crossing,
@@ -52,14 +51,14 @@ def test_crossing_and_total_on() -> None:
     assert total_on(series, date(2024, 2, 1)) is None
 
 
-def test_bloom_window_needs_both_thresholds() -> None:
+def test_end_threshold_window_needs_both_thresholds() -> None:
     series = accumulate(
         days(date(2024, 3, 1), 10), [20.0] * 10, [10.0] * 10, 5.0, date(2024, 3, 1)
     )
-    assert bloom_window(series, 25.0, 61.0) == Window(
+    assert threshold_window(series, 25.0, end_threshold=61.0) == Window(
         start=date(2024, 3, 3), end=date(2024, 3, 7)
     )
-    assert bloom_window(series, 25.0, 500.0) is None  # end never reached
+    assert threshold_window(series, 25.0, end_threshold=500.0) is None
 
 
 def test_sigmoid_forcing_follows_chmielewski_eq_3_2() -> None:
@@ -117,5 +116,6 @@ def test_threshold_window_end_rules() -> None:
     assert threshold_window(series, 50.0, bloom_days=10, centred=True) == Window(
         start=date(2024, 2, 29), end=date(2024, 3, 10)
     )
-    assert threshold_window(series, 50.0) is None  # no end rule
+    with pytest.raises(ValueError, match="bloom_days"):
+        threshold_window(series, 50.0)  # no end rule
     assert threshold_window(series, 999.0, bloom_days=10) is None

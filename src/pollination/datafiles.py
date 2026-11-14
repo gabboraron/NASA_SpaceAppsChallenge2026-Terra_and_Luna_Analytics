@@ -16,6 +16,7 @@ from pydantic import (
     NonPositiveFloat,
     PositiveFloat,
     PositiveInt,
+    model_validator,
 )
 
 from pollination.config import Settings
@@ -53,6 +54,14 @@ class PhenologyEntry(BaseModel):
     status: str
     leads: list[str]
     note: str
+
+    @model_validator(mode="after")
+    def _window_has_an_end(self) -> PhenologyEntry:
+        if self.heat_threshold is not None and (
+            (self.heat_bloom_end is None) == (self.bloom_days is None)
+        ):
+            raise ValueError("set exactly one of heat_bloom_end and bloom_days")
+        return self
 
     def gdd_start_in(self, year: int) -> date | None:
         """The day heat accumulation starts in ``year``, if set."""

@@ -44,16 +44,27 @@ def parcel(
     )
 
 
+def date_range(first: date, last: date) -> list[date]:
+    """Every day from ``first`` to ``last``, inclusive."""
+    return [first + timedelta(days=i) for i in range((last - first).days + 1)]
+
+
+def weather(
+    first: date, last: date, temps: Callable[[date], tuple[float, float]]
+) -> PowerDaily:
+    """Daily (Tmax, Tmin) from ``temps`` for every day from ``first`` to ``last``."""
+    days = date_range(first, last)
+    pairs = [temps(d) for d in days]
+    tmax: list[float | None] = [hi for hi, _ in pairs]
+    tmin: list[float | None] = [lo for _, lo in pairs]
+    return PowerDaily(
+        lat=48.0, lon=21.875, days=days, values={"T2M_MAX": tmax, "T2M_MIN": tmin}
+    )
+
+
 def power(year: int, mean_c: float) -> PowerDaily:
     """Constant daily mean temperature from 1 Jan to 31 Aug."""
-    first = date(year, 1, 1)
-    days = [
-        first + timedelta(days=i) for i in range((date(year, 8, 31) - first).days + 1)
-    ]
-    flat: list[float | None] = [mean_c] * len(days)
-    return PowerDaily(
-        lat=48.0, lon=21.875, days=days, values={"T2M_MAX": flat, "T2M_MIN": flat}
-    )
+    return weather(date(year, 1, 1), date(year, 8, 31), lambda _: (mean_c, mean_c))
 
 
 def weeks_of(
@@ -76,19 +87,6 @@ def test_week_numbering_starts_on_1_march() -> None:
     assert tl.week_of(2024, date(2024, 3, 8)) == 2
     assert tl.week_of(2024, date(2024, 2, 29)) is None
     assert tl.week_of(2024, date(2024, 8, 30)) is None  # after week 26
-
-
-def weather(
-    first: date, last: date, temps: Callable[[date], tuple[float, float]]
-) -> PowerDaily:
-    """Daily (Tmax, Tmin) from ``temps`` for every day from ``first`` to ``last``."""
-    days = [first + timedelta(days=i) for i in range((last - first).days + 1)]
-    pairs = [temps(d) for d in days]
-    tmax: list[float | None] = [hi for hi, _ in pairs]
-    tmin: list[float | None] = [lo for _, lo in pairs]
-    return PowerDaily(
-        lat=48.0, lon=21.875, days=days, values={"T2M_MAX": tmax, "T2M_MIN": tmin}
-    )
 
 
 def test_gdd_window_drives_sour_cherry_bloom() -> None:
@@ -343,7 +341,7 @@ def test_fetch_inputs_turns_failures_into_reasons(
     httpx_mock: HTTPXMock, tmp_path: Path
 ) -> None:
     httpx_mock.add_response(status_code=503)
-    inputs = tl.fetch_inputs(2024, [parcel()], tmp_path, earthdata=False)
+    inputs = tl.fetch_inputs(2024, [parcel()], tmp_path, earthdata=False, phenology={})
     assert inputs.power["P1"] == "NASA POWER request failed (HTTPStatusError)"
     assert inputs.failed  # a failed request is retried, not kept
     assert isinstance(inputs.hls, str)
@@ -353,9 +351,7 @@ def test_fetch_inputs_turns_failures_into_reasons(
 
 def power_payload(first: date, last: date) -> dict[str, object]:
     """A minimal POWER daily response with constant values."""
-    keys = [
-        f"{first + timedelta(days=i):%Y%m%d}" for i in range((last - first).days + 1)
-    ]
+    keys = [f"{d:%Y%m%d}" for d in date_range(first, last)]
     names = ("T2M_MAX", "T2M_MIN", "PRECTOTCORR", "WS2M")
     return {"properties": {"parameter": {n: dict.fromkeys(keys, 5.0) for n in names}}}
 

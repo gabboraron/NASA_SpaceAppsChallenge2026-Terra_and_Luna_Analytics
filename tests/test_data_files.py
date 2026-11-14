@@ -14,6 +14,7 @@ from shapely.ops import unary_union
 
 from pollination.config import Settings
 from pollination.datafiles import (
+    PhenologyEntry,
     load_actors,
     load_natura,
     load_phenology,
@@ -188,3 +189,11 @@ def test_ranking_weights_sum_to_one() -> None:
         "Reported",
         "Missing",
     }
+
+
+def test_heat_threshold_needs_exactly_one_end_rule() -> None:
+    entry = load_phenology(DATA)["apple"].model_dump()
+    with pytest.raises(ValueError, match="exactly one"):
+        PhenologyEntry.model_validate({**entry, "bloom_days": None})
+    with pytest.raises(ValueError, match="exactly one"):
+        PhenologyEntry.model_validate({**entry, "heat_bloom_end": 300})

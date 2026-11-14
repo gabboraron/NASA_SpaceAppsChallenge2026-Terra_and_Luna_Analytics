@@ -31,8 +31,8 @@ SIGMOID_C = 18.4
 
 
 @dataclass(frozen=True)
-class GddSeries:
-    """Cumulative growing degree days, one value per day from the start day.
+class HeatSeries:
+    """A cumulative heat sum (degree days or forcing units), one value per day.
 
     Attributes:
         days: Days in ascending order, starting at the accumulation start.
@@ -51,7 +51,7 @@ def accumulate(
     tmin: Sequence[float | None],
     base: float,
     start: date,
-) -> GddSeries:
+) -> HeatSeries:
     """Sum ``max(0, (Tmax + Tmin) / 2 - base)`` day by day from ``start``.
 
     Args:
@@ -75,7 +75,7 @@ def _daily(
     tmin: Sequence[float | None],
     start: date,
     rate: Callable[[float, float], float],
-) -> GddSeries:
+) -> HeatSeries:
     """Sum ``rate(Tmax, Tmin)`` day by day from ``start``; missing days add 0."""
     kept: list[date] = []
     totals: list[float] = []
@@ -89,7 +89,7 @@ def _daily(
             total += rate(hi, lo)
         kept.append(day)
         totals.append(total)
-    return GddSeries(kept, totals, missing)
+    return HeatSeries(kept, totals, missing)
 
 
 def sigmoid_forcing(
@@ -98,7 +98,7 @@ def sigmoid_forcing(
     tmin: Sequence[float | None],
     base: float,
     start: date,
-) -> GddSeries:
+) -> HeatSeries:
     """Sum the sigmoid forcing rate of Chmielewski et al. (2011) from ``start``.
 
     The daily rate is ``28.4 / (1 + exp(-0.185 * (T - base - 18.4)))`` for a daily
@@ -152,7 +152,7 @@ def chill_days(  # noqa: PLR0913 -- the weather series plus the three model para
     base: float,
     chill_start: date,
     chill_requirement: float,
-) -> GddSeries | None:
+) -> HeatSeries | None:
     """Forcing after chilling, from the sequential chill-days model.
 
     The chilling rate accumulates from ``chill_start`` until its sum reaches
@@ -172,22 +172,18 @@ def chill_days(  # noqa: PLR0913 -- the weather series plus the three model para
         data.
     """
     chill = 0.0
-    for i, (day, hi, lo) in enumerate(zip(days, tmax, tmin, strict=True)):
+    for day, hi, lo in zip(days, tmax, tmin, strict=True):
         if day < chill_start or hi is None or lo is None:
             continue
         chill += chill_rates(hi, lo, base)[0]
         if chill <= chill_requirement:
             return _daily(
-                days[i:],
-                tmax[i:],
-                tmin[i:],
-                day,
-                lambda h, low: chill_rates(h, low, base)[1],
+                days, tmax, tmin, day, lambda h, low: chill_rates(h, low, base)[1]
             )
     return None
 
 
-def crossing(series: GddSeries, threshold: float) -> date | None:
+def crossing(series: HeatSeries, threshold: float) -> date | None:
     """Return the first day the cumulative GDD reaches ``threshold``, if any."""
     return next(
         (d for d, t in zip(series.days, series.totals, strict=True) if t >= threshold),
@@ -195,7 +191,7 @@ def crossing(series: GddSeries, threshold: float) -> date | None:
     )
 
 
-def total_on(series: GddSeries, day: date) -> float | None:
+def total_on(series: HeatSeries, day: date) -> float | None:
     """Return the cumulative GDD at the end of ``day`` (or of the last data day).
 
     Returns:
@@ -205,20 +201,8 @@ def total_on(series: GddSeries, day: date) -> float | None:
     return series.totals[i - 1] if i else None
 
 
-def bloom_window(series: GddSeries, start_gdd: float, end_gdd: float) -> Window | None:
-    """Return the days on which the bloom start and end thresholds are crossed.
-
-    Returns:
-        The window, or None if either threshold is not reached in the data.
-    """
-    start, end = crossing(series, start_gdd), crossing(series, end_gdd)
-    if start is None or end is None:
-        return None
-    return Window(start=start, end=end)
-
-
 def threshold_window(
-    series: GddSeries,
+    series: HeatSeries,
     threshold: float,
     *,
     end_threshold: float | None = None,
@@ -232,13 +216,18 @@ def threshold_window(
     marks full bloom (``centred``).
 
     Returns:
-        The window, or None if a threshold is not reached in the data or no end
-        rule is given.
+        The window, or None if a threshold is not reached in the data.
+
+    Raises:
+        ValueError: Neither ``end_threshold`` nor ``bloom_days`` is given.
     """
-    if end_threshold is not None:
-        return bloom_window(series, threshold, end_threshold)
     day = crossing(series, threshold)
-    if day is None or bloom_days is None:
+    if day is None:
         return None
+    if end_threshold is not None:
+        end = crossing(series, end_threshold)
+        return None if end is None else Window(start=day, end=end)
+    if bloom_days is None:
+        raise ValueError("A bloom window needs end_threshold or bloom_days")
     first = day - timedelta(days=bloom_days // 2 if centred else 0)
     return Window(start=first, end=first + timedelta(days=bloom_days))
