@@ -2,6 +2,7 @@
 
 import asyncio
 from collections.abc import Iterator
+from datetime import date
 from typing import Any
 
 import httpx
@@ -10,8 +11,9 @@ import pytest
 from pollination import models as m
 from pollination import state
 from pollination.api import app
-from pollination.contract import season_inputs
+from pollination.contract import latest_hls, power_daily, season_inputs
 from pollination.engine.timeline import SeasonInputs
+from pollination.nasa.power import PowerDaily
 
 
 def offline(year: m.Season) -> SeasonInputs:
@@ -19,9 +21,21 @@ def offline(year: m.Season) -> SeasonInputs:
     return SeasonInputs(power={}, hls="offline test", smap=f"offline {year}")
 
 
+def offline_power(lat: float, lon: float, start: date, end: date) -> PowerDaily:
+    """POWER unreachable: the polygon route must answer with a Missing reason."""
+    raise httpx.ConnectError("offline test")
+
+
+def offline_hls(polygon: m.Polygon) -> m.HlsResponse:
+    """HLS unreachable."""
+    raise RuntimeError("offline test")
+
+
 @pytest.fixture(autouse=True)
 def no_nasa() -> Iterator[None]:
     app.dependency_overrides[season_inputs] = offline
+    app.dependency_overrides[power_daily] = lambda: offline_power
+    app.dependency_overrides[latest_hls] = lambda: offline_hls
     yield
     app.dependency_overrides.clear()
     state.verifications.clear()

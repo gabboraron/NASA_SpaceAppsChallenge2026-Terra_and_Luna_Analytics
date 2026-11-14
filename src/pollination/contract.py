@@ -1,14 +1,19 @@
 """API routes.
 
-Parcels, Natura 2000, actors, the timeline, grower verification, the calculator and
-the matches are real; the polygon routes are WP2 fixtures until WP13.
+Every route is real: parcels, Natura 2000, actors, the timeline, grower
+verification, the calculator, the matches and the drawn-polygon POWER and HLS routes.
+NASA failures become ``Missing`` values with a reason, never errors or made-up data.
 """
 
+import logging
+from collections.abc import Callable
 from datetime import date
 from functools import cache
 from typing import Annotated
 
+import httpx
 from fastapi import APIRouter, Depends, HTTPException
+from shapely.geometry import shape
 
 from pollination import models as m
 from pollination import state
@@ -16,9 +21,25 @@ from pollination.config import Settings
 from pollination.datafiles import Catalog, load_catalog
 from pollination.engine import calculator
 from pollination.engine.matching import match
-from pollination.engine.timeline import SeasonInputs, build_timeline, fetch_inputs
+from pollination.engine.polygon import BASELINE_YEARS, power_response
+from pollination.engine.timeline import (
+    SEASON_END,
+    SeasonInputs,
+    build_timeline,
+    fetch_inputs,
+)
+from pollination.geo import centroid
+from pollination.nasa import hls
+from pollination.nasa.power import PowerDaily, daily_point
 
+log = logging.getLogger(__name__)
 router = APIRouter()
+
+HLS_LOOKBACK_DAYS = 30
+MAX_POLYGON_SPAN_DEG = 0.1  # about 8 to 11 km: a field, not a region
+
+type PowerFetch = Callable[[float, float, date, date], PowerDaily]
+type HlsLatest = Callable[[m.Polygon], m.HlsResponse]
 
 
 @cache
@@ -42,7 +63,7 @@ def season_inputs(year: m.Season) -> SeasonInputs:
         year,
         catalog().parcels,
         settings.cache_dir,
-        earthdata=settings.earthdata_token is not None,
+        earthdata=settings.has_earthdata,
         phenology=catalog().phenology,
     )
     if not inputs.failed:
@@ -50,11 +71,24 @@ def season_inputs(year: m.Season) -> SeasonInputs:
     return inputs
 
 
-SOURCE = "WP2 synthetic example"
-MISSING = m.Provenance(
-    kind="Missing", source=SOURCE, observed_at=None, note="No NASA query performed."
-)
-GAP = m.Measurement(value=None, provenance=MISSING)
+def power_daily() -> PowerFetch:
+    """Dependency: POWER daily series fetcher (tests override it to stay offline)."""
+    cache_dir = Settings().cache_dir
+
+    def fetch(lat: float, lon: float, start: date, end: date) -> PowerDaily:
+        return daily_point(lat, lon, start, end, cache_dir=cache_dir)
+
+    return fetch
+
+
+def latest_hls() -> HlsLatest:
+    """Dependency: latest HLS scene of a polygon (tests override it)."""
+    cache_dir = Settings().cache_dir
+
+    def latest(polygon: m.Polygon) -> m.HlsResponse:
+        return hls.latest_for_polygon(polygon, HLS_LOOKBACK_DAYS, cache_dir=cache_dir)
+
+    return latest
 
 
 @router.get("/parcels")
@@ -130,18 +164,66 @@ def verify(id: str) -> m.Provenance:
 
 
 @router.post("/polygon/power")
-def power(polygon: m.Polygon) -> m.PowerResponse:
-    """Return missing indicators until the POWER integration is available."""
-    return m.PowerResponse(
-        gdd_series=[],
-        gdd_provenance=MISSING,
-        precipitation_total_mm=GAP,
-        precipitation_anomaly_mm=GAP,
-        bee_flight_weather_days=GAP,
+def power(
+    polygon: m.Polygon,
+    fetch: Annotated[PowerFetch, Depends(power_daily)],
+    year: m.Season = m.Season.COMPARISON,
+) -> m.PowerResponse:
+    """Return heat units, rain and bee-flight weather at a drawn polygon.
+
+    One POWER node under the polygon's centre serves the season (March to August of
+    ``year``) and the 2015-2024 rain baseline; a failed request is a ``Missing``
+    value with its reason.
+    """
+    settings = Settings()
+    lon, lat = centroid(polygon)
+
+    def get(start: date, end: date) -> PowerDaily | str:
+        try:
+            return fetch(lat, lon, start, end)
+        except httpx.HTTPError as exc:
+            log.warning("POWER request for %s failed: %s", (lat, lon), exc)
+            return f"NASA POWER request failed ({type(exc).__name__})"
+
+    season = get(date(year, 1, 1), date(year, *SEASON_END))
+    history = get(date(BASELINE_YEARS[0], 1, 1), date(BASELINE_YEARS[-1], 12, 31))
+    return power_response(
+        year,
+        season,
+        history,
+        base_temp_c=settings.gdd_base_temp_c,
+        min_tmax_c=settings.bee_flight_min_tmax_c,
+        max_wind_ms=settings.bee_flight_max_wind_ms,
+        baseline_years=BASELINE_YEARS,
     )
 
 
+def _hls_missing(reason: str) -> m.HlsResponse:
+    """An HLS response that says why there is no observation."""
+    provenance = m.Provenance(
+        kind="Missing", source=hls.SOURCE, observed_at=None, note=reason
+    )
+    gap = m.Measurement(value=None, provenance=provenance)
+    return m.HlsResponse(observed_at=None, ndvi=gap, ndyi=gap)
+
+
 @router.post("/polygon/hls")
-def hls(polygon: m.Polygon) -> m.HlsResponse:
-    """Return the optical response shape without fetching imagery."""
-    return m.HlsResponse(observed_at=None, ndvi=GAP, ndyi=GAP)
+def hls_latest(
+    polygon: m.Polygon, latest: Annotated[HlsLatest, Depends(latest_hls)]
+) -> m.HlsResponse:
+    """Return the latest usable HLS scene of a drawn polygon (last 30 days).
+
+    Slow on a cold cache (remote reads); needs an Earthdata token.
+    """
+    if not Settings().has_earthdata:
+        return _hls_missing("No Earthdata token configured; HLS not queried")
+    west, south, east, north = shape(polygon.model_dump()).bounds
+    if max(east - west, north - south) > MAX_POLYGON_SPAN_DEG:
+        return _hls_missing(
+            "Polygon too large for a satellite read; draw one around a single field"
+        )
+    try:
+        return latest(polygon)
+    except Exception as exc:  # any NASA failure becomes Missing
+        log.warning("HLS request failed: %s", exc)
+        return _hls_missing(f"NASA HLS request failed ({type(exc).__name__})")

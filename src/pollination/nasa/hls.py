@@ -259,6 +259,29 @@ def _scenes(
     ]
 
 
+def _observe_pass(
+    group: list[Scene], polygon: Polygon, read: ReadFn, cache_dir: Path | None
+) -> Obs | None:
+    """Observation of one pass: the first tile that has usable data for the parcel."""
+    return next(
+        (o for s in group if (o := _observe(s, polygon, read, cache_dir))), None
+    )
+
+
+def _newest(
+    groups: Sequence[list[Scene]],
+    polygon: Polygon,
+    read: ReadFn,
+    cache_dir: Path | None,
+) -> Obs | None:
+    """The newest usable observation, reading passes newest first and stopping."""
+    for group in sorted(groups, key=lambda g: (g[0].day, g[0].id), reverse=True):
+        obs = _observe_pass(group, polygon, read, cache_dir)
+        if obs is not None:
+            return obs
+    return None
+
+
 def _observe_week(
     week: list[list[Scene]],
     polygon: Polygon,
@@ -273,10 +296,7 @@ def _observe_week(
     """
     found: list[Obs] = []
     for group in week:
-        obs = next(
-            (o for s in group if (o := _observe(s, polygon, read, cache_dir))),
-            None,
-        )
+        obs = _observe_pass(group, polygon, read, cache_dir)
         if obs is not None:
             found.append(obs)
             if per_week is not None and len(found) >= per_week:
@@ -294,6 +314,16 @@ class _Io:
     per_week: int | None
 
 
+def _backend(search: SearchFn | None, read: ReadFn | None) -> tuple[SearchFn, ReadFn]:
+    """The injected search and read functions, or the live NASA ones."""
+    if search is None or read is None:
+        from pollination.nasa import hls_live  # noqa: PLC0415  # lazy: needs NASA libs
+
+        search = search or hls_live.search_scenes
+        read = read or hls_live.read_window
+    return search, read
+
+
 def _indices(
     polygons: Mapping[str, Polygon], days: tuple[date, date], io: _Io
 ) -> dict[str, list[Obs]]:
@@ -302,12 +332,7 @@ def _indices(
     Scenes are searched per parcel (only tiles that cover it); the 7-day blocks are
     read on a thread pool, because every read is a remote round trip.
     """
-    search, read = io.search, io.read
-    if search is None or read is None:
-        from pollination.nasa import hls_live  # noqa: PLC0415  # lazy: needs NASA libs
-
-        search = search or hls_live.search_scenes
-        read = read or hls_live.read_window
+    search, read = _backend(io.search, io.read)
     result: dict[str, list[Obs]] = {}
     for pid, polygon in polygons.items():
         scenes = _scenes(search, polygon.bounds, days, io.cache_dir)
@@ -379,15 +404,16 @@ def latest_for_polygon(  # noqa: PLR0913  # injectable search/read/cache keep it
         cache_dir: Cache root; defaults to the configured one.
 
     Returns:
-        The newest observation, or Missing measurements with a reason.
+        The newest usable observation (passes are read newest first and reading
+        stops at the first usable one), or Missing measurements with a reason.
     """
     end = today or date.today()  # calendar day of the server
     start = end - timedelta(days=days)
     geom = cast(Polygon, shape(polygon.model_dump()))
-    io = _Io(search, read, cache_dir, None)  # newest usable one: look at every pass
-    found = _indices({"drawn": geom}, (start, end), io)
-    observations = found["drawn"]
-    if not observations:
+    search_fn, read_fn = _backend(search, read)
+    scenes = _scenes(search_fn, geom.bounds, (start, end), cache_dir)
+    latest = _newest(passes(scenes), geom, read_fn, cache_dir)
+    if latest is None:
         missing = Provenance(
             kind="Missing",
             source=SOURCE,
@@ -399,7 +425,6 @@ def latest_for_polygon(  # noqa: PLR0913  # injectable search/read/cache keep it
         )
         gap = Measurement(value=None, provenance=missing)
         return HlsResponse(observed_at=None, ndvi=gap, ndyi=gap)
-    latest = max(observations, key=lambda o: (o.day, o.valid_fraction))
     provenance = Provenance(
         kind="Observed",
         source=SOURCE,

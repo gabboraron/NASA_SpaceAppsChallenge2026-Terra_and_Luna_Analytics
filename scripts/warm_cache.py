@@ -100,7 +100,7 @@ def main() -> None:
     parser.add_argument("--only", choices=("inputs", "smap"), help="run one lane only")
     args = parser.parse_args()
     settings = Settings()
-    if settings.earthdata_token is None:
+    if not settings.has_earthdata:
         raise SystemExit("EARTHDATA_TOKEN is missing in .env; HLS and SMAP need it")
     catalog = load_catalog(settings)
     lanes = {"inputs": ("POWER+HLS", warm_inputs), "smap": ("SMAP", warm_smap)}

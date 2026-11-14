@@ -9,7 +9,7 @@ import pytest
 from numpy.typing import NDArray
 from shapely.geometry import Polygon
 
-from pollination.models import Parcel
+from pollination.models import HlsResponse, Parcel
 from pollination.nasa.hls import (
     BandWindow,
     Obs,
@@ -418,3 +418,35 @@ def test_search_of_a_running_period_is_not_cached(tmp_path: Path) -> None:
     run()
     run()
     assert fakes.searches == 2
+
+
+def latest(fakes: SceneFakes, tmp_path: Path) -> HlsResponse:
+    """The latest observation of the test parcel, looking back 30 days from 20 July."""
+    return latest_for_polygon(
+        parcel().geometry,
+        days=30,
+        today=date(2024, 7, 20),
+        search=fakes.search,
+        read=fakes.read,
+        cache_dir=tmp_path,
+    )
+
+
+def test_latest_reads_the_newest_pass_first_and_stops(tmp_path: Path) -> None:
+    """When the newest pass is usable, older ones are not read at all."""
+    older, newest = scene("T34TET", 190), scene("T34TET", 200)
+    fakes = SceneFakes({older.id: window(), newest.id: window(green=0.3)})
+    response = latest(fakes, tmp_path)
+    assert fakes.read_ids == [newest.id]
+    assert response.observed_at == newest.day
+
+
+def test_latest_falls_back_to_an_older_pass_when_the_newest_is_cloudy(
+    tmp_path: Path,
+) -> None:
+    """A cloudy newest pass is skipped, newest usable one wins."""
+    older, newest = scene("T34TET", 190), scene("T34TET", 200)
+    fakes = SceneFakes({older.id: window(), newest.id: window(fmask=0b10)})
+    response = latest(fakes, tmp_path)
+    assert fakes.read_ids == [newest.id, older.id]
+    assert response.observed_at == older.day

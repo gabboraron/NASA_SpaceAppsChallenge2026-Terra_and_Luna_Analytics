@@ -34,3 +34,13 @@ def test_config_overrides(monkeypatch: pytest.MonkeyPatch, tmp_path: Path):
     settings = Settings()
     assert settings.cache_dir == tmp_path
     assert settings.bbox == (21, 47, 23, 49)
+
+
+def test_a_blank_earthdata_token_is_not_configured(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """An empty EARTHDATA_TOKEN= line must not switch the NASA reads on."""
+    monkeypatch.setenv("EARTHDATA_TOKEN", "   ")
+    assert not Settings().has_earthdata
+    monkeypatch.setenv("EARTHDATA_TOKEN", "abc")
+    assert Settings().has_earthdata
