@@ -4,7 +4,7 @@
 
 **by Terra & Luna Analytics · NASA Space Apps Challenge 2026**
 
-*NASA Earth observations tell beekeepers and growers when and where crops bloom, and whether moving hives there pays off.*
+NASA Earth observations tell beekeepers and growers when and where crops bloom, and whether moving hives there pays off
 
 [![NASA Space Apps 2026](https://img.shields.io/badge/NASA%20Space%20Apps-2026-0B3D91?style=for-the-badge&logo=nasa&logoColor=white)](https://www.spaceappschallenge.org/2026/)
 
@@ -22,12 +22,13 @@
 Migratory beekeepers and growers of insect-pollinated crops (orchards, sunflower, black locust and more) need to meet
 at the right place in the right week, anywhere in the world. Our map shows, week by week through the season:
 
-- **Bloom state per parcel.** For sunflower this comes from NASA HLS satellite imagery (NDYI). For apple, sour cherry
-  and black locust it comes from a heat-unit (GDD) model on NASA POWER weather, next to the grower's declared window.
-- **Drought stress.** NASA SMAP root-zone soil moisture flags "High Bloom / Low Nectar" weeks, for example the 2022 drought.
-- **Protected areas.** Hives inside a protected site are blocked; sites nearby trigger a warning (the demo uses Natura 2000).
-- **Explainable matches** between a beekeeper and parcels, with reasons, missing items and confidence.
-- **A move calculator.** It shows the contribution after incremental costs and the benefit compared with staying put, so a beekeeper sees when *not* to move.
+- When each parcel blooms: from NASA HLS satellite imagery (NDYI) for sunflower, and from published heat-sum models on
+  NASA POWER temperatures for apple, sour cherry and black locust, next to the grower's declared window
+- Weeks of high bloom but low nectar, flagged by NASA SMAP root-zone soil moisture (for example in the 2022 drought)
+- Protected sites (Natura 2000 in the demo): hives inside one are blocked, and sites nearby trigger a warning
+- Explainable matches between a beekeeper and parcels, with reasons, missing items and confidence
+- A move calculator with the contribution after incremental costs and the benefit compared with staying put, so a
+  beekeeper also sees when not to move
 
 Every number carries its provenance: Observed, Estimated, Reported or Missing, plus a date. NASA data is global and
 fetched live; the demo runs on one pilot region with synthetic actors and illustrative parcels.
