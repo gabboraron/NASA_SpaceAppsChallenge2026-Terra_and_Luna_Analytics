@@ -41,9 +41,10 @@ type CropRow = {
 const CROPS: CropRow[] = [
   {
     crop: "Sunflower",
-    signal: "Yellowness index (NDYI) rising over the season",
+    signal:
+      "Grower-declared window; the yellowness index (NDYI) is shown as evidence until its bloom threshold is calibrated",
     source: "HLS L30 / S30, 30 m",
-    label: "Estimated · satellite",
+    label: "Reported · NDYI as context",
   },
   {
     crop: "Apple",
@@ -211,15 +212,18 @@ export function MethodPage() {
           <Section id="nectar" title="Drought and nectar">
             <p className={page.body}>
               For each SMAP cell we compare this week&apos;s root-zone soil
-              moisture with the same week in that cell&apos;s own history. Below
-              the 20th percentile, flowering sunflower and black locust in the
-              cell are downgraded to <strong>bloom, low nectar</strong>.
-              Orchards are assumed irrigated and are not downgraded.
+              moisture with the same week in that cell&apos;s own history. When
+              it is the driest such week on record (below the 10th percentile of
+              2015&ndash;2024), flowering sunflower in the cell is downgraded to{" "}
+              <strong>bloom, low nectar</strong>: dry soil during bloom puts
+              nectar at risk. Orchards are assumed irrigated. Black locust is
+              left out, because the rule did not agree with hive-scale records
+              for it.
             </p>
             <pre className={`mono ${styles.rule}`}>
               {`low_nectar = flowering
-  and crop in {sunflower, black locust}
-  and rootzone_moisture < p20(cell, same week, history)`}
+  and crop == sunflower
+  and rootzone_moisture < p10(cell, same week, 2015-2024)`}
             </pre>
             <p className={styles.note}>
               This is a labelled heuristic applied to a whole ~9 km cell. Nectar

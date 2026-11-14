@@ -18,7 +18,7 @@ const SOURCES: Source[] = [
     badge: "HLS",
     tone: "honey",
     title: "Harmonized Landsat Sentinel-2",
-    text: "Surface reflectance from Landsat 8/9 and Sentinel-2, harmonized. We compute NDVI and the yellowness index NDYI for sunflower bloom.",
+    text: "Surface reflectance from Landsat 8/9 and Sentinel-2, harmonized. We compute NDVI and the yellowness index NDYI as evidence of sunflower bloom.",
     facts: [
       ["Product", "HLSS30 / HLSL30 v2.0"],
       ["Pixel", "30 m"],

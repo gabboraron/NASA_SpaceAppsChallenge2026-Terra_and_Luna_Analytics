@@ -129,9 +129,9 @@ export function LayerPanel({ visible, onToggle }: Props) {
         <strong>Reading the map</strong>
         <p>
           A dashed outline marks a gap-filled week between satellite passes,
-          never an observation. Low nectar is a labelled heuristic: blooming
-          while root-zone soil moisture is below the 20th percentile for that
-          week. Parcels are illustrative; beekeepers are synthetic.
+          never an observation. Low nectar is a labelled heuristic: sunflower
+          blooming while root-zone soil moisture is the driest on record for
+          that week. Parcels are illustrative; beekeepers are synthetic.
         </p>
         <Link to={ROUTES.guide}>Open the guide</Link>
       </div>
