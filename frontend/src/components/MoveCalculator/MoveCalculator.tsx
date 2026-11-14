@@ -9,7 +9,8 @@ import {
   type Parcel,
   type Season,
 } from "../../api/client";
-import { CROP_NAMES } from "../MapCanvas/layers";
+import { BeekeeperPicker } from "../BeekeeperPicker/BeekeeperPicker";
+import { cropName } from "../MapCanvas/layers";
 import { ProvenanceBadge } from "../ProvenanceBadge/ProvenanceBadge";
 import {
   ALL_FIELDS,
@@ -183,7 +184,7 @@ export function MoveCalculator({
   };
 
   const keeper = beekeepers.find((b) => b.id === keeperId);
-  const crop = CROP_NAMES[parcel.crop] ?? parcel.crop;
+  const crop = cropName(parcel.crop);
   const forage = parcel.service_type === "forage";
   const errors = parsed?.errors ?? {};
   const shownInput =
@@ -287,40 +288,12 @@ export function MoveCalculator({
         </button>
       </div>
 
-      <fieldset className={styles.keepers}>
-        <legend>Beekeeper</legend>
-        <div>
-          {beekeepers.map((b) => {
-            const fits = b.goal === parcel.service_type;
-            return (
-              <button
-                key={b.id}
-                type="button"
-                aria-pressed={b.id === keeperId}
-                disabled={!fits}
-                onClick={() => onKeeper(b.id)}
-              >
-                <strong>
-                  {b.id} <span className={styles.tag}>Synthetic</span>
-                </strong>
-                <span>
-                  {fits
-                    ? `${b.colonies} colonies`
-                    : b.goal === "forage"
-                      ? "Seeks forage"
-                      : "Offers pollination"}
-                </span>
-              </button>
-            );
-          })}
-        </div>
-        {beekeepers.some((b) => b.goal !== parcel.service_type) && (
-          <small>
-            Greyed beekeepers want {forage ? "pollination contracts" : "forage"}
-            ; this parcel offers {forage ? "forage" : "pollination"}.
-          </small>
-        )}
-      </fieldset>
+      <BeekeeperPicker
+        beekeepers={beekeepers}
+        value={keeperId}
+        onChange={onKeeper}
+        service={parcel.service_type}
+      />
 
       {prefill.status === "loading" && (
         <p role="status" className={styles.note}>

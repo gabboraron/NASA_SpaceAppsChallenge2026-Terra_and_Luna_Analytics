@@ -16,12 +16,13 @@ import {
 import { LayerPanel } from "./components/LayerPanel/LayerPanel";
 import { MapCanvas } from "./components/MapCanvas/MapCanvas";
 import {
-  CROP_NAMES,
+  cropName,
   beekeeperCollection,
   centroid,
   foragingRings,
   indexWeeks,
   parcelCollection,
+  matchLabels,
   parcelDots,
   smapCollection,
   weekStateText,
@@ -32,8 +33,10 @@ import {
   ParcelDetail,
   type VerifyState,
 } from "./components/ParcelDetail/ParcelDetail";
+import { MatchPanel } from "./components/MatchPanel/MatchPanel";
 import { MoveCalculator } from "./components/MoveCalculator/MoveCalculator";
 import { TimeSlider } from "./components/TimeSlider/TimeSlider";
+import { useMatches } from "./hooks/useMatches";
 import styles from "./App.module.css";
 
 // Week 20 = mid-July, sunflower bloom: the demo's opening view.
@@ -113,6 +116,8 @@ export function App() {
     [base.data],
   );
   const beekeeper = beekeepers.find((b) => b.id === keeperId) ?? beekeepers[0];
+  const activeKeeperId = beekeeper?.id ?? keeperId;
+  const matches = useMatches(activeKeeperId, year, week);
   const weeks = useMemo(() => indexWeeks(timeline), [timeline]);
   const weekRows = weeks.get(week) ?? NO_ROWS;
   const smapFc = useMemo(
@@ -136,9 +141,16 @@ export function App() {
         type: "FeatureCollection",
         features: [],
       }) as FeatureCollection<Polygon>,
-      beekeepers: beekeeperCollection(base.data?.actors.beekeepers ?? []),
     }),
     [base.data, parcels],
+  );
+  const keeperPins = useMemo(
+    () => beekeeperCollection(beekeepers, beekeeper?.id),
+    [beekeepers, beekeeper],
+  );
+  const ranks = useMemo(
+    () => matchLabels(matches.cards ?? [], parcels),
+    [matches.cards, parcels],
   );
   const selectedParcel = parcels.find((p) => p.id === selected);
   // Verification only rewrites blooming weeks, so a non-blooming week keeps the
@@ -181,6 +193,11 @@ export function App() {
       const fit = beekeepers.find((b) => b.goal === parcel.service_type);
       if (fit) setKeeperId(fit.id);
     }
+    setPlanning(true);
+  };
+  // A match card's beekeeper already fits the parcel: open the calculator directly.
+  const planMatch = (id: string) => {
+    select(id);
     setPlanning(true);
   };
   // The server records the photo; refetch this season and drop the other cached one.
@@ -227,7 +244,6 @@ export function App() {
       </header>
       <div
         className={styles.workspace}
-        data-detail={!!selectedParcel}
         data-plan={!!selectedParcel && planning}
       >
         <LayerPanel
@@ -242,11 +258,13 @@ export function App() {
             parcelDots={layers.dots}
             natura={layers.natura}
             rings={rings}
-            beekeepers={layers.beekeepers}
+            beekeepers={keeperPins}
+            matchLabels={ranks}
             smap={smapFc}
             weekRows={weekRows}
             visible={visible}
             selected={selected}
+            hovered={hovered}
             onSelect={select}
             onHover={setHovered}
           />
@@ -279,7 +297,7 @@ export function App() {
             {info && visible.parcels && (
               <div className={styles.card} aria-live="polite">
                 <strong>
-                  {CROP_NAMES[info.crop] ?? info.crop} · {info.id}
+                  {cropName(info.crop)} · {info.id}
                 </strong>
                 <span>{weekStateText(infoWeek)}</span>
                 <small>Click for details</small>
@@ -293,11 +311,27 @@ export function App() {
             onWeek={setWeek}
           />
         </section>
+        {!selectedParcel && (
+          <MatchPanel
+            beekeepers={beekeepers}
+            keeperId={activeKeeperId}
+            onKeeper={setKeeperId}
+            year={year}
+            week={week}
+            matches={matches}
+            parcels={parcels}
+            weekRows={weekRows}
+            hovered={hovered}
+            onHover={setHovered}
+            onSelect={select}
+            onPlan={planMatch}
+          />
+        )}
         {selectedParcel && planning && (
           <MoveCalculator
             parcel={selectedParcel}
             beekeepers={beekeepers}
-            keeperId={beekeeper?.id ?? keeperId}
+            keeperId={activeKeeperId}
             onKeeper={setKeeperId}
             year={year}
             week={week}

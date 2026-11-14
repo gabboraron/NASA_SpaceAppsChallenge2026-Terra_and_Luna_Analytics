@@ -264,28 +264,41 @@ function prefill(b: Beekeeper, p: Parcel): CalculatorInput {
   return { ...input, provenance };
 }
 
-/** Mirrors GET /matches until WP12: parcels of the beekeeper's goal, nearest first. */
-export function matches(beekeeperId: string): MatchCard[] {
+/** Mirrors engine/matching.py until WP12: parcels of the beekeeper's goal, nearest first. */
+export function matches(
+  beekeeperId: string,
+  year: Season,
+  week: number,
+): MatchCard[] {
   const b = actors.beekeepers.find((k) => k.id === beekeeperId);
   if (!b) return [];
+  let rank = 0;
   return parcels
     .filter((p) => p.service_type === b.goal)
-    .map((p) => {
-      const input = prefill(b, p);
+    .map((p) => ({ p, input: prefill(b, p) }))
+    .sort((x, y) => x.input.distance_km - y.input.distance_km)
+    .map(({ p, input }) => {
       const blocked = p.natura_status === "inside";
+      const km = input.distance_km;
+      const warnings = [
+        `Preliminary ranking by distance only (${year}, week ${week}); bloom fit, nectar and spray calendars are not scored yet`,
+      ];
+      if (p.natura_status === "buffer_overlap")
+        warnings.push("Natura 2000 site within 3 km");
+      if (km > b.max_distance_km)
+        warnings.push(`Beyond the beekeeper's ${b.max_distance_km} km limit`);
       return {
         beekeeper_id: b.id,
         parcel_id: p.id,
-        rank: blocked ? null : 1,
+        rank: blocked ? null : ++rank,
         blocked,
-        reasons: [],
-        missing_items: [],
-        warnings: [MOCK],
+        reasons: blocked
+          ? ["Inside a Natura 2000 site: hives cannot be placed"]
+          : [`Estimated road distance ${km.toFixed(1)} km`],
+        missing_items: blocked ? [] : ["Field confirmation"],
+        warnings,
         confidence: "low" as const,
-        distance_km: {
-          value: input.distance_km,
-          provenance: input.provenance!.distance_km,
-        },
+        distance_km: { value: km, provenance: input.provenance!.distance_km },
         calculator_input: blocked ? null : input,
       };
     });

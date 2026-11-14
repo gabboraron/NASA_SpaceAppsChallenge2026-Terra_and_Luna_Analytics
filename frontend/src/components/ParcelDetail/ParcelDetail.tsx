@@ -8,7 +8,7 @@ import type {
   SoilMoistureWeek,
 } from "../../api/client";
 import {
-  CROP_NAMES,
+  cropName,
   isHighBloomLowNectar,
   isInterpolated,
   weekLabel,
@@ -123,7 +123,7 @@ export function ParcelDetail({
       <div className={styles.head}>
         <div>
           <small>Parcel {parcel.id} · Illustrative parcel</small>
-          <h2 id="parcel-h">{CROP_NAMES[parcel.crop] ?? parcel.crop}</h2>
+          <h2 id="parcel-h">{cropName(parcel.crop)}</h2>
         </div>
         <button
           type="button"

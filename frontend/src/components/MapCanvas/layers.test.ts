@@ -1,11 +1,14 @@
 import { describe, expect, it } from "vitest";
-import { parcels, timeline, verify } from "../../api/mocks";
+import { actors, matches, parcels, timeline, verify } from "../../api/mocks";
+import type { MatchCard } from "../../api/client";
 import {
   WEEKS,
+  beekeeperCollection,
   centroid,
   foragingRings,
   hatch,
   indexWeeks,
+  matchLabels,
   isHighBloomLowNectar,
   isInterpolated,
   monthTicks,
@@ -190,5 +193,35 @@ describe("mock verification", () => {
       expect(r.bloom_provenance.kind === "Observed").toBe(
         r.bloom_state === "blooming",
       );
+  });
+});
+
+describe("beekeeper layers", () => {
+  const b1 = actors.beekeepers[0];
+  it("marks only the selected beekeeper's pin", () => {
+    const fc = beekeeperCollection(actors.beekeepers, b1.id);
+    expect(fc.features.map((f) => f.properties?.selected)).toEqual(
+      actors.beekeepers.map((b) => b.id === b1.id),
+    );
+  });
+});
+
+describe("matchLabels", () => {
+  it("puts a rank badge on each ranked parcel, none on blocked ones", () => {
+    const cards = [...matches("B1", 2024, 9), ...matches("B3", 2024, 9)];
+    const fc = matchLabels(cards, parcels);
+    const ranked = cards.filter((c) => c.rank !== null);
+    expect(fc.features.map((f) => f.properties?.id)).toEqual(
+      ranked.map((c) => c.parcel_id),
+    );
+    expect(fc.features[0].properties?.label).toBe("1");
+  });
+  it("skips cards for parcels it does not know", () => {
+    expect(
+      matchLabels(
+        [{ ...matches("B1", 2024, 9)[0], parcel_id: "nope" } as MatchCard],
+        parcels,
+      ).features,
+    ).toEqual([]);
   });
 });

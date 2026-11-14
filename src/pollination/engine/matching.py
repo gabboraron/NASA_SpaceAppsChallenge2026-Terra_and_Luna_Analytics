@@ -38,7 +38,10 @@ def match(
     rank = 0
     for parcel, calc in pairs:
         blocked = parcel.natura_status == "inside"
-        warnings = [f"Preliminary ranking by distance only ({when})"]
+        warnings = [
+            f"Preliminary ranking by distance only ({when}); bloom fit, nectar"
+            " and spray calendars are not scored yet"
+        ]
         if parcel.natura_status == "buffer_overlap":
             warnings.append(f"Natura 2000 site within {NATURA_BUFFER_M / 1000:g} km")
         if calc.distance_km > keeper.max_distance_km:

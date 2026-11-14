@@ -1,0 +1,65 @@
+.picker {
+  margin: 0;
+  padding: 0;
+  border: 0;
+  min-width: 0;
+}
+.picker legend {
+  margin: 0 0 0.5rem;
+  padding: 0;
+  font-size: 0.8rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+.picker > div {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 0.5rem;
+}
+.picker button {
+  display: flex;
+  flex-direction: column;
+  gap: 0.1rem;
+  min-height: 64px;
+  padding: 0.5rem 0.65rem;
+  text-align: left;
+  font: inherit;
+  color: var(--ink);
+  border: 1.5px solid #c5ccc2;
+  border-radius: 10px;
+  background: white;
+  cursor: pointer;
+}
+.picker button[aria-pressed="true"] {
+  border-color: var(--ink);
+  box-shadow: inset 0 0 0 1px var(--ink);
+  background: var(--wash);
+}
+.picker button:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+.picker button:focus-visible {
+  outline: 3px solid var(--focus);
+  outline-offset: 2px;
+}
+.picker button > span {
+  font-size: 0.82rem;
+  color: var(--muted);
+}
+.picker small {
+  display: block;
+  margin-top: 0.4rem;
+  font-size: 0.8rem;
+  color: var(--muted);
+}
+.tag {
+  padding: 0.05rem 0.4rem;
+  border-radius: 999px;
+  background: var(--wash);
+  color: var(--muted);
+  font-size: 0.7rem;
+  font-weight: 700;
+}
