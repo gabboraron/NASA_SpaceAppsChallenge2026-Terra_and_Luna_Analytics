@@ -21,6 +21,7 @@ export type CalculatorInput = Schemas["CalculatorInput"];
 export type CalculatorResult = Schemas["CalculatorResult"];
 export type PowerResponse = Schemas["PowerResponse"];
 export type HlsResponse = Schemas["HlsResponse"];
+export type HlsImagery = Schemas["HlsImagery"];
 export type MatchRequest = Schemas["MatchRequest"];
 export type OwnParcelRequest = Schemas["OwnParcelRequest"];
 export type OwnParcelTimeline = Schemas["OwnParcelTimeline"];
@@ -197,3 +198,11 @@ export const getPolygonHls = (polygon: Polygon, signal: AbortSignal) =>
   useMocks
     ? Promise.resolve(mocks.polygonHls())
     : get<HlsResponse>("/polygon/hls", post(polygon, signal));
+
+/** Map tiles of a week's clearest HLS passes, or why there are none. */
+export const getHlsImagery = (year: Season, week: number) =>
+  cached(`imagery:${year}:${week}`, () =>
+    useMocks
+      ? Promise.resolve(mocks.hlsImagery())
+      : get<HlsImagery>(`/imagery/hls?year=${year}&week=${week}`),
+  );

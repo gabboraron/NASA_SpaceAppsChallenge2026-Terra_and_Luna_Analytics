@@ -90,6 +90,9 @@
 .swatch[data-layer="imagery"] {
   background: linear-gradient(135deg, #5d6b46 50%, #8b8256 50%);
 }
+.swatch[data-layer="hls"] {
+  background: linear-gradient(135deg, #3f5a36 50%, #b98a4a 50%);
+}
 .track {
   flex: none;
   position: relative;

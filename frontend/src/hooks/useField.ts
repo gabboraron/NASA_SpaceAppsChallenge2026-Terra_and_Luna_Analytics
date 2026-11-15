@@ -17,7 +17,10 @@ type Kept<T> = Answer<T> & { key: string | null };
 const answers = new Map<string, Promise<unknown>>();
 
 /** Run `load` once per `key`; the answer of an older key is never shown. */
-function useAnswer<T>(key: string | null, load: () => Promise<T>): Answer<T> {
+export function useAnswer<T>(
+  key: string | null,
+  load: () => Promise<T>,
+): Answer<T> {
   const [kept, setKept] = useState<Kept<T>>({ key: null });
   useEffect(() => {
     if (key === null) return;

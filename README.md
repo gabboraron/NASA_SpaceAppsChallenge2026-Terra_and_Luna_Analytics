@@ -13,6 +13,8 @@ NASA Earth observations tell beekeepers and growers when and where crops bloom, 
 [![NASA Open Data](https://img.shields.io/badge/data-NASA%20open%20data-0B3D91?style=flat-square)](#data-and-citations)
 [![AI use disclosed](https://img.shields.io/badge/AI%20use-disclosed-8A2BE2?style=flat-square)](AI_USAGE.md)
 
+**[Try the live demo](https://pollination.happyhill-b1bb4730.northeurope.azurecontainerapps.io)**: it runs in the browser, no login needed
+
 [About](#about) · [Run it](#run-it) · [Repo layout](#repository-layout) · [Data](#data-and-citations) · [Team](#team)
 
 </div>
@@ -55,15 +57,17 @@ seasons (`data/nasa-cache.zip`, see [`docs/cache_setup.md`](docs/cache_setup.md)
 With the shipped cache a warm-up finishes in about 15 seconds; fetching everything cold from NASA takes about 17 minutes.
 New responses are cached in the `nasa-cache` volume, so they survive rebuilds. Run `docker compose down -v` to clear it.
 
-Next to the two demo seasons the map offers the latest complete season, read live from NASA. Its weather-based bloom
-needs no login; its satellite bloom and soil moisture need an Earthdata token and arrive a few minutes after the first
-request, so the map shows the weather-based part first.
+Next to the two demo seasons the map offers the latest complete season, read live. Its weather-based bloom and its
+satellite bloom need no login: NASA HLS is read from its mirror on the Microsoft Planetary Computer, which answers
+faster than the NASA archive and is tried first. Soil moisture needs an Earthdata token. The satellite part arrives
+after the first request, so the map shows the weather-based part first.
 
 Optional settings go in a `.env` file next to `compose.yaml`. It is gitignored, so never commit it.
 
 | Variable | Purpose |
 |---|---|
-| `EARTHDATA_USERNAME`, `EARTHDATA_PASSWORD` or `EARTHDATA_TOKEN` | [NASA Earthdata login](https://urs.earthdata.nasa.gov), needed only for HLS and SMAP reads the shipped cache does not hold (for example a field drawn on the map). POWER needs no login |
+| `EARTHDATA_USERNAME`, `EARTHDATA_PASSWORD` or `EARTHDATA_TOKEN` | [NASA Earthdata login](https://urs.earthdata.nasa.gov), needed for SMAP reads the shipped cache does not hold, and for HLS only when its mirror is off or cannot answer. POWER needs no login |
+| `PLANETARY_COMPUTER` | `false` reads HLS from the NASA archive only, not from its Planetary Computer mirror (default `true`) |
 | `WEB_PORT` | Host port (default 8080) |
 | `VITE_USE_MOCKS` | `true` builds the map client against built-in mock data instead of the API |
 
@@ -88,7 +92,9 @@ Checks (same as CI): `uv run ruff check . && uv run ruff format --check . && uv 
 3. Choose **Calculate this move**: B1 shows a positive benefit relative to the alternative. Pick **B2**: the verdict is
    "Do not move".
 4. Choose **Simulate grower field photo**: the bloom turns Observed and confidence rises. Draw a polygon to get POWER
-   results for it (HLS needs an Earthdata login for areas outside the shipped cache).
+   and HLS results for it.
+5. Switch on **Satellite view of the week** in the layer panel and move the week slider: the map shows the clearest
+   HLS passes of that week in true colour.
 
 ## Repository layout
 
@@ -129,6 +135,7 @@ observations from past years, and lists what the models cannot yet show.
 | Source | Used for | Access / licence |
 |---|---|---|
 | [NASA HLS](https://lpdaac.usgs.gov/products/hlss30v002/) (HLSS30 / HLSL30 v2.0, LP DAAC) | NDVI, NDYI (sunflower bloom evidence) | Earthdata login; NASA open data |
+| [Microsoft Planetary Computer](https://planetarycomputer.microsoft.com/dataset/hls2-s30), mirror of NASA HLS v2.0 ([`hls2-s30`](https://planetarycomputer.microsoft.com/dataset/hls2-s30), [`hls2-l30`](https://planetarycomputer.microsoft.com/dataset/hls2-l30)) | Faster access to the same HLS scenes; true-colour map tiles of a week | No login; data under the [LP DAAC data policy](https://lpdaac.usgs.gov/data/data-citation-and-policies/) |
 | [NASA SMAP L4](https://nsidc.org/data/spl4smgp) (SPL4SMGP, NSIDC) | Root-zone soil moisture, drought percentile | Earthdata login; NASA open data |
 | [NASA POWER](https://power.larc.nasa.gov/) daily point API (MERRA-2 based) | Temperature (GDD), precipitation, wind | No login; NASA open data |
 | [NASA NISAR](https://asf.alaska.edu/datasets/daac/nisar/) (L2 GCOV, L-band SAR, ASF DAAC) | Radar vegetation index (RVI) from HH/HV backscatter; experimental script, not used by the map | Earthdata login; NASA open data |

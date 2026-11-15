@@ -1,6 +1,9 @@
 # pyright: basic
 # (basic mode: rasterio and earthaccess ship no type stubs)
-"""Live NASA access for HLS: CMR search and remote band-window reads.
+"""Live access to HLS: scene search and remote band-window reads.
+
+Scenes come from the Planetary Computer mirror (:mod:`pollination.nasa.hls_pc`,
+no login) and, when it is switched off, fails or has nothing, from NASA CMR.
 
 Thin adapter around ``earthaccess``, ``httpx`` and ``rasterio``. It is NOT
 unit-tested: it needs ``EARTHDATA_TOKEN`` in ``.env`` and network access, so verify
@@ -14,6 +17,7 @@ the earthaccess file objects instead makes rasterio download whole bands.
 
 from __future__ import annotations
 
+import logging
 from contextlib import ExitStack
 from datetime import date
 from typing import Any
@@ -26,19 +30,27 @@ from rasterio.features import geometry_mask
 from rasterio.windows import Window
 from shapely.geometry import Polygon, mapping
 
+from pollination.config import Settings
 from pollination.geo import Bbox
-from pollination.nasa import earthdata
+from pollination.nasa import earthdata, hls_pc
 from pollination.nasa.earthdata import login
 from pollination.nasa.hls import BandWindow, Scene, scene_day
+from pollination.nasa.hls_pc import (
+    COMMON_BANDS,
+    HTTP_TIMEOUT_S,
+    MAX_SCENE_CLOUD_PERCENT,
+)
+
+log = logging.getLogger(__name__)
 
 SCALE = 0.0001
 FILL_VALUE = -9999
-MAX_SCENE_CLOUD_PERCENT = 80  # coarse CMR pre-filter; the parcel mask decides
-HTTP_TIMEOUT_S = 30
 REDIRECT_STATUSES = (301, 302, 303, 307)
 # Band file suffix per role; the NIR band differs between Sentinel-2 and Landsat.
-_COMMON = {"blue": "B02", "green": "B03", "red": "B04", "fmask": "Fmask"}
-_PRODUCTS = {"HLSS30": {**_COMMON, "nir": "B8A"}, "HLSL30": {**_COMMON, "nir": "B05"}}
+_PRODUCTS = {
+    "HLSS30": {**COMMON_BANDS, "nir": "B8A"},
+    "HLSL30": {**COMMON_BANDS, "nir": "B05"},
+}
 _ROLES = ("blue", "green", "red", "nir", "fmask")
 
 
@@ -92,8 +104,36 @@ def search_scenes(bbox: Bbox, start: date, end: date) -> list[Scene]:
     return scenes
 
 
+def search_any(bbox: Bbox, start: date, end: date) -> list[Scene]:
+    """Find HLS scenes on the mirror, or at NASA when the mirror cannot answer.
+
+    NASA is asked when the mirror is switched off, fails or finds nothing (it
+    starts in 2020 and trails NASA by some days), and only with an Earthdata token.
+
+    Args:
+        bbox: West, south, east, north in degrees.
+        start: First day, inclusive.
+        end: Last day, inclusive.
+
+    Returns:
+        Scenes that have all five bands needed.
+    """
+    settings = Settings()
+    if not settings.planetary_computer:
+        return search_scenes(bbox, start, end)
+    if not settings.has_earthdata:
+        return hls_pc.search_scenes(bbox, start, end)
+    try:
+        scenes = hls_pc.search_scenes(bbox, start, end)
+    except Exception as exc:  # any mirror failure falls back to NASA
+        log.warning("HLS mirror search failed, asking NASA: %s", exc)
+        scenes = []
+    return scenes or search_scenes(bbox, start, end)
+
+
 def _presigned(url: str) -> str:
     """Exchange the Earthdata bearer token for the presigned storage URL."""
+    login()
     response = earthdata.get(
         url,
         purpose="HLS range reads",
@@ -118,7 +158,6 @@ def read_window(scene: Scene, polygon: Polygon) -> BandWindow | None:
         Scaled reflectance, Fmask and the parcel pixel mask, or None if the parcel
         is not fully inside this granule's tile.
     """
-    login()
     with (
         rasterio.Env(
             GDAL_DISABLE_READDIR_ON_OPEN="EMPTY_DIR",
@@ -129,8 +168,9 @@ def read_window(scene: Scene, polygon: Polygon) -> BandWindow | None:
     ):
 
         def open_band(role: str) -> Any:
-            url = "/vsicurl/" + _presigned(scene.urls[role])
-            return stack.enter_context(rasterio.open(url))
+            url = scene.urls[role]  # a cached search may still hold NASA URLs
+            readable = hls_pc.sign(url) if hls_pc.is_mirror(url) else _presigned(url)
+            return stack.enter_context(rasterio.open("/vsicurl/" + readable))
 
         ref = open_band("red")
         to_tile = Transformer.from_crs("EPSG:4326", ref.crs, always_xy=True)

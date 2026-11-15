@@ -312,6 +312,13 @@ class PowerResponse(BaseModel):
     bee_flight_weather_days: Measurement
 
 
+class HlsImagery(BaseModel):
+    """Map tiles of a week's clearest satellite passes, or why there are none."""
+
+    tiles: str | None  # XYZ URL template with {z}/{x}/{y}
+    provenance: Provenance
+
+
 class HlsResponse(BaseModel):
     """Latest usable optical observation, with an explained gap if unavailable."""
 

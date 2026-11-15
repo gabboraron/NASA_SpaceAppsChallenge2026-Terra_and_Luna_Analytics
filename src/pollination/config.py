@@ -12,6 +12,8 @@ class Settings(BaseSettings):
     model_config = SettingsConfigDict(env_file=".env", extra="ignore")
 
     earthdata_token: SecretStr | None = None
+    # Read HLS from its Planetary Computer mirror (faster, no login) before NASA.
+    planetary_computer: bool = True
     cache_dir: Path = Path(".cache")
     data_dir: Path = Path("data")
     # Built map client served by pollination.web (Docker); unused by the bare API.
@@ -30,3 +32,8 @@ class Settings(BaseSettings):
         """Whether an Earthdata token is configured (an empty value is not one)."""
         token = self.earthdata_token
         return token is not None and bool(token.get_secret_value().strip())
+
+    @property
+    def has_hls(self) -> bool:
+        """Whether HLS can be read live: from the mirror or with a token."""
+        return self.planetary_computer or self.has_earthdata

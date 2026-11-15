@@ -17,6 +17,15 @@ def no_earthdata_token(monkeypatch: pytest.MonkeyPatch) -> None:
 
 
 @pytest.fixture(autouse=True)
+def no_hls_mirror(monkeypatch: pytest.MonkeyPatch) -> None:
+    """HLS mirror off, so no test reaches it by accident.
+
+    A test that needs it switches it on itself.
+    """
+    monkeypatch.setenv("PLANETARY_COMPUTER", "false")
+
+
+@pytest.fixture(autouse=True)
 def in_process_worker(monkeypatch: pytest.MonkeyPatch) -> None:
     """Run "worker process" calls in-process, so monkeypatched fakes apply.
 

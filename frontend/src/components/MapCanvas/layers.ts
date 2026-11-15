@@ -5,7 +5,7 @@ import type { MatchCard, Parcel, ParcelWeek, Timeline } from "../../api/client";
 import { WEEKS, isHighBloomLowNectar } from "../../domain/season";
 
 export type LayerId =
-  "parcels" | "natura" | "smap" | "buffers" | "beekeepers" | "imagery";
+  "parcels" | "natura" | "smap" | "buffers" | "beekeepers" | "imagery" | "hls";
 
 // Season-atlas palette: beeswax neutral → pale honey → honey → spent wax.
 export const BLOOM_COLORS = {

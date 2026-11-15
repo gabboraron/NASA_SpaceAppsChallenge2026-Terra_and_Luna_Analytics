@@ -38,6 +38,11 @@ const LAYER_ROWS: { id: LayerId; label: string; caption: string }[] = [
     label: "Satellite imagery",
     caption: "Esri World Imagery basemap",
   },
+  {
+    id: "hls",
+    label: "Satellite view of the week",
+    caption: "NASA HLS true colour, clearest passes",
+  },
 ];
 
 type Props = {

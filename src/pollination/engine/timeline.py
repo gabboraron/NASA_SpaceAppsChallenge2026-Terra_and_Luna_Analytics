@@ -740,6 +740,7 @@ def fetch_inputs(  # noqa: PLR0913  # the season's sources plus a progress hook
     *,
     earthdata: bool,
     phenology: Mapping[str, PhenologyEntry],
+    live_hls: bool = False,
     progress: Callable[[str, int, int], None] | None = None,
 ) -> SeasonInputs:
     """Fetch POWER, HLS and SMAP inputs for a season; failures become reasons.
@@ -747,8 +748,8 @@ def fetch_inputs(  # noqa: PLR0913  # the season's sources plus a progress hook
     POWER is requested once per MERRA-2 grid node under the parcel centroids, from
     1 January; nodes with a crop that needs winter chilling also get the previous
     autumn in a second request. HLS is read for sunflower parcels only, and SMAP for
-    the whole region; both need an Earthdata token. A cold HLS or SMAP cache takes
-    minutes; warm it first (WP14).
+    the whole region. SMAP needs an Earthdata token; HLS needs one or its mirror.
+    A cold HLS or SMAP cache takes minutes; warm it first (WP14).
 
     Args:
         year: Season.
@@ -758,6 +759,8 @@ def fetch_inputs(  # noqa: PLR0913  # the season's sources plus a progress hook
             SMAP are read from the cache only, and a cache miss is ``Missing``.
         phenology: Phenology entries by crop, to know which nodes need the
             previous autumn.
+        live_hls: Whether HLS can be read live without a token (from its
+            mirror); ``earthdata`` allows it too.
         progress: Called with a source ("HLS" or "SMAP") and its (done, total)
             reads as they go on.
 
@@ -768,6 +771,7 @@ def fetch_inputs(  # noqa: PLR0913  # the season's sources plus a progress hook
     power, failed = _fetch_power(year, parcels, cache_dir, phenology)
     # Without a token only the cache answers: a miss raises instead of calling NASA.
     live = None if earthdata else _needs_token
+    hls_backend = None if live_hls else live
     targets = [
         p
         for p in parcels
@@ -779,8 +783,8 @@ def fetch_inputs(  # noqa: PLR0913  # the season's sources plus a progress hook
             targets,
             date(year, *SEASON_START),
             end,
-            search=live,
-            read=live,
+            search=hls_backend,
+            read=hls_backend,
             cache_dir=cache_dir,
             progress=progress and partial(progress, "HLS"),
         ),

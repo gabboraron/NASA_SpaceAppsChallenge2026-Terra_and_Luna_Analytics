@@ -228,6 +228,26 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/imagery/hls": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Hls Imagery
+         * @description Return true-colour HLS map tiles of a timeline week's clearest passes.
+         */
+        get: operations["hls_imagery_imagery_hls_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/polygon/hls": {
         parameters: {
             query?: never;
@@ -241,7 +261,7 @@ export interface paths {
          * Hls Latest
          * @description Return the latest usable HLS scene of a drawn polygon (last 30 days).
          *
-         *     Slow on a cold cache (remote reads); needs an Earthdata token.
+         *     Slow on a cold cache (remote reads); needs the HLS mirror or an Earthdata token.
          */
         post: operations["hls_latest_polygon_hls_post"];
         delete?: never;
@@ -468,6 +488,15 @@ export interface components {
         HTTPValidationError: {
             /** Detail */
             detail?: components["schemas"]["ValidationError"][];
+        };
+        /**
+         * HlsImagery
+         * @description Map tiles of a week's clearest satellite passes, or why there are none.
+         */
+        HlsImagery: {
+            /** Tiles */
+            tiles: string | null;
+            provenance: components["schemas"]["Provenance"];
         };
         /**
          * HlsResponse
@@ -1094,6 +1123,38 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["OwnParcelTimeline"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    hls_imagery_imagery_hls_get: {
+        parameters: {
+            query: {
+                year: number;
+                week: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HlsImagery"];
                 };
             };
             /** @description Validation Error */

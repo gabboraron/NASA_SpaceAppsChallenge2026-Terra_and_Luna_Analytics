@@ -29,6 +29,20 @@ const SOURCES: Source[] = [
     linkText: "lpdaac.usgs.gov/products/hlss30v002",
   },
   {
+    badge: "HLS",
+    tone: "ink",
+    title: "HLS on the Planetary Computer",
+    text: "A mirror of the same NASA HLS scenes, hosted by Microsoft. We read it first because it answers faster and needs no login, and it draws the weekly true-colour satellite view on the map.",
+    facts: [
+      ["Collections", "hls2-s30 / hls2-l30"],
+      ["Use", "faster reads, map tiles"],
+      ["From", "2020"],
+    ],
+    licence: "No login · LP DAAC data policy",
+    href: "https://planetarycomputer.microsoft.com/dataset/hls2-s30",
+    linkText: "planetarycomputer.microsoft.com · hls2-s30",
+  },
+  {
     badge: "SMAP",
     tone: "honey",
     title: "SMAP Level 4 soil moisture",

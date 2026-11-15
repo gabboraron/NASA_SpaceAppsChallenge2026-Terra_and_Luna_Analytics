@@ -12,10 +12,12 @@ import {
   getActors,
   getNatura,
   getParcels,
+  getHlsImagery,
   getTimeline,
   useMocks,
   verifyParcel,
   type Actors,
+  type HlsImagery,
   type MatchRequest,
   type Natura,
   type Parcel,
@@ -65,7 +67,7 @@ import {
   windowInYear,
 } from "./domain/season";
 import { useEscape } from "./hooks/useEscape";
-import { type Answer, useField } from "./hooks/useField";
+import { type Answer, useAnswer, useField } from "./hooks/useField";
 import { forgetMatches, useMatches } from "./hooks/useMatches";
 import { useOwnParcels } from "./hooks/useOwnParcels";
 import { SiteHeader } from "./site/SiteHeader";
@@ -86,6 +88,7 @@ const ALL_ON: Record<LayerId, boolean> = {
   buffers: true,
   beekeepers: true,
   imagery: false,
+  hls: false,
 };
 
 type Sheet = "matches" | "parcel" | "layers";
@@ -241,6 +244,22 @@ export function App() {
     [timeline, own.weeks],
   );
   const weekRows = weeks.get(week) ?? NO_ROWS;
+  // The week's satellite view, asked for only while its layer is on and once the
+  // slider rests: playing the season would otherwise register a view per step.
+  const [restingWeek, setRestingWeek] = useState(week);
+  useEffect(() => {
+    const timer = setTimeout(() => setRestingWeek(week), 400);
+    return () => clearTimeout(timer);
+  }, [week]);
+  const hlsImagery = useAnswer<HlsImagery>(
+    visible.hls ? `imagery|${year}|${restingWeek}` : null,
+    () => getHlsImagery(year, restingWeek),
+  ).data;
+  // A layer without data stays hidden, so the map never shows an empty source.
+  const shown = useMemo(
+    () => ({ ...visible, hls: visible.hls && Boolean(hlsImagery?.tiles) }),
+    [visible, hlsImagery],
+  );
   const smapFc = useMemo(
     () => smapCollection(timeline, week),
     [timeline, week],
@@ -466,8 +485,9 @@ export function App() {
             beekeepers={keeperPins}
             matchLabels={ranks}
             smap={smapFc}
+            hlsTiles={hlsImagery?.tiles ?? null}
             weekRows={weekRows}
-            visible={visible}
+            visible={shown}
             selected={selected}
             hovered={hovered}
             onSelect={select}
@@ -611,6 +631,12 @@ export function App() {
                   </span>
                 </div>
               )}
+            {visible.hls && hlsImagery && !hlsImagery.tiles && (
+              <div role="status" className={`${styles.card} ${styles.warn}`}>
+                <strong>Satellite view not available</strong>
+                <span>{hlsImagery.provenance.note}</span>
+              </div>
+            )}
             {info && visible.parcels && (
               <div className={styles.card} aria-live="polite">
                 <strong>

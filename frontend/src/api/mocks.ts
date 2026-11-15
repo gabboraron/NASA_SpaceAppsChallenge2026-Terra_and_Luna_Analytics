@@ -5,6 +5,7 @@ import type {
   CalculatorInput,
   CalculatorResult,
   CostDefaults,
+  HlsImagery,
   HlsResponse,
   MatchRequest,
   MatchCard,
@@ -454,4 +455,12 @@ export function polygonHls(): HlsResponse {
     provenance: prov("Missing", "Mock data: HLS not queried"),
   };
   return { observed_at: null, ndvi: gap, ndyi: gap };
+}
+
+/** Mirrors GET /imagery/hls when the HLS mirror is off. */
+export function hlsImagery(): HlsImagery {
+  return {
+    tiles: null,
+    provenance: prov("Missing", "Mock data: no satellite view"),
+  };
 }

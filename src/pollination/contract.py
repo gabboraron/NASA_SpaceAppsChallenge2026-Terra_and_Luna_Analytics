@@ -15,9 +15,9 @@ from functools import cache, partial
 from pathlib import Path
 from threading import Lock, Thread
 from time import monotonic
-from typing import Annotated
+from typing import Annotated, Literal
 
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Query
 
 from pollination import models as m
 from pollination import state, worker
@@ -35,10 +35,10 @@ from pollination.engine.timeline import (
     pending_inputs,
 )
 from pollination.geo import NaturaIndex, area_ha, centroid, to_shape
-from pollination.nasa import hls
+from pollination.nasa import hls, hls_pc
 from pollination.nasa.failure import no_token, reason
 from pollination.nasa.power import PowerDaily, daily_point
-from pollination.weeks import SEASON_END, latest_season
+from pollination.weeks import SEASON_END, WEEKS, latest_season, week_end, week_start
 
 log = logging.getLogger(__name__)
 router = APIRouter()
@@ -115,6 +115,7 @@ def _fetch(
         data.parcels,
         settings.cache_dir,
         earthdata=settings.has_earthdata,
+        live_hls=settings.has_hls,
         phenology=data.phenology,
         progress=progress,
     )
@@ -197,7 +198,7 @@ def season_inputs(year: int) -> SeasonInputs:
             return kept[0]
         if year in _fetching and kept:
             return kept[0]  # failed POWER; the running fetch will replace it
-        slow = year not in set(m.Season) and Settings().has_earthdata
+        slow = year not in set(m.Season) and Settings().has_hls
         inputs = _fetch(year, satellites=not slow)
         _keep(year, inputs)
         if slow:
@@ -207,12 +208,12 @@ def season_inputs(year: int) -> SeasonInputs:
 
 
 def prefetch_latest_season() -> None:
-    """Start fetching the latest season in the background, if there is a token.
+    """Start fetching the latest season in the background, if HLS can be read live.
 
     Its HLS and SMAP reads take minutes on a cold cache, so they are under way
     before the first visitor asks for the season.
     """
-    if Settings().has_earthdata:
+    if Settings().has_hls:
         year = latest_season(date.today())
         Thread(target=season_inputs, args=(year,), daemon=True).start()
 
@@ -466,15 +467,42 @@ def own_timeline(
     return m.OwnParcelTimeline(parcel=parcel, weeks=weeks)
 
 
+@router.get("/imagery/hls")
+def hls_imagery(
+    year: Annotated[int, Query(ge=hls_pc.START_YEAR)],
+    week: Annotated[int, Query(ge=WEEKS.start, lt=WEEKS.stop)],
+) -> m.HlsImagery:
+    """Return true-colour HLS map tiles of a timeline week's clearest passes."""
+
+    def answer(
+        tiles: str | None, kind: Literal["Observed", "Missing"], note: str
+    ) -> m.HlsImagery:
+        provenance = m.Provenance(
+            kind=kind, source=hls_pc.SOURCE, observed_at=None, note=note
+        )
+        return m.HlsImagery(tiles=tiles, provenance=provenance)
+
+    if not Settings().planetary_computer:
+        return answer(None, "Missing", "HLS mirror switched off")
+    start, end = week_start(year, week), week_end(year, week)
+    try:
+        tiles = hls_pc.week_tiles(start, end)
+    except Exception as exc:  # any failure becomes Missing
+        log.warning("HLS imagery request failed: %s", exc)
+        return answer(None, "Missing", "The HLS mirror did not answer; try again")
+    note = f"Clearest Sentinel-2 passes of {start} to {end}, true colour"
+    return answer(tiles, "Observed", f"{note}; clouds are not removed")
+
+
 @router.post("/polygon/hls")
 def hls_latest(
     polygon: m.Polygon, latest: Annotated[HlsLatest, Depends(latest_hls)]
 ) -> m.HlsResponse:
     """Return the latest usable HLS scene of a drawn polygon (last 30 days).
 
-    Slow on a cold cache (remote reads); needs an Earthdata token.
+    Slow on a cold cache (remote reads); needs the HLS mirror or an Earthdata token.
     """
-    if not Settings().has_earthdata:
+    if not Settings().has_hls:
         return hls.missing_response(no_token("HLS"))
     if too_large(polygon):
         return hls.missing_response(

@@ -12,14 +12,16 @@ starts (locally and in Docker), and reads HLS and SMAP from the cache without an
 Earthdata token. A fresh clone or a fresh `docker compose up --build` therefore
 shows both demo seasons, even offline.
 
-A real token in `.env` (`EARTHDATA_TOKEN`, a user token from
-<https://urs.earthdata.nasa.gov>) is only needed for what the cache does not hold:
-the latest season (the third season button on the map), other parcels, or the
-satellite read of a polygon drawn on the map. For the latest season the API answers
+What the cache does not hold is read live: the latest season (the third season
+button on the map), other parcels, or the satellite read of a polygon drawn on the
+map. HLS comes from its mirror on the Microsoft Planetary Computer, which needs no
+login (`PLANETARY_COMPUTER=false` switches it off). A real token in `.env`
+(`EARTHDATA_TOKEN`, a user token from <https://urs.earthdata.nasa.gov>) is needed
+for SMAP, and for HLS when the mirror is off or cannot answer. For the latest season the API answers
 at once with the POWER-based bloom and fetches HLS and SMAP in the background; the
-map asks again every 20 seconds until they arrive. With a token the API starts this
+map asks again every 20 seconds until they arrive. The API starts this
 fetch when it boots, so it is usually under way before the first visitor.
-Without a token a cache miss is a `Missing` value with the reason
+Without a token an SMAP cache miss is a `Missing` value with the reason
 "No Earthdata token configured".
 
 Import is safe to repeat: it never overwrites a file you already have, and it only

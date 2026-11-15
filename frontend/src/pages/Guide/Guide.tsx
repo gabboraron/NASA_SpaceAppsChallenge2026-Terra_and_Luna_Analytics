@@ -460,6 +460,12 @@ function Features() {
             </dd>
             <dt>Satellite imagery</dt>
             <dd>Swaps the street basemap for aerial imagery.</dd>
+            <dt>Satellite view of the week</dt>
+            <dd>
+              The clearest NASA HLS passes of the chosen week in true colour, so
+              you can see the fields as the satellite saw them. Clouds are not
+              removed.
+            </dd>
           </dl>
           <p className={styles.note}>
             On a tablet the panel opens from the Layers button in the top bar;

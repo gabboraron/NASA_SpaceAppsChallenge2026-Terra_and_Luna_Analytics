@@ -304,11 +304,11 @@ def _observe_week(
 
 
 def _backend(search: SearchFn | None, read: ReadFn | None) -> tuple[SearchFn, ReadFn]:
-    """The injected search and read functions, or the live NASA ones."""
+    """The injected search and read functions, or the live ones."""
     if search is None or read is None:
         from pollination.nasa import hls_live  # noqa: PLC0415  # lazy: needs NASA libs
 
-        search = search or hls_live.search_scenes
+        search = search or hls_live.search_any
         read = read or hls_live.read_window
     return search, read
 
@@ -335,7 +335,7 @@ def parcel_indices(  # noqa: PLR0913  # injectable search/read/cache keep it tes
         parcels: Parcels to observe.
         start: First day, inclusive.
         end: Last day, inclusive.
-        search: Scene search; defaults to NASA CMR via earthaccess.
+        search: Scene search; defaults to the mirror, then NASA CMR.
         read: Scene window reader; defaults to remote cloud-optimised GeoTIFF reads.
         cache_dir: Cache root; defaults to the configured one.
         per_week: Usable observations wanted per 7-day block; None reads all passes.
@@ -402,7 +402,7 @@ def latest_for_polygon(  # noqa: PLR0913  # injectable search/read/cache keep it
         polygon: Drawn polygon in lon/lat.
         days: How far back to look.
         today: Reference day; defaults to the current date.
-        search: Scene search; defaults to NASA CMR via earthaccess.
+        search: Scene search; defaults to the mirror, then NASA CMR.
         read: Scene window reader; defaults to remote reads.
         cache_dir: Cache root; defaults to the configured one.
 

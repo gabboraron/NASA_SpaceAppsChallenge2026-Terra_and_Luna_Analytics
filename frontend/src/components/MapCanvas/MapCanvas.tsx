@@ -5,6 +5,7 @@ import maplibregl, {
   type ExpressionSpecification,
   type GeoJSONSource,
   type LayerSpecification,
+  type RasterTileSource,
 } from "maplibre-gl";
 import type { FeatureCollection, Point, Polygon } from "geojson";
 import {
@@ -149,6 +150,12 @@ const LAYERS: (LayerSpecification & { group: LayerId })[] = [
     id: "imagery",
     type: "raster",
     source: "imagery",
+  },
+  {
+    group: "hls",
+    id: "hls",
+    type: "raster",
+    source: "hls",
   },
   {
     group: "smap",
@@ -378,6 +385,8 @@ type Props = {
   beekeepers: FeatureCollection<Point>;
   matchLabels: FeatureCollection<Point>;
   smap: FeatureCollection<Polygon>;
+  /** XYZ tile address of the shown week's satellite view; shown once known. */
+  hlsTiles: string | null;
   /** The shown week's rows by parcel id. */
   weekRows: Map<string, ParcelWeek>;
   visible: Record<LayerId, boolean>;
@@ -457,6 +466,15 @@ export function MapCanvas(props: Props) {
         tileSize: 256,
         maxzoom: 19,
         attribution: "Imagery © Esri, Maxar, Earthstar Geographics",
+      });
+      // The week's tile address arrives later; the layer stays hidden until then.
+      instance.addSource("hls", {
+        type: "raster",
+        tiles: [],
+        tileSize: 256,
+        minzoom: 7,
+        maxzoom: 13, // 30 m pixels: deeper zooms stretch these tiles
+        attribution: "NASA HLS via Microsoft Planetary Computer",
       });
       for (const id of SOURCES)
         instance.addSource(id, {
@@ -549,6 +567,12 @@ export function MapCanvas(props: Props) {
         );
     }
   }, [m, props.weekRows, props.parcels]);
+
+  // Before the visibility effect: the layer turns on with its tiles in place.
+  useEffect(() => {
+    if (m && props.hlsTiles)
+      m.getSource<RasterTileSource>("hls")?.setTiles([props.hlsTiles]);
+  }, [m, props.hlsTiles]);
 
   useEffect(() => {
     if (!m) return;
