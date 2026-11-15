@@ -132,10 +132,20 @@ export function SiteHeader({ variant = "site", children }: Props) {
               )}
             </Link>
           ))}
+          {!app && (
+            <Link
+              to={ROUTES.app}
+              className={styles.navEnter}
+              onClick={() => setOpen(false)}
+            >
+              Open the explorer
+            </Link>
+          )}
           {account && (
             <Link
               to={ROUTES.account}
               className={styles.who}
+              title={`Account: ${account.name}`}
               aria-current={path === ROUTES.account ? "page" : undefined}
               onClick={() => setOpen(false)}
             >

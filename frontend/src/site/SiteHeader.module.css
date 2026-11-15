@@ -1,4 +1,6 @@
 .bar {
+  position: relative;
+  z-index: 30;
   border-bottom: 1px solid var(--ink);
   background: var(--paper);
   color: var(--ink);
@@ -118,6 +120,10 @@
   text-overflow: ellipsis;
   white-space: nowrap;
 }
+/* Only the phone menu carries its own way into the explorer. */
+.nav a.navEnter {
+  display: none;
+}
 .nav a[aria-current="page"] {
   font-weight: 600;
   text-decoration-thickness: 2px;
@@ -194,82 +200,135 @@
     display: none;
   }
 }
-/* The explorer bar also holds the season switch: its links go into the menu below 1600px. */
-@media (width < 1600px) {
-  .bar[data-account="true"][data-variant="app"] .menu {
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    order: -1;
-    margin-left: -0.5rem;
+/* Laptop widths: the explorer bar keeps its links on one row by tightening
+   them and showing only the account initials; tablets and phones use the menu. */
+@media (1280px <= width < 1600px) {
+  .bar[data-variant="app"] .inner {
+    gap: 0.5rem 1rem;
   }
-  .bar[data-account="true"][data-variant="app"] .nav {
-    display: none;
-    flex-direction: column;
-    gap: 0;
-    order: 10;
-    width: 100%;
-    margin: 0 0 0.5rem;
+  .bar[data-variant="app"] .nav {
+    gap: 0.875rem;
+    font-size: 0.8125rem;
   }
-  .bar[data-account="true"][data-variant="app"] .nav[data-open="true"] {
-    display: flex;
+  .bar[data-variant="app"] .nav a {
+    padding: 0 0.6rem;
+    font-size: 0.8125rem;
   }
-  .bar[data-account="true"][data-variant="app"] .nav a.who {
-    align-self: flex-start;
+  /* Only the round avatar shows; the name stays for screen readers. */
+  .bar[data-variant="app"] .nav .name {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip-path: inset(50%);
+  }
+  .bar[data-variant="app"] .nav a.who {
+    padding: 4px;
+    background: transparent;
+  }
+  .bar[data-variant="app"] .nav a.who:hover .avatar,
+  .bar[data-variant="app"] .nav a.who[aria-current="page"] .avatar {
+    outline: 2px solid var(--honey);
+    outline-offset: 2px;
   }
 }
-/* Signed in, the links need more room: they move into the menu below 1280px. */
+/* Signed in, the site bar's links need more room; the explorer bar also holds
+   the season switch. Both use the menu below 1280px. */
 @media (width < 1280px) {
-  .bar[data-account="true"] .menu {
+  .bar[data-account="true"][data-variant="site"] .menu,
+  .bar[data-variant="app"] .menu {
     display: inline-flex;
     align-items: center;
     justify-content: center;
   }
-  .bar[data-account="true"][data-variant="app"] .menu {
-    order: -1;
-    margin-left: -0.5rem;
-  }
-  .bar[data-account="true"] .nav {
+  .bar[data-account="true"][data-variant="site"] .nav,
+  .bar[data-variant="app"] .nav {
     display: none;
-    flex-direction: column;
-    gap: 0;
-    order: 10;
-    width: 100%;
-    margin: 0 0 0.5rem;
   }
-  .bar[data-account="true"] .nav[data-open="true"] {
+  /* The open menu drops down over the page, so the bar itself never moves. */
+  .bar[data-account="true"][data-variant="site"] .nav[data-open="true"],
+  .bar[data-variant="app"] .nav[data-open="true"] {
+    position: absolute;
+    top: calc(100% + 0.5rem);
+    right: 1rem;
+    z-index: 40;
+    width: min(20rem, calc(100% - 2rem));
     display: flex;
+    flex-direction: column;
+    gap: 0.25rem;
+    margin: 0;
+    padding: 0.625rem;
+    background: var(--paper);
+    border: 2.5px solid var(--ink);
+    border-radius: 18px;
+    box-shadow: 0 18px 32px rgb(28 25 18 / 0.22);
+    font-size: 1rem;
   }
-  .bar[data-account="true"] .nav a.who {
+  .bar[data-account="true"][data-variant="site"] .nav[data-open="true"] a,
+  .bar[data-variant="app"] .nav[data-open="true"] a {
+    min-height: 48px;
+    padding: 0 0.875rem;
+    border-radius: 10px;
+    text-decoration: none;
+  }
+  .bar[data-account="true"][data-variant="site"]
+    .nav[data-open="true"]
+    a[aria-current="page"],
+  .bar[data-variant="app"] .nav[data-open="true"] a[aria-current="page"] {
+    background: var(--honey);
+    color: var(--ink);
+  }
+  .bar[data-account="true"][data-variant="site"] .nav[data-open="true"] a.who,
+  .bar[data-variant="app"] .nav[data-open="true"] a.who {
     align-self: flex-start;
-  }
-}
-/* Below 1100px the links move into the menu, so the bar stays one row. */
-@media (width < 1100px) {
-  .menu {
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
+    margin-top: 0.25rem;
   }
   .bar[data-variant="app"] .menu {
     order: -1;
     margin-left: -0.5rem;
   }
-  .nav,
-  .bar[data-variant="app"] .nav {
+}
+/* Below 1100px every bar uses the menu, so it stays one row. */
+@media (width < 1100px) {
+  .bar .menu {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+  }
+  .bar .nav {
     display: none;
-    flex-direction: column;
-    gap: 0;
-    order: 10;
-    width: 100%;
-    margin: 0 0 0.5rem;
   }
-  .nav[data-open="true"],
-  .bar[data-variant="app"] .nav[data-open="true"] {
+  /* The open menu drops down over the page, so the bar itself never moves. */
+  .bar .nav[data-open="true"] {
+    position: absolute;
+    top: calc(100% + 0.5rem);
+    right: 1rem;
+    z-index: 40;
+    width: min(20rem, calc(100% - 2rem));
     display: flex;
+    flex-direction: column;
+    gap: 0.25rem;
+    margin: 0;
+    padding: 0.625rem;
+    background: var(--paper);
+    border: 2.5px solid var(--ink);
+    border-radius: 18px;
+    box-shadow: 0 18px 32px rgb(28 25 18 / 0.22);
+    font-size: 1rem;
   }
-  .nav a.who {
+  .bar .nav[data-open="true"] a {
+    min-height: 48px;
+    padding: 0 0.875rem;
+    border-radius: 10px;
+    text-decoration: none;
+  }
+  .bar .nav[data-open="true"] a[aria-current="page"] {
+    background: var(--honey);
+    color: var(--ink);
+  }
+  .bar .nav[data-open="true"] a.who {
     align-self: flex-start;
+    margin-top: 0.25rem;
   }
 }
 @media (width < 760px) {
@@ -284,11 +343,22 @@
     margin-left: 0;
   }
   .enter {
-    order: 11;
-    width: 100%;
     display: none;
   }
-  .nav[data-open="true"] ~ .enter {
+  .nav[data-open="true"] a.navEnter {
     display: inline-flex;
+    gap: 0.6rem;
+    font-weight: 600;
   }
+}
+/* The explorer's menu opens from its left-hand button, on the dark bar. */
+.bar[data-variant="app"] .nav[data-open="true"] {
+  left: 1rem;
+  right: auto;
+  background: var(--ink);
+  border-color: var(--honey);
+}
+.bar[data-variant="app"] .nav[data-open="true"] a[aria-current="page"] {
+  background: var(--honey);
+  color: var(--ink);
 }

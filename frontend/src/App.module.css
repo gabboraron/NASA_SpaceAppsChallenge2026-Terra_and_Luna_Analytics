@@ -60,6 +60,20 @@
   color: #fff;
 }
 /* On the dark app bar the standard focus blue would not show. */
+/* Laptop widths: a tighter season switch leaves room for the site links. */
+@media (1100px <= width < 1600px) {
+  .bar {
+    flex-wrap: nowrap;
+  }
+  .chip {
+    padding: 2px 8px;
+    font-size: 0.6875rem;
+  }
+  .season button {
+    padding: 0 0.5rem;
+    font-size: 0.8125rem;
+  }
+}
 .season button:focus-visible,
 .layersButton:focus-visible {
   outline: 2px solid var(--honey-pale);
