@@ -322,6 +322,7 @@ def parcel_indices(  # noqa: PLR0913  # injectable search/read/cache keep it tes
     read: ReadFn | None = None,
     cache_dir: Path | None = None,
     per_week: int | None = DEFAULT_PER_WEEK,
+    progress: Callable[[int, int], None] | None = None,
 ) -> dict[str, list[Obs]]:
     """Return NDVI/NDYI observations per parcel between two dates.
 
@@ -338,13 +339,18 @@ def parcel_indices(  # noqa: PLR0913  # injectable search/read/cache keep it tes
         read: Scene window reader; defaults to remote cloud-optimised GeoTIFF reads.
         cache_dir: Cache root; defaults to the configured one.
         per_week: Usable observations wanted per 7-day block; None reads all passes.
+        progress: Called with (done, total) 7-day blocks as the reads go on.
 
     Returns:
         Observations keyed by parcel id, sorted by date.
     """
     search_fn, read_fn = _backend(search, read)
+    blocks = (end - start).days // 7 + 1
+    total = len(parcels) * blocks
+    if progress:  # shown while the first scene search runs
+        progress(0, total)
     result: dict[str, list[Obs]] = {}
-    for parcel in parcels:
+    for i, parcel in enumerate(parcels):
         polygon = to_shape(parcel.geometry)
         scenes = _scenes(search_fn, polygon.bounds, (start, end), cache_dir)
         weeks = weeks_of_passes(passes(scenes), start)
@@ -356,8 +362,14 @@ def parcel_indices(  # noqa: PLR0913  # injectable search/read/cache keep it tes
             per_week=per_week,
         )
         # Every read is a remote round trip, so the 7-day blocks run on a pool.
+        observations: list[Obs] = []
         with ThreadPoolExecutor(max_workers=_WORKERS) as pool:
-            observations = [o for week in pool.map(observe, weeks) for o in week]
+            for done, week in enumerate(pool.map(observe, weeks), 1):
+                observations.extend(week)
+                if progress:
+                    progress(i * blocks + done, total)
+        if progress:  # blocks without a pass count as done too
+            progress((i + 1) * blocks, total)
         result[parcel.id] = sorted(observations, key=lambda o: (o.day, o.scene_id))
     return result
 

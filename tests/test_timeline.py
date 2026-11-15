@@ -396,7 +396,7 @@ def test_fetch_inputs_reads_smap_when_a_token_is_set(
     inputs = tl.fetch_inputs(2022, [parcel()], tmp_path, earthdata=True, phenology={})
     assert inputs.smap is season
     assert not inputs.failed
-    assert seen == {"year": 2022, "read": None, "cache_dir": tmp_path}
+    assert seen == {"year": 2022, "read": None, "cache_dir": tmp_path, "progress": None}
 
 
 def test_fetch_inputs_turns_a_smap_failure_into_a_reason(

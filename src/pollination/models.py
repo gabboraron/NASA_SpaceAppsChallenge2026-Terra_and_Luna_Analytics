@@ -165,14 +165,24 @@ class SoilMoistureWeek(BaseModel):
     percentile: Measurement
 
 
+class FetchProgress(BaseModel):
+    """How far a background NASA read has got: ``done`` of ``total`` reads."""
+
+    source: str
+    done: int
+    total: int
+
+
 class TimelineResponse(BaseModel):
     """Seasonal map data loaded in one request.
 
-    ``pending`` means HLS and SMAP are still being fetched: ask again later.
+    ``pending`` means HLS and SMAP are still being fetched: ask again later;
+    ``progress`` then says how far each source has got.
     """
 
     year: int
     pending: bool = False
+    progress: list[FetchProgress] = Field(default_factory=list[FetchProgress])
     parcel_weeks: list[ParcelWeek]
     smap_cells: list[SoilMoistureWeek]
 

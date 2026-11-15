@@ -15,6 +15,7 @@ from bisect import bisect_left
 from collections.abc import Callable, Mapping, Sequence
 from dataclasses import dataclass
 from datetime import date, timedelta
+from functools import partial
 from pathlib import Path
 from typing import NoReturn
 
@@ -711,13 +712,14 @@ def pending_inputs(
     )
 
 
-def fetch_inputs(
+def fetch_inputs(  # noqa: PLR0913  # the season's sources plus a progress hook
     year: int,
     parcels: Sequence[m.Parcel],
     cache_dir: Path,
     *,
     earthdata: bool,
     phenology: Mapping[str, PhenologyEntry],
+    progress: Callable[[str, int, int], None] | None = None,
 ) -> SeasonInputs:
     """Fetch POWER, HLS and SMAP inputs for a season; failures become reasons.
 
@@ -735,6 +737,8 @@ def fetch_inputs(
             SMAP are read from the cache only, and a cache miss is ``Missing``.
         phenology: Phenology entries by crop, to know which nodes need the
             previous autumn.
+        progress: Called with a source ("HLS" or "SMAP") and its (done, total)
+            reads as they go on.
 
     Returns:
         The inputs for :func:`build_timeline`.
@@ -757,10 +761,17 @@ def fetch_inputs(
             search=live,
             read=live,
             cache_dir=cache_dir,
+            progress=progress and partial(progress, "HLS"),
         ),
     )
     smap, smap_failed = _read_nasa(
-        "SMAP", lambda: smap_client.season(year, read=live, cache_dir=cache_dir)
+        "SMAP",
+        lambda: smap_client.season(
+            year,
+            read=live,
+            cache_dir=cache_dir,
+            progress=progress and partial(progress, "SMAP"),
+        ),
     )
     failed = failed or hls_failed or smap_failed
     return SeasonInputs(power=power, hls=observed, smap=smap, failed=failed)

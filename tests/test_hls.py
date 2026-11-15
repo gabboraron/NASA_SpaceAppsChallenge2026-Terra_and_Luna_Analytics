@@ -11,6 +11,7 @@ from shapely.geometry import Polygon
 
 from pollination.models import HlsResponse, Parcel
 from pollination.nasa.hls import (
+    DEFAULT_PER_WEEK,
     BandWindow,
     Obs,
     Scene,
@@ -194,6 +195,22 @@ def test_parcel_indices_orders_and_drops_unusable_scenes(tmp_path: Path) -> None
     assert result["P01"][1].ndyi > result["P01"][0].ndyi
 
 
+def test_parcel_indices_reports_progress_up_to_every_block(tmp_path: Path) -> None:
+    """Progress climbs per 7-day block and ends at all blocks of all parcels."""
+    fakes = Fakes({"S_05": window(), "S_20": window()})
+    seen: list[tuple[int, int]] = []
+    parcel_indices(
+        [parcel(), parcel()],
+        date(2024, 7, 1),
+        date(2024, 7, 31),  # 5 blocks: four full weeks and a 3-day tail
+        search=fakes.search,
+        read=fakes.read,
+        cache_dir=tmp_path,
+        progress=lambda done, total: seen.append((done, total)),
+    )
+    assert seen == [(0, 10), (1, 10), (2, 10), (5, 10), (6, 10), (7, 10), (10, 10)]
+
+
 def test_parcel_indices_second_run_hits_the_cache(tmp_path: Path) -> None:
     """A rerun reads no scene again, including the ones that had no observation."""
     fakes = Fakes({"S_05": window(), "S_20": window(fmask=0b10)})
@@ -310,7 +327,9 @@ def test_weeks_of_passes_split_on_seven_day_blocks_and_sort_by_cloud() -> None:
     ]
 
 
-def run_scenes(fakes: SceneFakes, tmp_path: Path, **kwargs: int | None) -> list[Obs]:
+def run_scenes(
+    fakes: SceneFakes, tmp_path: Path, per_week: int | None = DEFAULT_PER_WEEK
+) -> list[Obs]:
     """Observe the parcel over July 2024 with the fakes."""
     result = parcel_indices(
         [parcel()],
@@ -319,7 +338,7 @@ def run_scenes(fakes: SceneFakes, tmp_path: Path, **kwargs: int | None) -> list[
         search=fakes.search,
         read=fakes.read,
         cache_dir=tmp_path,
-        **kwargs,
+        per_week=per_week,
     )
     return result["P01"]
 
