@@ -135,6 +135,8 @@ class ModelWeek:
         blooming: Share of those parcels in ``blooming`` state.
         low_nectar: Share of those parcels flagged ``low_nectar``.
         missing: Share whose bloom provenance is ``Missing`` (no evidence).
+        bloom_start: Median modelled bloom start (``estimated_bloom.start``) of the
+            blooming parcels, or None when none of them has a modelled window.
     """
 
     starts_on: date
@@ -142,6 +144,7 @@ class ModelWeek:
     blooming: float
     low_nectar: float
     missing: float
+    bloom_start: date | None = None
 
 
 @dataclass(frozen=True)

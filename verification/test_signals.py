@@ -4,7 +4,9 @@ from datetime import date, datetime, timedelta
 
 import pytest
 
+from pollination.models import BloomState, Parcel, ParcelWeek, Provenance, Window
 from verification.framework import CropWindow, ModelWeek, Weather, load_thresholds
+from verification.model import summarise
 from verification.signals import (
     crop_flow,
     daily_gains,
@@ -94,6 +96,38 @@ def test_model_onset_and_peak() -> None:
     assert model_onset(weeks, 0.5) == date(2024, 3, 15)
     assert model_peak(weeks, 0.5) == date(2024, 3, 25)
     assert model_onset(weeks[:2], 0.5) is None
+
+
+def test_model_onset_is_the_modelled_start_when_the_timeline_gives_one() -> None:
+    first = ModelWeek(date(2024, 3, 15), 4, 1.0, 0.0, 0.0, date(2024, 3, 19))
+    weeks = [week(date(2024, 3, 8), 0.25), first, week(date(2024, 3, 22), 1.0)]
+    assert model_onset(weeks, 0.5) == date(2024, 3, 19)
+    assert model_peak(weeks, 0.5) == date(2024, 3, 18)  # the peak stays weekly
+
+
+def test_summarise_takes_the_median_start_of_the_blooming_parcels() -> None:
+    starts = {"P1": date(2024, 4, 24), "P2": date(2024, 4, 25), "P3": date(2024, 4, 27)}
+    parcels = [
+        Parcel.model_construct(id=i, crop="black_locust") for i in [*starts, "P4"]
+    ]
+    known = Provenance(kind="Estimated", source="model", observed_at=None)
+
+    def entry(parcel: str, state: BloomState, start: date | None) -> ParcelWeek:
+        window = Window(start=start, end=start + timedelta(days=9)) if start else None
+        return ParcelWeek.model_construct(
+            parcel_id=parcel,
+            starts_on=date(2024, 4, 19),
+            bloom_state=state,
+            bloom_provenance=known,
+            nectar_state="normal",
+            estimated_bloom=window,
+        )
+
+    weeks = [entry(p, "blooming", s) for p, s in starts.items()]
+    weeks.append(entry("P4", "pre_bloom", date(2024, 5, 20)))
+    (found,) = summarise(parcels, weeks)["black_locust"]
+    assert found.blooming == 0.75
+    assert found.bloom_start == date(2024, 4, 25)
 
 
 def test_gdd_accumulates_from_start() -> None:

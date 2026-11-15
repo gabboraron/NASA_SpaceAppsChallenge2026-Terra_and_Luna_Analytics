@@ -223,8 +223,17 @@ def r0_reference(ctx: Context) -> Outcome:
 
 def s1_locust_onset(ctx: Context) -> Outcome:
     """S1: model black-locust onset (POWER GDD) vs hive spring-flow onset."""
-    found = _date_errors(ctx, crop_reference(ctx, LOCUST), LOCUST, peak=False)
-    return _gate(found, ctx.thresholds.gates.onset_days)
+    ref = crop_reference(ctx, LOCUST)
+    metrics, errors, notes = _date_errors(ctx, ref, LOCUST, peak=False)
+    # Also shown, not gated: the weekly timeline a user sees starts up to 6 days early.
+    share = ctx.thresholds.model.bloom_share
+    for year in errors:
+        first = bloom_weeks(model_weeks(ctx, year, LOCUST) or [], share)[0].starts_on
+        observed = ref.ref_date(year)
+        metrics[f"{year}_first_blooming_week"] = first.isoformat()
+        if observed:
+            metrics[f"{year}_week_error_days"] = (first - observed).days
+    return _gate((metrics, errors, notes), ctx.thresholds.gates.onset_days)
 
 
 def s2_year_shift(ctx: Context) -> Outcome:

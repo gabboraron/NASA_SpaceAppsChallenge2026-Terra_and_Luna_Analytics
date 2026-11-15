@@ -195,3 +195,5 @@ def test_only_filter_and_reports() -> None:
 def test_perfect_onset_error_is_within_a_week(year: int) -> None:
     result = by_id(run_all(context(), SCENARIOS))["S1"]
     assert abs(int(str(result.metrics[f"{year}_error_days"]))) <= 6
+    # The weekly reading is reported next to the gated one.
+    assert f"{year}_week_error_days" in result.metrics

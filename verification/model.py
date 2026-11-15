@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import statistics
 from collections import defaultdict
 from collections.abc import Sequence
 from datetime import date
@@ -30,7 +31,8 @@ def summarise(
         weeks: Timeline entries (one per parcel and week).
 
     Returns:
-        Crop -> weekly shares (blooming, low nectar, Missing evidence), by date.
+        Crop -> weekly shares (blooming, low nectar, Missing evidence) and the
+        median modelled bloom start of the blooming parcels, by date.
     """
     crop_of = {p.id: p.crop for p in parcels}
     grouped: dict[tuple[str, date], list[ParcelWeek]] = defaultdict(list)
@@ -40,6 +42,11 @@ def summarise(
     result: dict[str, list[ModelWeek]] = defaultdict(list)
     for (crop, starts_on), items in sorted(grouped.items()):
         n = len(items)
+        starts = [
+            i.estimated_bloom.start
+            for i in items
+            if i.bloom_state == "blooming" and i.estimated_bloom
+        ]
         result[crop].append(
             ModelWeek(
                 starts_on=starts_on,
@@ -47,6 +54,7 @@ def summarise(
                 blooming=sum(i.bloom_state == "blooming" for i in items) / n,
                 low_nectar=sum(i.nectar_state == "low_nectar" for i in items) / n,
                 missing=sum(i.bloom_provenance.kind == "Missing" for i in items) / n,
+                bloom_start=statistics.median_low(starts) if starts else None,
             )
         )
     return dict(result)
