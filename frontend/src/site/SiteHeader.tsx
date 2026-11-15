@@ -40,7 +40,11 @@ export function SiteHeader({ variant = "site", children }: Props) {
       .map((w) => w[0].toUpperCase())
       .join("") || "?";
   return (
-    <header className={styles.bar} data-variant={variant}>
+    <header
+      className={styles.bar}
+      data-variant={variant}
+      data-account={!!account}
+    >
       <div className={styles.inner}>
         <Link to={ROUTES.home} className={styles.brand}>
           <BeeMark size={app ? 26 : 30} inverse={app} />

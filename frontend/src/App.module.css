@@ -305,12 +305,16 @@
   }
 }
 
-/* Phone: map, week bar, then a bottom sheet showing one panel at a time.
-   The picker already tags each beekeeper Synthetic, so the demo chip goes. */
-@media (width < 760px) {
+/* The listings are labelled illustrative in every panel; the demo chip makes
+   room for the season switch on narrow bars. */
+@media (width < 1100px) {
   .demo {
     display: none;
   }
+}
+
+/* Phone: map, week bar, then a bottom sheet showing one panel at a time. */
+@media (width < 760px) {
   .workspace {
     --map-h: 340px;
     grid-template-areas: "map" "week" "tabs" "panel";

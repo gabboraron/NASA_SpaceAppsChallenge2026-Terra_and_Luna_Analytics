@@ -168,21 +168,28 @@
   color: inherit;
   cursor: pointer;
 }
+/* Signed in, the account pill takes the tagline's room. */
+.bar[data-account="true"] .tagline {
+  display: none;
+}
+.bar[data-account="true"] .nav {
+  gap: 1.25rem;
+}
 @media (width < 1280px) {
   .tagline {
     display: none;
   }
 }
-/* Explorer bar: nav moves into the menu below the three-column layout. */
-@media (width < 1100px) {
-  .bar[data-variant="app"] .menu {
+/* The explorer bar also holds the season switch: its links go into the menu below 1600px. */
+@media (width < 1600px) {
+  .bar[data-account="true"][data-variant="app"] .menu {
     display: inline-flex;
     align-items: center;
     justify-content: center;
     order: -1;
     margin-left: -0.5rem;
   }
-  .bar[data-variant="app"] .nav {
+  .bar[data-account="true"][data-variant="app"] .nav {
     display: none;
     flex-direction: column;
     gap: 0;
@@ -190,22 +197,49 @@
     width: 100%;
     margin: 0 0 0.5rem;
   }
-  .bar[data-variant="app"] .nav[data-open="true"] {
+  .bar[data-account="true"][data-variant="app"] .nav[data-open="true"] {
     display: flex;
   }
+  .bar[data-account="true"][data-variant="app"] .nav a.who {
+    align-self: flex-start;
+  }
 }
-@media (width < 760px) {
-  .bar[data-variant="app"] .brand span {
+/* Signed in, the links need more room: they move into the menu below 1280px. */
+@media (width < 1280px) {
+  .bar[data-account="true"] .menu {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+  }
+  .bar[data-account="true"][data-variant="app"] .menu {
+    order: -1;
+    margin-left: -0.5rem;
+  }
+  .bar[data-account="true"] .nav {
     display: none;
+    flex-direction: column;
+    gap: 0;
+    order: 10;
+    width: 100%;
+    margin: 0 0 0.5rem;
   }
-  .inner,
-  .bar[data-variant="app"] .inner {
-    padding: 0 1rem;
+  .bar[data-account="true"] .nav[data-open="true"] {
+    display: flex;
   }
+  .bar[data-account="true"] .nav a.who {
+    align-self: flex-start;
+  }
+}
+/* Below 1100px the links move into the menu, so the bar stays one row. */
+@media (width < 1100px) {
   .menu {
     display: inline-flex;
     align-items: center;
     justify-content: center;
+  }
+  .bar[data-variant="app"] .menu {
+    order: -1;
+    margin-left: -0.5rem;
   }
   .nav,
   .bar[data-variant="app"] .nav {
@@ -216,8 +250,21 @@
     width: 100%;
     margin: 0 0 0.5rem;
   }
-  .nav[data-open="true"] {
+  .nav[data-open="true"],
+  .bar[data-variant="app"] .nav[data-open="true"] {
     display: flex;
+  }
+  .nav a.who {
+    align-self: flex-start;
+  }
+}
+@media (width < 760px) {
+  .bar[data-variant="app"] .brand span {
+    display: none;
+  }
+  .inner,
+  .bar[data-variant="app"] .inner {
+    padding: 0 1rem;
   }
   .extra {
     margin-left: 0;
