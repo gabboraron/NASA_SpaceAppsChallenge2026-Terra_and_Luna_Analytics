@@ -2,24 +2,26 @@ import { describe, expect, it } from "vitest";
 import { actors, matches, parcels, timeline, verify } from "../../api/mocks";
 import type { MatchCard } from "../../api/client";
 import {
-  WEEKS,
   beekeeperCollection,
   centroid,
   foragingRings,
   hatch,
-  indexWeeks,
   matchLabels,
-  isHighBloomLowNectar,
   isInterpolated,
-  monthTicks,
   weekSummary,
   rgba,
   parcelCollection,
   parcelDots,
   smapCollection,
   smapOpacity,
-  weekLabel,
 } from "./layers";
+import {
+  WEEKS,
+  indexWeeks,
+  isHighBloomLowNectar,
+  monthTicks,
+  weekLabel,
+} from "../../domain/season";
 
 // Haversine distance in km, independent of turf.
 function km([lon1, lat1]: number[], [lon2, lat2]: number[]): number {

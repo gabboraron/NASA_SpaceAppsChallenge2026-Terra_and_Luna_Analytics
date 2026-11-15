@@ -11,9 +11,11 @@ from datetime import date
 from pollination import models as m
 from pollination.engine.phenology import accumulate
 from pollination.nasa.power import PowerDaily
+from pollination.nasa.smap import DEFAULT_BASELINE
+from pollination.weeks import SEASON_END, SEASON_START
 
 SOURCE = "NASA POWER daily (MERRA-2)"
-BASELINE_YEARS = tuple(range(2015, 2025))  # same baseline as the SMAP percentiles
+BASELINE_YEARS = DEFAULT_BASELINE  # same baseline as the SMAP percentiles
 MIN_BASELINE_YEARS = 5  # fewer same-period totals than this: no anomaly
 MIN_BASELINE_COVERAGE = 0.9  # share of a baseline year's days that must have rain data
 
@@ -25,10 +27,7 @@ def _count(n: int, unit: str) -> str:
 
 def _missing(reason: str) -> m.Measurement:
     """A measurement that is absent, with the reason."""
-    provenance = m.Provenance(
-        kind="Missing", source=SOURCE, observed_at=None, note=reason
-    )
-    return m.Measurement(value=None, provenance=provenance)
+    return m.Measurement.missing(SOURCE, reason)
 
 
 def _estimated(value: float, last: date, note: str) -> m.Measurement:
@@ -73,7 +72,7 @@ def _anomaly(
         return _missing(f"No baseline for the anomaly: {history}")
     totals: dict[int, float] = {}
     for year in baseline_years:
-        start, end = date(year, 3, 1), date(year, last.month, last.day)
+        start, end = date(year, *SEASON_START), date(year, last.month, last.day)
         rain, present, absent = _rain_total(history, start, end)
         if present and present / (present + absent) >= MIN_BASELINE_COVERAGE:
             totals[year] = rain
@@ -116,7 +115,7 @@ def power_response(  # noqa: PLR0913  # the season, its baseline and three thres
     """
     if isinstance(daily, str):
         return _all_missing(daily)
-    start, end = date(year, 3, 1), date(year, 8, 31)
+    start, end = date(year, *SEASON_START), date(year, *SEASON_END)
     days = [d for d in daily.days if start <= d <= end]
     if not days:
         return _all_missing("NASA POWER returned no days for this season")

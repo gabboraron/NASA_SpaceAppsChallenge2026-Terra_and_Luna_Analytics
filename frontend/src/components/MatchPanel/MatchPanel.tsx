@@ -7,12 +7,8 @@ import type {
 } from "../../api/client";
 import type { Matches } from "../../hooks/useMatches";
 import { BeekeeperPicker } from "../BeekeeperPicker/BeekeeperPicker";
-import {
-  BLOOM_COLORS,
-  cropName,
-  weekLabel,
-  weekStateText,
-} from "../MapCanvas/layers";
+import { BLOOM_COLORS, weekStateText } from "../MapCanvas/layers";
+import { cropName, weekLabel } from "../../domain/season";
 import { ProvenanceBadge } from "../ProvenanceBadge/ProvenanceBadge";
 import { countText, groupCards, ownWarnings } from "./cards";
 import styles from "./MatchPanel.module.css";

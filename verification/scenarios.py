@@ -7,6 +7,7 @@ from collections.abc import Mapping, Sequence
 from dataclasses import dataclass
 from datetime import date, timedelta
 
+from pollination.weeks import WEEK_DAYS
 from verification.framework import (
     Context,
     Metric,
@@ -18,7 +19,6 @@ from verification.framework import (
     Weather,
 )
 from verification.signals import (
-    WEEK_DAYS,
     Flow,
     bloom_weeks,
     crop_flows,

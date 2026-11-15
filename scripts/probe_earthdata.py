@@ -1,7 +1,6 @@
 """Prove remote HLS and SMAP access at one pilot-region location."""
 
 import logging
-import math
 from contextlib import closing
 from pathlib import Path
 
@@ -12,6 +11,8 @@ import rasterio
 from dotenv import load_dotenv
 from pyproj import Transformer
 from rasterio.windows import Window
+
+from pollination.geo import SMAP_COLS, SMAP_ROWS, smap_cell
 
 LON, LAT = 22.13, 47.84
 JUNE = ("2024-06-01", "2024-06-30")
@@ -54,12 +55,8 @@ def smap_probe() -> None:
         temporal=("2024-06-12T12:00:00Z", "2024-06-12T15:00:00Z"),
         count=3,
     )
-    # Global 9 km EASE-Grid 2.0 outer edges and pixel spacing, in metres.
-    x, y = Transformer.from_crs("EPSG:4326", "EPSG:6933", always_xy=True).transform(
-        LON, LAT
-    )
-    col = math.floor((x + 17_367_530.445161) / 9_008.055210)
-    row = math.floor((7_314_540.830638 - y) / 9_008.055210)
+    cell = smap_cell(POINT)
+    row, col = cell.row, cell.col
 
     for granule in granules:
         urls = [u for u in granule.data_links() if u.split("?")[0].endswith(".h5")]
@@ -67,7 +64,7 @@ def smap_probe() -> None:
             (remote,) = earthaccess.open([url])
             with closing(remote), h5py.File(remote, "r") as product:
                 moisture = product["Geophysical_Data/sm_rootzone"]
-                if moisture.shape != (1624, 3856):
+                if moisture.shape != (SMAP_ROWS, SMAP_COLS):
                     raise RuntimeError(f"Unexpected SMAP grid: {moisture.shape}")
                 value = float(moisture[row, col])
                 fill = moisture.attrs.get("_FillValue")

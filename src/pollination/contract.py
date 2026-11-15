@@ -25,7 +25,7 @@ from pollination.engine.polygon import BASELINE_YEARS, power_response
 from pollination.engine.timeline import SeasonInputs, build_timeline, fetch_inputs
 from pollination.geo import centroid, to_shape
 from pollination.nasa import hls
-from pollination.nasa.failure import reason
+from pollination.nasa.failure import no_token, reason
 from pollination.nasa.power import PowerDaily, daily_point
 from pollination.weeks import SEASON_END
 
@@ -222,12 +222,6 @@ def power(
     )
 
 
-def _hls_missing(why: str) -> m.HlsResponse:
-    """An HLS response that says why there is no observation."""
-    gap = m.Measurement.missing(hls.SOURCE, why)
-    return m.HlsResponse(observed_at=None, ndvi=gap, ndyi=gap)
-
-
 @router.post("/polygon/hls")
 def hls_latest(
     polygon: m.Polygon, latest: Annotated[HlsLatest, Depends(latest_hls)]
@@ -237,14 +231,14 @@ def hls_latest(
     Slow on a cold cache (remote reads); needs an Earthdata token.
     """
     if not Settings().has_earthdata:
-        return _hls_missing("No Earthdata token configured; HLS not queried")
+        return hls.missing_response(no_token("HLS"))
     west, south, east, north = to_shape(polygon).bounds
     if max(east - west, north - south) > MAX_POLYGON_SPAN_DEG:
-        return _hls_missing(
+        return hls.missing_response(
             "Polygon too large for a satellite read; draw one around a single field"
         )
     try:
         return latest(polygon)
     except Exception as exc:  # any NASA failure becomes Missing
         log.warning("HLS request failed: %s", exc)
-        return _hls_missing(reason("HLS", exc))
+        return hls.missing_response(reason("HLS", exc))

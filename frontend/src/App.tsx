@@ -19,11 +19,9 @@ import { DrawnField } from "./components/DrawnField/DrawnField";
 import { LayerPanel } from "./components/LayerPanel/LayerPanel";
 import { MapCanvas } from "./components/MapCanvas/MapCanvas";
 import {
-  cropName,
   beekeeperCollection,
   centroid,
   foragingRings,
-  indexWeeks,
   parcelCollection,
   matchLabels,
   parcelDots,
@@ -39,7 +37,14 @@ import {
 import { MatchPanel } from "./components/MatchPanel/MatchPanel";
 import { MoveCalculator } from "./components/MoveCalculator/MoveCalculator";
 import { TimeSlider } from "./components/TimeSlider/TimeSlider";
-import { SEASONS, SEASON_LABELS, WEEKS, isSeason } from "./domain/season";
+import {
+  SEASONS,
+  SEASON_LABELS,
+  WEEKS,
+  isSeason,
+  cropName,
+  indexWeeks,
+} from "./domain/season";
 import { useEscape } from "./hooks/useEscape";
 import { useField } from "./hooks/useField";
 import { useMatches } from "./hooks/useMatches";
@@ -230,14 +235,8 @@ export function App() {
     (id: LayerId) => setVisible((v) => ({ ...v, [id]: !v[id] })),
     [],
   );
-  // Touch has no mouseleave, so selection changes also clear the hover outline.
-  const closeDetail = useCallback(() => {
-    setSelected("");
-    setHovered("");
-    setPlanning(false);
-    setSheet("matches");
-  }, []);
   const closePlan = useCallback(() => setPlanning(false), []);
+  // Touch has no mouseleave, so selection changes also clear the hover outline.
   const select = useCallback((id: string) => {
     setSelected(id);
     setHovered("");
@@ -245,6 +244,7 @@ export function App() {
     setPlanning(false);
     setSheet(id ? "parcel" : "matches");
   }, []);
+  const closeDetail = useCallback(() => select(""), [select]);
   // Open the calculator with a beekeeper whose goal fits the parcel's service.
   const planMove = (parcel: Parcel) => {
     if (beekeeper?.goal !== parcel.service_type) {
