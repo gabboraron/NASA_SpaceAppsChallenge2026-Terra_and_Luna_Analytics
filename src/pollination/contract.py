@@ -5,11 +5,13 @@ verification, the calculator, the matches and the drawn-polygon POWER and HLS ro
 NASA failures become ``Missing`` values with a reason, never errors or made-up data.
 """
 
+import json
 import logging
 from collections import defaultdict
 from collections.abc import Callable
 from datetime import date
-from functools import cache
+from functools import cache, partial
+from pathlib import Path
 from threading import Lock, Thread
 from time import monotonic
 from typing import Annotated
@@ -77,7 +79,12 @@ def check_season(year: int) -> None:
         raise HTTPException(status_code=422, detail=detail)
 
 
-def _fetch(year: int, *, satellites: bool) -> SeasonInputs:
+def _fetch(
+    year: int,
+    *,
+    satellites: bool,
+    progress: Callable[[str, int, int], None] | None = None,
+) -> SeasonInputs:
     """Fetch a season's inputs from NASA (or its cache), or only POWER for now."""
     settings, data = Settings(), catalog()
     if not satellites:
@@ -88,6 +95,7 @@ def _fetch(year: int, *, satellites: bool) -> SeasonInputs:
         settings.cache_dir,
         earthdata=settings.has_earthdata,
         phenology=data.phenology,
+        progress=progress,
     )
 
 
@@ -97,18 +105,57 @@ def _keep(year: int, inputs: SeasonInputs) -> None:
     _timelines.pop(year, None)  # built from the inputs just replaced
 
 
+def _progress_file(year: int) -> Path:
+    """Where a season's background fetch notes how far it has got."""
+    return Settings().cache_dir / f"progress-{year}.json"
+
+
+def _record_progress(path: Path, source: str, done: int, total: int) -> None:
+    """Worker side: note a source's (done, total) reads, replacing the file at once.
+
+    The fetch runs in another process, so the server reads this file instead of
+    sharing memory with it.
+    """
+    try:
+        steps = json.loads(path.read_text())
+    except (OSError, ValueError):
+        steps = {}
+    steps[source] = [done, total]
+    part = path.with_suffix(".part")
+    part.write_text(json.dumps(steps))
+    part.replace(path)
+
+
+def fetch_progress(year: int) -> list[m.FetchProgress]:
+    """How far the season's background fetch has got, per source started so far."""
+    try:
+        steps = json.loads(_progress_file(year).read_text())
+    except (OSError, ValueError):  # not started, finished, or mid-replace
+        return []
+    return [
+        m.FetchProgress(source=source, done=done, total=total)
+        for source, (done, total) in steps.items()
+    ]
+
+
 def _fetch_satellites(year: int) -> None:
     """Background: replace a season's pending inputs with the full ones.
 
     The slow read runs outside the season's lock, so requests keep being answered.
     """
+    path = _progress_file(year)
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.unlink(missing_ok=True)
     try:
         # Minutes of remote HLS/SMAP reads: in a worker process, not this one.
-        inputs = worker.run(_fetch, year, satellites=True)
+        inputs = worker.run(
+            _fetch, year, satellites=True, progress=partial(_record_progress, path)
+        )
         with _inputs_locks[year]:
             _keep(year, inputs)
     finally:
         _fetching.discard(year)
+        path.unlink(missing_ok=True)
 
 
 def season_inputs(year: int) -> SeasonInputs:
@@ -211,10 +258,16 @@ def actors() -> m.Actors:
 
 @router.get("/timeline")
 def timeline(
+    year: int,
     timeline: Annotated[m.TimelineResponse, Depends(season_timeline)],
 ) -> m.TimelineResponse:
-    """Return weekly bloom, nectar and evidence for every parcel in a season."""
-    return timeline
+    """Return weekly bloom, nectar and evidence for every parcel in a season.
+
+    While its satellite part is being fetched, it says how far that has got.
+    """
+    if not timeline.pending:
+        return timeline
+    return timeline.model_copy(update={"progress": fetch_progress(year)})
 
 
 @router.get("/matches")

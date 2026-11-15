@@ -74,6 +74,8 @@ export interface paths {
         /**
          * Timeline
          * @description Return weekly bloom, nectar and evidence for every parcel in a season.
+         *
+         *     While its satellite part is being fetched, it says how far that has got.
          */
         get: operations["timeline_timeline_get"];
         put?: never;
@@ -319,6 +321,18 @@ export interface components {
             verdict: "move" | "do_not_move";
             /** Message */
             message: string;
+        };
+        /**
+         * FetchProgress
+         * @description How far a background NASA read has got: ``done`` of ``total`` reads.
+         */
+        FetchProgress: {
+            /** Source */
+            source: string;
+            /** Done */
+            done: number;
+            /** Total */
+            total: number;
         };
         /**
          * GddPoint
@@ -574,7 +588,8 @@ export interface components {
          * TimelineResponse
          * @description Seasonal map data loaded in one request.
          *
-         *     ``pending`` means HLS and SMAP are still being fetched: ask again later.
+         *     ``pending`` means HLS and SMAP are still being fetched: ask again later;
+         *     ``progress`` then says how far each source has got.
          */
         TimelineResponse: {
             /** Year */
@@ -584,6 +599,8 @@ export interface components {
              * @default false
              */
             pending: boolean;
+            /** Progress */
+            progress?: components["schemas"]["FetchProgress"][];
             /** Parcel Weeks */
             parcel_weeks: components["schemas"]["ParcelWeek"][];
             /** Smap Cells */

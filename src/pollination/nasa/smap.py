@@ -119,13 +119,14 @@ def _baseline_label(baseline: Sequence[int], with_data: int) -> str:
     return label
 
 
-def season(  # injectable bbox/read/cache keep it testable
+def season(  # noqa: PLR0913  # injectable bbox/read/cache/progress keep it testable
     year: int,
     baseline_years: Sequence[int] = DEFAULT_BASELINE,
     *,
     bbox: Bbox | None = None,
     read: ReadFn | None = None,
     cache_dir: Path | None = None,
+    progress: Callable[[int, int], None] | None = None,
 ) -> SmapSeason:
     """Weekly root-zone soil moisture and percentiles of one year, per SMAP cell.
 
@@ -135,6 +136,7 @@ def season(  # injectable bbox/read/cache keep it testable
         bbox: West, south, east, north; defaults to the configured region.
         read: Granule reader for one sample day; defaults to remote HDF5 reads.
         cache_dir: Cache root; defaults to the configured one.
+        progress: Called with (done, total) sample days as the reads go on.
 
     Returns:
         Value, percentile and observation day for every cell and timeline week,
@@ -152,8 +154,16 @@ def season(  # injectable bbox/read/cache keep it testable
     def sample(job: tuple[int, int]) -> DayValues | None:
         return fetch(week_mid(job[0], job[1]))
 
+    data: dict[tuple[int, int], DayValues | None] = {}
+    if progress:
+        progress(0, len(jobs))
     with ThreadPoolExecutor(max_workers=_WORKERS) as pool:
-        data = dict(zip(jobs, pool.map(sample, jobs), strict=True))
+        for done, (job, values) in enumerate(
+            zip(jobs, pool.map(sample, jobs), strict=True), 1
+        ):
+            data[job] = values
+            if progress:
+                progress(done, len(jobs))
 
     with_data = sum(
         any(v is not None for w in WEEKS for v in (data[(y, w)] or {}).values())

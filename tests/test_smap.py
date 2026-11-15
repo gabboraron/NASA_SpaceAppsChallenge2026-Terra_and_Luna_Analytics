@@ -89,6 +89,19 @@ def test_season_values_percentiles_and_baseline(tmp_path: Path) -> None:
         assert week.percentile == pytest.approx(75.0)
 
 
+def test_season_reports_progress_per_sample_day(tmp_path: Path) -> None:
+    """One step per year and week: the baseline plus the season, 26 weeks each."""
+    seen: list[tuple[int, int]] = []
+    season(
+        2022,
+        bbox=BBOX,
+        read=Fake().read,
+        cache_dir=tmp_path,
+        progress=lambda done, total: seen.append((done, total)),
+    )
+    assert seen == [(n, 260) for n in range(261)]
+
+
 def test_season_missing_year_is_reported_in_baseline(tmp_path: Path) -> None:
     """A baseline year with no granule is dropped and named in the baseline note."""
     result = run(Fake(missing_years={2020}), tmp_path)

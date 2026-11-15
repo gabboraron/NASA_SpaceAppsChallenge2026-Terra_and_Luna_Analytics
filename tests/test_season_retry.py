@@ -2,6 +2,7 @@
 
 from collections.abc import Callable, Iterator
 from datetime import date
+from pathlib import Path
 
 import pytest
 from fastapi import HTTPException
@@ -153,3 +154,33 @@ def test_without_a_token_the_latest_season_is_fetched_in_one_go(
     inputs = contract.season_inputs(latest_season(date.today()))
     assert inputs is made[0]
     assert not inputs.pending
+
+
+def test_a_pending_timeline_says_how_far_the_satellite_fetch_has_got(
+    monkeypatch: pytest.MonkeyPatch, clock: Clock, tmp_path: Path
+) -> None:
+    """Each source's (done, total) shows while it runs and is gone afterwards."""
+    year = latest_season(date.today())
+    monkeypatch.setenv("CACHE_DIR", str(tmp_path))
+    full = SeasonInputs(power={}, hls="n/a", smap="n/a")
+    pending = m.TimelineResponse(
+        year=year, pending=True, parcel_weeks=[], smap_cells=[]
+    )
+    during: list[m.TimelineResponse] = []
+
+    def fetch(
+        _: int, *, satellites: bool, progress: Callable[[str, int, int], None]
+    ) -> SeasonInputs:
+        assert satellites
+        progress("HLS", 3, 10)
+        progress("SMAP", 1, 286)
+        during.append(contract.timeline(year, pending))
+        return full
+
+    monkeypatch.setattr(contract, "_fetch", fetch)
+    contract._fetch_satellites(year)  # pyright: ignore[reportPrivateUsage]  # the thread's body
+    assert [(p.source, p.done, p.total) for p in during[0].progress] == [
+        ("HLS", 3, 10),
+        ("SMAP", 1, 286),
+    ]
+    assert contract.timeline(year, pending).progress == []

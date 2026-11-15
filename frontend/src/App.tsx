@@ -54,7 +54,12 @@ import styles from "./App.module.css";
 
 // Week 20 = mid-July, sunflower bloom: the demo's opening view.
 const START_WEEK = 20;
-const PENDING_POLL_MS = 20_000;
+const PENDING_POLL_MS = 5_000;
+// The background NASA reads a pending season reports progress for.
+const SOURCE_LABEL: Record<string, string> = {
+  HLS: "Satellite bloom (HLS)",
+  SMAP: "Soil moisture (SMAP)",
+};
 const ALL_ON: Record<LayerId, boolean> = {
   parcels: true,
   natura: true,
@@ -434,6 +439,18 @@ export function App() {
                   Bloom from weather is shown already; satellite bloom and soil
                   moisture follow, which can take several minutes.
                 </span>
+                {/* Polled every few seconds: not re-announced each time. */}
+                <div aria-live="off" className={styles.progress}>
+                  {(current.data.progress ?? []).map((p) => (
+                    <label key={p.source}>
+                      <span>
+                        {SOURCE_LABEL[p.source] ?? p.source}:{" "}
+                        {Math.floor((100 * p.done) / Math.max(p.total, 1))}%
+                      </span>
+                      <progress value={p.done} max={Math.max(p.total, 1)} />
+                    </label>
+                  ))}
+                </div>
               </div>
             ) : null}
             {timeline &&
