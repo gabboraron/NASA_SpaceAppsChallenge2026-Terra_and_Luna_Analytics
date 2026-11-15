@@ -52,6 +52,7 @@ One container serves the map client at http://localhost:8080 and the API under `
 
 No login is needed for the demo: the repository ships a small warmed cache of the NASA responses for both demo
 seasons (`data/nasa-cache.zip`, see [`docs/cache_setup.md`](docs/cache_setup.md)), which the API imports when it starts.
+With the shipped cache a warm-up finishes in about 15 seconds; fetching everything cold from NASA takes about 17 minutes.
 New responses are cached in the `nasa-cache` volume, so they survive rebuilds. Run `docker compose down -v` to clear it.
 
 Next to the two demo seasons the map offers the latest complete season, read live from NASA. Its weather-based bloom
@@ -77,6 +78,17 @@ cd frontend && npm ci && npm run dev             # map on :5173, /api proxied to
 ```
 
 Checks (same as CI): `uv run ruff check . && uv run ruff format --check . && uv run pyright && uv run pytest`.
+
+## Demo walkthrough
+
+1. Open the map, choose **2024** and a July week: sunflower bloom (NDYI) shows. Switch to **2022**: the SMAP cells turn red
+   and the sunflower parcels show low nectar.
+2. Pick beekeeper **B1** and click a parcel inside a protected area: it is blocked, with the reason. Open the top match to see
+   its reasons, what is missing and the provenance badges.
+3. Choose **Calculate this move**: B1 shows a positive benefit relative to the alternative. Pick **B2**: the verdict is
+   "Do not move".
+4. Choose **Simulate grower field photo**: the bloom turns Observed and confidence rises. Draw a polygon to get POWER
+   results for it (HLS needs an Earthdata login for areas outside the shipped cache).
 
 ## Repository layout
 
