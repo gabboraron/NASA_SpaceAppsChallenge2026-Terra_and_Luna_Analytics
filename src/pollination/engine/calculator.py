@@ -80,13 +80,14 @@ def calculate(inputs: CalculatorInput) -> CalculatorResult:
     if base.benefit_vs_alternative < 0:
         verdict = "do_not_move"
         message = (
-            f"Staying at base apiary yields €{-base.benefit_vs_alternative:,.2f} more."
+            f"Staying at base apiary gives €{-base.benefit_vs_alternative:,.2f} "
+            "more contribution."
         )
     else:
         verdict = "move"
         message = (
-            f"Moving yields €{base.benefit_vs_alternative:,.2f} more than the "
-            "alternative."
+            f"Moving gives €{base.benefit_vs_alternative:,.2f} more contribution "
+            "than the alternative."
         )
     return CalculatorResult(
         low=low, base=base, high=high, verdict=verdict, message=message

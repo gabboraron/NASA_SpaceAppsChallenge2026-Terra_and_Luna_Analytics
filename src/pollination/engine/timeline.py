@@ -302,7 +302,8 @@ def _heat_bloom(
         f"Window {window.start:%d %b}-{window.end:%d %b}{spread}: "
         f"{HEAT_UNITS[entry.method]} reach "
         f"{entry.heat_threshold:g} at {stage} (base {entry.base_temp_c:g} °C), "
-        f"bloom {end}. Source: {entry.source or 'unsourced'}"
+        f"bloom {end}. Heuristic estimate from a heat-sum model, not an "
+        f"observation. Source: {entry.source or 'unsourced'}"
     )
     blooms = [
         _Bloom(

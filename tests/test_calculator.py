@@ -90,7 +90,10 @@ def test_do_not_move_message_states_shortfall() -> None:
     result = calculate(example(distance_km=180, alternative_contribution=2000))
     assert result.verdict == "do_not_move"
     shortfall = -result.base.benefit_vs_alternative
-    assert result.message == f"Staying at base apiary yields €{shortfall:,.2f} more."
+    assert (
+        result.message
+        == f"Staying at base apiary gives €{shortfall:,.2f} more contribution."
+    )
     assert "net profit" not in result.message.lower()
 
 

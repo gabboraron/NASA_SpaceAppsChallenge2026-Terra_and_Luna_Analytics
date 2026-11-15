@@ -87,12 +87,12 @@ export function Receipt() {
         )}
         {live === "error" && (
           <span className={styles.receiptNote}>
-            The live result could not be loaded. Open the explorer to run it.
+            The result could not be loaded. Open the explorer to run it.
           </span>
         )}
       </div>
       <figcaption>
-        Fig. 5 · A live calculator result for a synthetic beekeeper. Line items
+        Fig. 5 · A calculator result computed by the app for a synthetic beekeeper. Line items
         come from the app.
       </figcaption>
     </figure>

@@ -49,6 +49,7 @@ export function ProvenanceBadge({ provenance }: { provenance: Provenance }) {
           {source}
           {observed_at &&
             ` · ${interpolated ? "last obs. " : ""}${formatDate(observed_at)}`}
+          {!observed_at && kind === "Estimated" && " · undated estimate"}
         </span>
       </span>
       {note && <small>{note}</small>}
