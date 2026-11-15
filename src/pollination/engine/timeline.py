@@ -16,6 +16,7 @@ from collections.abc import Callable, Mapping, Sequence
 from dataclasses import dataclass
 from datetime import date, timedelta
 from pathlib import Path
+from typing import NoReturn
 
 import httpx
 
@@ -618,6 +619,15 @@ def _history_start(
     return min(starts, default=None)
 
 
+class _NoTokenError(Exception):
+    """A NASA read was needed that the cache does not hold, and there is no token."""
+
+
+def _needs_token(*_: object) -> NoReturn:
+    """Stand-in for the live HLS and SMAP reads when no token is configured."""
+    raise _NoTokenError
+
+
 def fetch_inputs(
     year: int,
     parcels: Sequence[m.Parcel],
@@ -638,8 +648,8 @@ def fetch_inputs(
         year: Season.
         parcels: All listed parcels.
         cache_dir: NASA response cache root.
-        earthdata: Whether an Earthdata token is configured (HLS and SMAP reads
-            need it).
+        earthdata: Whether an Earthdata token is configured. Without one HLS and
+            SMAP are read from the cache only, and a cache miss is ``Missing``.
         phenology: Phenology entries by crop, to know which nodes need the
             previous autumn.
 
@@ -674,31 +684,36 @@ def fetch_inputs(
                     failed = True
             for parcel in here:
                 power[parcel.id] = series
+    # Without a token only the cache answers: a miss raises instead of calling NASA.
+    live = None if earthdata else _needs_token
     observed: Mapping[str, Sequence[hls.Obs]] | str
-    if not earthdata:
+    targets = [
+        p
+        for p in parcels
+        if (entry := phenology.get(p.crop)) and entry.method == "ndyi"
+    ]
+    try:
+        observed = hls.parcel_indices(
+            targets,
+            date(year, *SEASON_START),
+            end,
+            search=live,
+            read=live,
+            cache_dir=cache_dir,
+        )
+    except _NoTokenError:
         observed = "No Earthdata token configured; HLS not queried"
-    else:
-        targets = [
-            p
-            for p in parcels
-            if (entry := phenology.get(p.crop)) and entry.method == "ndyi"
-        ]
-        try:
-            observed = hls.parcel_indices(
-                targets, date(year, *SEASON_START), end, cache_dir=cache_dir
-            )
-        except Exception as exc:  # any NASA failure becomes Missing
-            log.warning("HLS fetch failed: %s", exc)
-            observed = reason("HLS", exc)
-            failed = True
+    except Exception as exc:  # any NASA failure becomes Missing
+        log.warning("HLS fetch failed: %s", exc)
+        observed = reason("HLS", exc)
+        failed = True
     smap: SmapSeason | str
-    if not earthdata:
+    try:
+        smap = smap_client.season(year, read=live, cache_dir=cache_dir)
+    except _NoTokenError:
         smap = "No Earthdata token configured; SMAP not queried"
-    else:
-        try:
-            smap = smap_client.season(year, cache_dir=cache_dir)
-        except Exception as exc:  # any NASA failure becomes Missing
-            log.warning("SMAP fetch failed: %s", exc)
-            smap = reason("SMAP", exc)
-            failed = True
+    except Exception as exc:  # any NASA failure becomes Missing
+        log.warning("SMAP fetch failed: %s", exc)
+        smap = reason("SMAP", exc)
+        failed = True
     return SeasonInputs(power=power, hls=observed, smap=smap, failed=failed)
