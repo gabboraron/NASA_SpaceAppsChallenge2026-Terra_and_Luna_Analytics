@@ -1,6 +1,7 @@
 import type { ReactNode } from "react";
 import { ReadingPage } from "../../site/ReadingPage";
 import page from "../../site/page.module.css";
+import { Link, ROUTES } from "../../site/router";
 import styles from "./Method.module.css";
 
 const STEPS = [
@@ -206,6 +207,11 @@ export function MethodPage() {
               <span className="mono">data/phenology.json</span> carries a cited
               source. Weeks between two clear satellite passes are interpolated
               and drawn dashed; they are never shown as observations.
+            </p>
+            <p className={page.body}>
+              The black-locust bloom dates are checked against hive-scale
+              records the model never saw:{" "}
+              <Link to={ROUTES.evidence}>see the evidence</Link>.
             </p>
           </Section>
 

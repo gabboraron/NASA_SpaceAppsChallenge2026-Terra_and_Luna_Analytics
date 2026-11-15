@@ -5,6 +5,7 @@ import styles from "./SiteHeader.module.css";
 
 const NAV = [
   { to: ROUTES.method, label: "How it works" },
+  { to: ROUTES.evidence, label: "Evidence" },
   { to: ROUTES.data, label: "Data" },
   { to: ROUTES.guide, label: "Guide" },
 ];
