@@ -140,16 +140,6 @@ function FlightPath() {
           repeatCount="indefinite"
         />
       </path>
-      <g
-        transform="translate(1112 30) rotate(20)"
-        stroke="currentColor"
-        strokeWidth="1.2"
-      >
-        <ellipse cx="7" cy="5" rx="4" ry="2.6" className={styles.fCard} />
-        <ellipse cx="15" cy="5" rx="4" ry="2.6" className={styles.fCard} />
-        <ellipse cx="11" cy="12" rx="5" ry="6.5" className={styles.fHoney} />
-        <path d="M6.5 10.5h9M6.5 14h9" />
-      </g>
     </svg>
   );
 }
