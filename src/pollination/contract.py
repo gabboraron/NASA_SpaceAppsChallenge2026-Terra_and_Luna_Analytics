@@ -17,7 +17,7 @@ from typing import Annotated
 from fastapi import APIRouter, Depends, HTTPException
 
 from pollination import models as m
-from pollination import state
+from pollination import state, worker
 from pollination.config import Settings
 from pollination.datafiles import Catalog, load_catalog
 from pollination.engine import calculator
@@ -103,7 +103,8 @@ def _fetch_satellites(year: int) -> None:
     The slow read runs outside the season's lock, so requests keep being answered.
     """
     try:
-        inputs = _fetch(year, satellites=True)
+        # Minutes of remote HLS/SMAP reads: in a worker process, not this one.
+        inputs = worker.run(_fetch, year, satellites=True)
         with _inputs_locks[year]:
             _keep(year, inputs)
     finally:
@@ -183,7 +184,9 @@ def latest_hls() -> HlsLatest:
     cache_dir = Settings().cache_dir
 
     def latest(polygon: m.Polygon) -> m.HlsResponse:
-        return hls.latest_for_polygon(polygon, HLS_LOOKBACK_DAYS, cache_dir=cache_dir)
+        return worker.run(
+            hls.latest_for_polygon, polygon, HLS_LOOKBACK_DAYS, cache_dir=cache_dir
+        )
 
     return latest
 
