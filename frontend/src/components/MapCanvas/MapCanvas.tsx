@@ -37,8 +37,6 @@ const REGION = new maplibregl.LngLatBounds([21.6, 47.7], [22.4, 48.05]);
 const BASEMAP = "https://tiles.openfreemap.org/styles/liberty";
 const IMAGERY =
   "https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}";
-// A sketch in progress: the same blue as the beekeeper's own parcels.
-const FIELD = OWN;
 const EMPTY: FeatureCollection = { type: "FeatureCollection", features: [] };
 
 /** Draw a `width` × `height` px icon on a canvas and return its pixels for `addImage`. */
@@ -120,6 +118,15 @@ const cropColor: ExpressionSpecification = [
 ] as unknown as ExpressionSpecification; // TS tuple types cannot express a spread of match pairs
 
 const own: ExpressionSpecification = ["boolean", ["get", "own"], false];
+// Parcel outline: own parcels blue, low-nectar parcels red, the rest by crop.
+const outline: ExpressionSpecification = [
+  "case",
+  own,
+  OWN,
+  low,
+  DROUGHT,
+  cropColor,
+];
 // Parcels that do not give the chosen honey are faded.
 const faded = (shown: number): ExpressionSpecification => [
   "case",
@@ -242,7 +249,7 @@ const LAYERS: (LayerSpecification & { group: LayerId })[] = [
     type: "line",
     source: "parcels",
     paint: {
-      "line-color": ["case", own, OWN, low, DROUGHT, cropColor],
+      "line-color": outline,
       "line-width": ["case", own, 5, low, 4, 3],
       "line-opacity": faded(1),
     },
@@ -276,7 +283,7 @@ const LAYERS: (LayerSpecification & { group: LayerId })[] = [
       "circle-radius": 7,
       "circle-color": bloomColor,
       "circle-opacity": faded(1),
-      "circle-stroke-color": ["case", own, OWN, low, DROUGHT, cropColor],
+      "circle-stroke-color": outline,
       "circle-stroke-width": ["case", own, 4.5, low, 3.5, 2.5],
       "circle-stroke-opacity": faded(1),
     },
@@ -350,11 +357,10 @@ const LAYERS: (LayerSpecification & { group: LayerId })[] = [
     source: "beekeepers",
     layout: {
       "icon-image": "hive",
-      "icon-size": ["case", ["get", "selected"], 1, 0.8],
+      "icon-size": 1,
       "icon-allow-overlap": true,
       "icon-ignore-placement": true,
     },
-    paint: { "icon-opacity": ["case", ["get", "selected"], 1, 0.45] },
   },
   {
     group: "beekeepers",
@@ -372,7 +378,6 @@ const LAYERS: (LayerSpecification & { group: LayerId })[] = [
       "text-color": INK,
       "text-halo-color": PAPER,
       "text-halo-width": 1.5,
-      "text-opacity": ["case", ["get", "selected"], 1, 0.6],
     },
   },
 ];
@@ -515,11 +520,11 @@ export function MapCanvas(props: Props) {
                 ? ValidateNotSelfIntersecting(feature)
                 : { valid: true },
             styles: {
-              fillColor: FIELD,
+              fillColor: OWN,
               fillOpacity: 0.2,
-              outlineColor: FIELD,
+              outlineColor: OWN,
               outlineWidth: 2,
-              closingPointColor: FIELD,
+              closingPointColor: OWN,
             },
           }),
         ],

@@ -7,6 +7,7 @@ from pathlib import Path
 
 from fastapi import FastAPI
 from starlette.exceptions import HTTPException
+from starlette.middleware.gzip import GZipMiddleware
 from starlette.responses import Response
 from starlette.staticfiles import StaticFiles
 from starlette.types import Scope
@@ -52,6 +53,8 @@ def create_app(static_dir: Path) -> FastAPI:
     app = FastAPI(
         lifespan=api.lifespan, docs_url=None, redoc_url=None, openapi_url=None
     )
+    # The season timeline is over 1 MB of JSON; gzip makes it about 36x smaller.
+    app.add_middleware(GZipMiddleware, minimum_size=1000)
     app.mount("/api", api.app)
     app.mount("/", SpaFiles(directory=static_dir, html=True, check_dir=False))
     return app

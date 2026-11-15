@@ -127,7 +127,7 @@ export function homePin(home?: [number, number]): FeatureCollection<Point> {
           {
             type: "Feature",
             geometry: { type: "Point", coordinates: home },
-            properties: { id: "home", label: "Your apiary", selected: true },
+            properties: { id: "home", label: "Your apiary" },
           },
         ]
       : [],

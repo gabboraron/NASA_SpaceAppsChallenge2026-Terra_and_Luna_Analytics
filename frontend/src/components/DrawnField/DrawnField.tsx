@@ -2,6 +2,7 @@ import type { Provenance, Season } from "../../api/client";
 import type { Answer, useField } from "../../hooks/useField";
 import { ProvenanceBadge } from "../ProvenanceBadge/ProvenanceBadge";
 import { hlsRows, powerRows, type Row } from "./rows";
+import { CloseIcon } from "../CloseIcon";
 import styles from "./DrawnField.module.css";
 
 type Props = {
@@ -87,14 +88,7 @@ export function DrawnField({ year, field, onClose }: Props) {
           aria-label="Remove drawn field"
           onClick={onClose}
         >
-          <svg width="16" height="16" viewBox="0 0 16 16" aria-hidden="true">
-            <path
-              d="M3 3 L13 13 M13 3 L3 13"
-              stroke="currentColor"
-              strokeWidth="2"
-              strokeLinecap="round"
-            />
-          </svg>
+          <CloseIcon />
         </button>
       </div>
       <Source

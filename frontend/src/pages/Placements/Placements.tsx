@@ -1,12 +1,17 @@
 import { cancelPlacement, useAccount } from "../../account/session";
 import { eur } from "../../components/MoveCalculator/fields";
-import { cropName, formatDay as day } from "../../domain/season";
+import {
+  DAY_MS,
+  SERVICE,
+  cropName,
+  formatDay as day,
+  weekStart,
+} from "../../domain/season";
 import { ReadingPage } from "../../site/ReadingPage";
 import { Link, ROUTES } from "../../site/router";
 import page from "../../site/page.module.css";
 import styles from "./Placements.module.css";
 
-const SERVICE = { pollination: "Pollination", forage: "Forage" } as const;
 const MONTHS = ["Mar", "Apr", "May", "Jun", "Jul", "Aug"];
 
 /**
@@ -21,7 +26,7 @@ export function stayBar(
     const d = new Date(iso);
     if (Number.isNaN(d.getTime())) return NaN;
     const y = d.getUTCFullYear();
-    return (d.getTime() - Date.UTC(y, 2, 1)) / 86_400_000;
+    return (d.getTime() - weekStart(y, 1).getTime()) / DAY_MS;
   };
   const days = 184; // 1 March to 31 August inclusive
   const a = Math.max(0, Math.min(days, offset(start)));

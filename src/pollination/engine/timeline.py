@@ -19,8 +19,6 @@ from functools import partial
 from pathlib import Path
 from typing import NoReturn
 
-import httpx
-
 from pollination import models as m
 from pollination.datafiles import PhenologyEntry
 from pollination.engine.phenology import (
@@ -34,7 +32,7 @@ from pollination.engine.phenology import (
 from pollination.geo import centroid, smap_cell
 from pollination.nasa import hls
 from pollination.nasa import smap as smap_client
-from pollination.nasa.failure import no_token, reason
+from pollination.nasa.failure import NoTokenError, attempt
 from pollination.nasa.power import PowerDaily, daily_point, grid_node
 from pollination.nasa.smap import SmapSeason, SmapWeek
 from pollination.weeks import (
@@ -76,6 +74,7 @@ PHENOLOGY_SOURCE = "data/phenology.json"
 NECTAR_SOURCE = "Nectar heuristic (plan D13)"
 SMAP_SOURCE = "NASA SMAP L4 (SPL4SMGP) root-zone soil moisture"
 PENDING = "Being fetched from NASA; this can take several minutes"
+NO_SMAP_CELL_WEEK = "No SMAP value for this cell and week"
 
 
 # --- inputs ----------------------------------------------------------------------
@@ -404,7 +403,7 @@ def nectar(
     if isinstance(smap, str):
         return "unknown", _missing(SMAP_SOURCE, smap)
     if smap.percentile is None:
-        return "unknown", _missing(SMAP_SOURCE, "No SMAP value for this cell and week")
+        return "unknown", _missing(SMAP_SOURCE, NO_SMAP_CELL_WEEK)
     low = bloom == "blooming" and smap.percentile < LOW_NECTAR_PERCENTILE
     prov = m.Provenance(
         kind="Estimated",
@@ -465,7 +464,7 @@ def parcel_weeks(  # noqa: PLR0913  # the parcel's inputs, each from its own sou
         baseline, no_smap = "", smap
     else:
         cell_weeks = smap.weeks.get(cell, {})
-        baseline, no_smap = smap.baseline, "No SMAP value for this cell and week"
+        baseline, no_smap = smap.baseline, NO_SMAP_CELL_WEEK
     weeks: list[m.ParcelWeek] = []
     rows = zip(
         WEEKS, blooms, ndvi, ndyi, _heat_measurements(heat, units, year), strict=True
@@ -589,7 +588,6 @@ def _with_history(
     season: PowerDaily,
     node: tuple[float, float],
     start: date,
-    client: httpx.Client,
     cache_dir: Path,
 ) -> PowerDaily:
     """Prepend the days from ``start`` to the season series (a separate request).
@@ -603,7 +601,6 @@ def _with_history(
         *node,
         start,
         season.days[0] - timedelta(days=1),
-        client=client,
         cache_dir=cache_dir,
     )
     values = {k: before.values[k] + v for k, v in season.values.items()}
@@ -626,29 +623,9 @@ def _history_start(
     return min(starts, default=None)
 
 
-class _NoTokenError(Exception):
-    """A NASA read was needed that the cache does not hold, and there is no token."""
-
-
 def _needs_token(*_: object) -> NoReturn:
     """Stand-in for the live HLS and SMAP reads when no token is configured."""
-    raise _NoTokenError
-
-
-def _read_nasa[T](service: str, read: Callable[[], T]) -> tuple[T | str, bool]:
-    """Run one NASA read; a failure becomes its reason.
-
-    Returns:
-        The result or why it is missing, and whether NASA itself failed (worth a
-        retry later; a missing token is not).
-    """
-    try:
-        return read(), False
-    except _NoTokenError:
-        return no_token(service), False
-    except Exception as exc:  # any NASA failure becomes Missing
-        log.warning("%s fetch failed: %s", service, exc)
-        return reason(service, exc), True
+    raise NoTokenError
 
 
 def _fetch_power(
@@ -666,26 +643,22 @@ def _fetch_power(
         node = grid_node(lat, lon)
         at_node.setdefault(node, []).append(parcel)
     power: dict[str, PowerDaily | str] = {}
-    with httpx.Client() as client:  # one connection for every grid node
-        for node, here in at_node.items():
-            series: PowerDaily | str
-            try:
-                series = daily_point(
-                    *node, date(year, 1, 1), end, client=client, cache_dir=cache_dir
-                )
-            except Exception as exc:  # any NASA failure becomes Missing
-                log.warning("POWER request for %s failed: %s", node, exc)
-                series = reason("POWER", exc)
-                failed = True
-            history = _history_start(here, phenology, year)
-            if history is not None and not isinstance(series, str):
-                try:
-                    series = _with_history(series, node, history, client, cache_dir)
-                except Exception as exc:  # season data stays; chilling is Missing
-                    log.warning("POWER autumn request for %s failed: %s", node, exc)
-                    failed = True
-            for parcel in here:
-                power[parcel.id] = series
+    for node, here in at_node.items():
+        series, missed = attempt(
+            "POWER",
+            partial(daily_point, *node, date(year, 1, 1), end, cache_dir=cache_dir),
+        )
+        failed |= missed
+        history = _history_start(here, phenology, year)
+        if history is not None and not isinstance(series, str):
+            longer, missed = attempt(
+                "POWER", partial(_with_history, series, node, history, cache_dir)
+            )
+            failed |= missed
+            if not isinstance(longer, str):  # season data stays; chilling is Missing
+                series = longer
+        for parcel in here:
+            power[parcel.id] = series
     return power, failed
 
 
@@ -777,7 +750,7 @@ def fetch_inputs(  # noqa: PLR0913  # the season's sources plus a progress hook
         for p in parcels
         if (entry := phenology.get(p.crop)) and entry.method == "ndyi"
     ]
-    observed, hls_failed = _read_nasa(
+    observed, hls_failed = attempt(
         "HLS",
         lambda: hls.parcel_indices(
             targets,
@@ -789,7 +762,7 @@ def fetch_inputs(  # noqa: PLR0913  # the season's sources plus a progress hook
             progress=progress and partial(progress, "HLS"),
         ),
     )
-    smap, smap_failed = _read_nasa(
+    smap, smap_failed = attempt(
         "SMAP",
         lambda: smap_client.season(
             year,

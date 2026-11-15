@@ -166,7 +166,7 @@ function week(p: Parcel, w: number, year: Season): ParcelWeek {
   // Sunflower: HLS every other week, gap weeks interpolated (as the engine does).
   const gapWeek = sunflower && w % 2 === 1;
   // Latest scene: this week, or the week before for a gap-filled week.
-  const scene = new Date(start.getTime() - (gapWeek ? 7 : 0) * 86_400_000);
+  const scene = gapWeek ? weekStart(year, w - 1) : start;
   const hls: Provenance = {
     ...prov("Estimated", gapWeek ? "Linear between scenes" : "", gapWeek),
     observed_at: scene.toISOString().slice(0, 10),
@@ -317,19 +317,15 @@ export function myMatches(
   year: Season,
   week: number,
 ): MatchCard[] {
+  const { costs, ...rest } = profile;
   const you: Beekeeper = {
     id: "you",
     name: "You",
     synthetic: false,
     goal: "forage",
-    home: profile.home,
-    colonies: profile.colonies,
-    max_distance_km: profile.max_distance_km,
-    availability: profile.availability,
-    vehicle_l_per_100km: profile.vehicle_l_per_100km,
-    alternative_contribution_eur: profile.alternative_contribution_eur,
+    ...rest,
   };
-  return cards(you, ["pollination", "forage"], year, week, profile.costs);
+  return cards(you, ["pollination", "forage"], year, week, costs);
 }
 
 /** Mirrors POST /polygon/timeline with the mock bloom weeks of the crop. */

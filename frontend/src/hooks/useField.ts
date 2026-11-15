@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import {
+  cached,
   getPolygonHls,
   getPolygonPower,
   type HlsResponse,
@@ -12,10 +13,6 @@ import {
 export type Answer<T> = { data?: T; error?: boolean };
 type Kept<T> = Answer<T> & { key: string | null };
 
-// Answers by request key, shared for the session: reselecting a parcel or going
-// back to a season reads no NASA source again. Failed requests are dropped.
-const answers = new Map<string, Promise<unknown>>();
-
 /** Run `load` once per `key`; the answer of an older key is never shown. */
 export function useAnswer<T>(
   key: string | null,
@@ -24,14 +21,10 @@ export function useAnswer<T>(
   const [kept, setKept] = useState<Kept<T>>({ key: null });
   useEffect(() => {
     if (key === null) return;
-    let request = answers.get(key) as Promise<T> | undefined;
-    if (!request) {
-      request = load();
-      request.catch(() => answers.delete(key));
-      answers.set(key, request);
-    }
+    // Shared for the session: reselecting a parcel or going back to a season
+    // reads no NASA source again. Failed requests are dropped.
     let stale = false;
-    request
+    cached(key, load)
       .then((data) => !stale && setKept({ key, data }))
       .catch(() => !stale && setKept({ key, error: true }));
     return () => {

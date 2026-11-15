@@ -32,6 +32,7 @@ from pollination.models import (
 )
 from pollination.models import Polygon as GeoPolygon
 from pollination.nasa.cache import get_or_fetch
+from pollination.weeks import WEEK_DAYS
 
 SOURCE = "NASA HLS S30/L30 v2.0"
 MIN_VALID_FRACTION = 0.5
@@ -187,7 +188,7 @@ def weeks_of_passes(
     """
     blocks: dict[int, list[list[Scene]]] = {}
     for group in groups:
-        blocks.setdefault((group[0].day - start).days // 7, []).append(group)
+        blocks.setdefault((group[0].day - start).days // WEEK_DAYS, []).append(group)
 
     def clearness(group: list[Scene]) -> tuple[float, date, str]:
         clouds = [s.cloud for s in group if s.cloud is not None]
@@ -273,8 +274,11 @@ def _newest(
     read: ReadFn,
     cache_dir: Path | None,
 ) -> Obs | None:
-    """The newest usable observation, reading passes newest first and stopping."""
-    for group in sorted(groups, key=lambda g: (g[0].day, g[0].id), reverse=True):
+    """The newest usable observation, reading passes newest first and stopping.
+
+    ``groups`` comes from :func:`passes`, already sorted oldest first.
+    """
+    for group in reversed(groups):
         obs = _observe_pass(group, polygon, read, cache_dir)
         if obs is not None:
             return obs
@@ -345,7 +349,7 @@ def parcel_indices(  # noqa: PLR0913  # injectable search/read/cache keep it tes
         Observations keyed by parcel id, sorted by date.
     """
     search_fn, read_fn = _backend(search, read)
-    blocks = (end - start).days // 7 + 1
+    blocks = (end - start).days // WEEK_DAYS + 1
     total = len(parcels) * blocks
     if progress:  # shown while the first scene search runs
         progress(0, total)

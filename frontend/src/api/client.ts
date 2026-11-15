@@ -73,7 +73,7 @@ async function get<T>(path: string, init?: RequestInit): Promise<T> {
 // Static GETs are shared between pages for the whole session (landing → explorer),
 // so callers' abort signals only stop their own state updates, not the request.
 const cache = new Map<string, Promise<unknown>>();
-function cached<T>(key: string, load: () => Promise<T>): Promise<T> {
+export function cached<T>(key: string, load: () => Promise<T>): Promise<T> {
   let hit = cache.get(key) as Promise<T> | undefined;
   if (!hit) {
     hit = load();

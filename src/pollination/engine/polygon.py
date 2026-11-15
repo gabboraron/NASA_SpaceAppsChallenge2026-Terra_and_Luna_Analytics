@@ -11,12 +11,11 @@ from datetime import date
 from pollination import models as m
 from pollination.engine.phenology import accumulate
 from pollination.nasa.power import PowerDaily
-from pollination.nasa.smap import DEFAULT_BASELINE
+from pollination.nasa.smap import DEFAULT_BASELINE, MIN_BASELINE_YEARS
 from pollination.weeks import SEASON_END, SEASON_START
 
 SOURCE = "NASA POWER daily (MERRA-2)"
 BASELINE_YEARS = DEFAULT_BASELINE  # same baseline as the SMAP percentiles
-MIN_BASELINE_YEARS = 5  # fewer same-period totals than this: no anomaly
 MIN_BASELINE_COVERAGE = 0.9  # share of a baseline year's days that must have rain data
 
 
@@ -30,12 +29,14 @@ def _missing(reason: str) -> m.Measurement:
     return m.Measurement.missing(SOURCE, reason)
 
 
+def _provenance(last: date, note: str) -> m.Provenance:
+    """POWER-derived (reanalysis, so Estimated) up to ``last``."""
+    return m.Provenance(kind="Estimated", source=SOURCE, observed_at=last, note=note)
+
+
 def _estimated(value: float, last: date, note: str) -> m.Measurement:
-    """A POWER-derived measurement (reanalysis, so Estimated) up to ``last``."""
-    provenance = m.Provenance(
-        kind="Estimated", source=SOURCE, observed_at=last, note=note
-    )
-    return m.Measurement(value=value, provenance=provenance)
+    """A POWER-derived measurement up to ``last``."""
+    return m.Measurement(value=value, provenance=_provenance(last, note))
 
 
 def _all_missing(reason: str) -> m.PowerResponse:
@@ -139,9 +140,7 @@ def power_response(  # noqa: PLR0913  # the season, its baseline and three thres
         for d, t in zip(heat.days, heat.totals, strict=True)
         if d <= end
     ]
-    gdd_provenance = m.Provenance(
-        kind="Estimated", source=SOURCE, observed_at=last, note=note
-    )
+    gdd_provenance = _provenance(last, note)
 
     rain, present, absent = _rain_total(daily, start, end)
     if present:

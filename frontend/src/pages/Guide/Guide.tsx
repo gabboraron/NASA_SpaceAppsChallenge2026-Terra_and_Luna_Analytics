@@ -92,7 +92,7 @@ const TROUBLE = [
   ],
   [
     "Fetching satellite data from NASA…",
-    "The live season only. Bloom from weather is already shown; the map asks again every 20 seconds until satellite bloom and soil moisture arrive, which can take several minutes.",
+    "The live season only. Bloom from weather is already shown; the map asks again every 5 seconds until satellite bloom and soil moisture arrive, which can take several minutes.",
   ],
   [
     "Lost connection to the API",

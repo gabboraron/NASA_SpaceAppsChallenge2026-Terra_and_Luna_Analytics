@@ -1,12 +1,6 @@
 import type { Measurement, Provenance } from "../../api/client";
+import { formatDay } from "../../domain/season";
 import styles from "./ProvenanceBadge.module.css";
-
-const DAY = new Intl.DateTimeFormat("en-GB", {
-  day: "numeric",
-  month: "short",
-  year: "numeric",
-  timeZone: "UTC",
-});
 
 /** Provenance for a value the contract carries none for (no observation date). */
 export const prov = (
@@ -32,9 +26,6 @@ export const show = (
     ? "—"
     : `${signed && m.value > 0 ? "+" : ""}${m.value.toFixed(digits)}${unit}`;
 
-/** "12 Jul 2024" from an ISO date. */
-const formatDate = (iso: string) => DAY.format(new Date(iso));
-
 /** Where a value comes from: kind, source, latest usable observation (D4), gap fill, note. */
 export function ProvenanceBadge({ provenance }: { provenance: Provenance }) {
   const { kind, source, observed_at, interpolated, note } = provenance;
@@ -48,7 +39,7 @@ export function ProvenanceBadge({ provenance }: { provenance: Provenance }) {
         <span>
           {source}
           {observed_at &&
-            ` · ${interpolated ? "last obs. " : ""}${formatDate(observed_at)}`}
+            ` · ${interpolated ? "last obs. " : ""}${formatDay(observed_at)}`}
           {!observed_at && kind === "Estimated" && " · undated estimate"}
         </span>
       </span>

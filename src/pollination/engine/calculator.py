@@ -100,20 +100,6 @@ def _commission_rate(inputs: CalculatorInput) -> float:
     return COMMISSION_RATE if inputs.service_type == "pollination" else 0.0
 
 
-def break_even_fee(inputs: CalculatorInput) -> float:
-    """Return the fee per colony at which base benefit vs the alternative is zero.
-
-    Args:
-        inputs: Scenario assumptions; the input fee is ignored.
-
-    Returns:
-        Fee in euros per colony (contribution is linear in the fee).
-    """
-    at_zero = _scenario(inputs.model_copy(update={"fee_per_colony": 0}), 1, 0)
-    net_rate = 1 - _commission_rate(inputs)
-    return -at_zero.benefit_vs_alternative / (inputs.colonies * net_rate)
-
-
 def _source(
     kind: Literal["Reported", "Estimated", "Missing"], source: str, note: str = ""
 ) -> Provenance:

@@ -10,7 +10,7 @@ import pytest
 
 from pollination.config import Settings
 from pollination.datafiles import CalculatorDefaults, load_catalog
-from pollination.engine.calculator import break_even_fee, calculate, prefill
+from pollination.engine.calculator import calculate, prefill
 from pollination.models import Beekeeper, CalculatorInput, Parcel
 
 
@@ -51,10 +51,6 @@ def test_sensitivity(fee: float, contribution: float, benefit: float) -> None:
     base = calculate(example(fee_per_colony=fee)).base
     assert base.contribution == pytest.approx(contribution)
     assert base.benefit_vs_alternative == pytest.approx(benefit)
-
-
-def test_break_even_fee() -> None:
-    assert break_even_fee(example()) == pytest.approx(28.25, abs=0.01)
 
 
 def test_bands_use_price_uncertainty_and_extra_trip() -> None:

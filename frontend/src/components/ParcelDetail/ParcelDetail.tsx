@@ -8,7 +8,12 @@ import type {
   SoilMoistureWeek,
 } from "../../api/client";
 import { isInterpolated, weekStateText } from "../MapCanvas/layers";
-import { cropName, isHighBloomLowNectar, weekLabel } from "../../domain/season";
+import {
+  SERVICE,
+  cropName,
+  isHighBloomLowNectar,
+  weekLabel,
+} from "../../domain/season";
 import { useEscape } from "../../hooks/useEscape";
 import { Link, ROUTES } from "../../site/router";
 import {
@@ -16,6 +21,7 @@ import {
   prov,
   show,
 } from "../ProvenanceBadge/ProvenanceBadge";
+import { CloseIcon } from "../CloseIcon";
 import styles from "./ParcelDetail.module.css";
 
 export type VerifyState = "idle" | "pending" | "error";
@@ -147,14 +153,7 @@ export function ParcelDetail({
           aria-label="Close parcel details"
           onClick={onClose}
         >
-          <svg width="16" height="16" viewBox="0 0 16 16" aria-hidden="true">
-            <path
-              d="M3 3 L13 13 M13 3 L3 13"
-              stroke="currentColor"
-              strokeWidth="2"
-              strokeLinecap="round"
-            />
-          </svg>
+          <CloseIcon />
         </button>
       </div>
 
@@ -288,9 +287,7 @@ export function ParcelDetail({
             <dt>Area</dt>
             <dd>{parcel.area_ha.toFixed(1)} ha</dd>
             <dt>Service</dt>
-            <dd>
-              {parcel.service_type === "forage" ? "Forage" : "Pollination"}
-            </dd>
+            <dd>{SERVICE[parcel.service_type]}</dd>
             {parcel.requested_colonies !== null && (
               <>
                 <dt>Colonies requested</dt>
@@ -305,39 +302,37 @@ export function ParcelDetail({
       )}
 
       {!own && parcel.natura_status !== "inside" && (
-        <>
-          <section className={styles.verify}>
-            {verified ? (
-              <div role="status" className={styles.done}>
-                <strong>Bloom confirmed by field photo</strong>
-                <span>
-                  Simulated. Blooming weeks of {year} now show Observed.
-                </span>
-              </div>
-            ) : (
-              <>
-                <button
-                  type="button"
-                  onClick={onVerify}
-                  disabled={verifyState === "pending"}
-                >
-                  {verifyState === "pending"
-                    ? "Sending photo…"
-                    : "Simulate grower field photo"}
-                </button>
-                <small>
-                  Stands in for a geotagged photo. Marks this parcel&apos;s
-                  blooming weeks as Observed. Demo only, resets on restart.
+        <section className={styles.verify}>
+          {verified ? (
+            <div role="status" className={styles.done}>
+              <strong>Bloom confirmed by field photo</strong>
+              <span>
+                Simulated. Blooming weeks of {year} now show Observed.
+              </span>
+            </div>
+          ) : (
+            <>
+              <button
+                type="button"
+                onClick={onVerify}
+                disabled={verifyState === "pending"}
+              >
+                {verifyState === "pending"
+                  ? "Sending photo…"
+                  : "Simulate grower field photo"}
+              </button>
+              <small>
+                Stands in for a geotagged photo. Marks this parcel&apos;s
+                blooming weeks as Observed. Demo only, resets on restart.
+              </small>
+              {verifyState === "error" && (
+                <small role="alert" className={styles.error}>
+                  The verification failed. Check that the API is running.
                 </small>
-                {verifyState === "error" && (
-                  <small role="alert" className={styles.error}>
-                    The verification failed. Check that the API is running.
-                  </small>
-                )}
-              </>
-            )}
-          </section>
-        </>
+              )}
+            </>
+          )}
+        </section>
       )}
     </aside>
   );

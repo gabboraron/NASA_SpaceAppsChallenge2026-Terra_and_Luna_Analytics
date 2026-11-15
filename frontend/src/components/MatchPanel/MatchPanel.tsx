@@ -3,7 +3,7 @@ import type { MatchCard, Parcel, ParcelWeek, Season } from "../../api/client";
 import type { Matches } from "../../hooks/useMatches";
 import { BLOOM_COLORS, weekStateText } from "../MapCanvas/layers";
 import { HONEYS, cropName, weekLabel } from "../../domain/season";
-import { ProvenanceBadge } from "../ProvenanceBadge/ProvenanceBadge";
+import { ProvenanceBadge, show } from "../ProvenanceBadge/ProvenanceBadge";
 import { countText, groupCards, ownWarnings } from "./cards";
 import styles from "./MatchPanel.module.css";
 
@@ -72,7 +72,6 @@ export function MatchPanel(props: Props) {
     const parcel = byId.get(c.parcel_id);
     const row = props.weekRows.get(c.parcel_id);
     const warnings = ownWarnings(c, shared);
-    const km = c.distance_km.value;
     return (
       <li key={c.parcel_id} className={styles.card} {...hover(c.parcel_id)}>
         <div className={styles.top}>
@@ -93,7 +92,7 @@ export function MatchPanel(props: Props) {
             </small>
           </div>
           <div className={styles.km}>
-            <strong>{km === null ? "–" : `${km.toFixed(1)} km`}</strong>
+            <strong>{show(c.distance_km, 1, " km")}</strong>
           </div>
         </div>
         <ProvenanceBadge provenance={c.distance_km.provenance} />

@@ -48,7 +48,6 @@ export function MoveSummary(props: Props) {
   const result = done ? answer.result : undefined;
   const km = card?.distance_km.value;
   const error = failed || (done && !result);
-  const loading = !card || (!!input && !done);
   return (
     <section className={styles.move} aria-labelledby="move-h">
       <h3 id="move-h">Your move here</h3>
@@ -70,7 +69,7 @@ export function MoveSummary(props: Props) {
         <p role="alert">
           Could not calculate your move. Check that the API is running.
         </p>
-      ) : loading || !result || !card ? (
+      ) : !result || !card ? (
         <p role="status">Calculating your move…</p>
       ) : (
         <>

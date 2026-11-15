@@ -8,10 +8,13 @@ Some NASA libraries wait forever on a network that hangs (earthaccess logs in wi
 ``requests`` and no timeout), so whole reads also run under a deadline.
 """
 
+import logging
 from collections.abc import Callable
 from threading import Thread
 
 import httpx
+
+log = logging.getLogger(__name__)
 
 MAX_DETAIL = 120  # characters of an unknown error's message kept in the note
 # Answers worth retrying: rate limited or the service is down for now.
@@ -56,6 +59,30 @@ def no_token(service: str) -> str:
         One sentence for a ``Missing`` provenance note.
     """
     return f"No Earthdata token configured; {service} not queried"
+
+
+class NoTokenError(Exception):
+    """A NASA read was needed that the cache does not hold, and there is no token."""
+
+
+def attempt[T](service: str, read: Callable[[], T]) -> tuple[T | str, bool]:
+    """Run one NASA read; a failure becomes its reason.
+
+    Args:
+        service: Service name, e.g. ``"POWER"`` or ``"HLS"``.
+        read: The read to run.
+
+    Returns:
+        The result or why it is missing, and whether NASA itself failed (worth a
+        retry later; a missing token is not).
+    """
+    try:
+        return read(), False
+    except NoTokenError:
+        return no_token(service), False
+    except Exception as exc:  # any NASA failure becomes Missing
+        log.warning("%s fetch failed: %s", service, exc)
+        return reason(service, exc), True
 
 
 def within[T](seconds: float, read: Callable[[], T]) -> T:

@@ -25,6 +25,7 @@ import {
   type Field,
   type FieldKey,
 } from "./fields";
+import { CloseIcon } from "../CloseIcon";
 import styles from "./MoveCalculator.module.css";
 
 const DEBOUNCE_MS = 300;
@@ -289,14 +290,7 @@ export function MoveCalculator({
           aria-label="Close calculator"
           onClick={onClose}
         >
-          <svg width="16" height="16" viewBox="0 0 16 16" aria-hidden="true">
-            <path
-              d="M3 3 L13 13 M13 3 L3 13"
-              stroke="currentColor"
-              strokeWidth="2"
-              strokeLinecap="round"
-            />
-          </svg>
+          <CloseIcon />
         </button>
       </div>
 

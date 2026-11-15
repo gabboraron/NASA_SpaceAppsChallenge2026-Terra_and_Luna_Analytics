@@ -1,7 +1,7 @@
 """NASA POWER daily point client (agroclimatology community)."""
 
 import math
-from datetime import date, datetime
+from datetime import date
 from pathlib import Path
 from typing import Any
 
@@ -17,6 +17,7 @@ GRID_LAT_DEG = 0.5
 GRID_LON_DEG = 0.625
 FILL_VALUE = -999.0
 TIMEOUT_S = 60.0
+_CLIENT = httpx.Client()  # one connection pool for every request
 
 
 class PowerDaily(BaseModel):
@@ -61,7 +62,7 @@ def _parse(payload: dict[str, Any], lat: float, lon: float) -> PowerDaily:
     return PowerDaily(
         lat=lat,
         lon=lon,
-        days=[datetime.strptime(k, "%Y%m%d").date() for k in keys],
+        days=[date.fromisoformat(k) for k in keys],  # takes YYYYMMDD too
         values={
             name: [None if by_day[k] == FILL_VALUE else by_day[k] for k in keys]
             for name, by_day in series.items()
@@ -92,7 +93,7 @@ def daily_point(  # noqa: PLR0913 -- plan WP6 signature plus injectable client/c
         start: First day, inclusive.
         end: Last day, inclusive.
         params: POWER parameter names.
-        client: HTTP client to use; a short-lived one is created if omitted.
+        client: HTTP client to use; defaults to a shared one.
         cache_dir: Cache root; defaults to ``Settings().cache_dir``.
 
     Returns:
@@ -113,10 +114,7 @@ def daily_point(  # noqa: PLR0913 -- plan WP6 signature plus injectable client/c
     }
 
     def fetch() -> dict[str, Any]:
-        if client is not None:
-            response = client.get(POWER_URL, params=query, timeout=TIMEOUT_S)
-        else:
-            response = httpx.get(POWER_URL, params=query, timeout=TIMEOUT_S)
+        response = (client or _CLIENT).get(POWER_URL, params=query, timeout=TIMEOUT_S)
         response.raise_for_status()
         return response.json()
 

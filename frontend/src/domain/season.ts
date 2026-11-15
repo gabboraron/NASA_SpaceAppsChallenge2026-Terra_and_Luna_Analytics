@@ -5,12 +5,14 @@ import type { ParcelWeek, Season, Timeline } from "../api/client";
 /** Demo seasons: 2022 (drought) and 2024. */
 export const SEASONS = [2022, 2024] as const satisfies readonly Season[];
 
+export const DAY_MS = 86_400_000;
+
 /**
  * Latest season whose NASA data is complete: this year from mid-September.
  * The same rule as `latest_season` in the API (`weeks.py`).
  */
 export function latestSeason(today: Date): Season {
-  const settled = new Date(today.getTime() - 14 * 86_400_000);
+  const settled = new Date(today.getTime() - 14 * DAY_MS);
   // Months count from 0: September is 8.
   return settled.getUTCFullYear() - (settled.getUTCMonth() >= 8 ? 0 : 1);
 }
@@ -34,6 +36,11 @@ export const CROP_NAMES: Record<string, string> = {
   sour_cherry: "Sour cherry",
   grassland: "Grassland",
 };
+/** Display names of the two listing kinds. */
+export const SERVICE = {
+  pollination: "Pollination",
+  forage: "Forage",
+} as const;
 /** Crops a beekeeper can give an own parcel; the first three have a heat-unit bloom model. */
 export const OWN_CROPS: readonly string[] = [
   "black_locust",
@@ -93,7 +100,6 @@ export function indexWeeks(
 }
 
 export const WEEKS = 26;
-const DAY_MS = 86_400_000;
 const MONTH_LONG = new Intl.DateTimeFormat("en-GB", {
   month: "long",
   timeZone: "UTC",

@@ -10,12 +10,13 @@ import json
 import logging
 from collections import defaultdict
 from collections.abc import Callable
+from concurrent.futures import ThreadPoolExecutor
 from datetime import date
 from functools import cache, partial
 from pathlib import Path
 from threading import Lock, Thread
 from time import monotonic
-from typing import Annotated, Literal
+from typing import Annotated
 
 from fastapi import APIRouter, Depends, HTTPException, Query
 
@@ -36,7 +37,8 @@ from pollination.engine.timeline import (
 )
 from pollination.geo import NaturaIndex, area_ha, centroid, to_shape
 from pollination.nasa import hls, hls_pc
-from pollination.nasa.failure import no_token, reason
+from pollination.nasa.cache import write_atomic
+from pollination.nasa.failure import attempt, no_token
 from pollination.nasa.power import PowerDaily, daily_point
 from pollination.weeks import SEASON_END, WEEKS, latest_season, week_end, week_start
 
@@ -143,9 +145,7 @@ def _record_progress(path: Path, source: str, done: int, total: int) -> None:
     except (OSError, ValueError):
         steps = {}
     steps[source] = [done, total]
-    part = path.with_suffix(".part")
-    part.write_text(json.dumps(steps))
-    part.replace(path)
+    write_atomic(path, json.dumps(steps).encode())
 
 
 def fetch_progress(year: int) -> list[m.FetchProgress]:
@@ -302,6 +302,11 @@ def timeline(
     return timeline.model_copy(update={"progress": fetch_progress(year)})
 
 
+def _week_rows(timeline: m.TimelineResponse, week: int) -> dict[str, m.ParcelWeek]:
+    """A week's timeline rows by parcel id."""
+    return {w.parcel_id: w for w in timeline.parcel_weeks if w.week == week}
+
+
 @router.get("/matches")
 def matches(
     beekeeper_id: str,
@@ -313,7 +318,7 @@ def matches(
     keeper = next((b for b in data.actors.beekeepers if b.id == beekeeper_id), None)
     if keeper is None:
         return []
-    weeks = {w.parcel_id: w for w in timeline.parcel_weeks if w.week == week}
+    weeks = _week_rows(timeline, week)
     return match(keeper, data.parcels, weeks, data.calculator, data.ranking)
 
 
@@ -336,7 +341,7 @@ def my_matches(
         goal="forage",  # not used: both service types are matched
         **profile.model_dump(exclude={"costs"}),
     )
-    weeks = {w.parcel_id: w for w in timeline.parcel_weeks if w.week == week}
+    weeks = _week_rows(timeline, week)
     return match(
         keeper,
         data.parcels,
@@ -397,18 +402,17 @@ def power(
     lon, lat = centroid(polygon)
 
     def get(start: date, end: date) -> PowerDaily | str:
-        try:
-            return fetch(lat, lon, start, end)
-        except Exception as exc:  # any NASA failure becomes Missing
-            log.warning("POWER request for %s failed: %s", (lat, lon), exc)
-            return reason("POWER", exc)
+        return attempt("POWER", partial(fetch, lat, lon, start, end))[0]
 
-    season = get(date(year, 1, 1), date(year, *SEASON_END))
-    history = get(date(BASELINE_YEARS[0], 1, 1), date(BASELINE_YEARS[-1], 12, 31))
+    with ThreadPoolExecutor(2) as pool:  # two independent requests
+        season = pool.submit(get, date(year, 1, 1), date(year, *SEASON_END))
+        history = pool.submit(
+            get, date(BASELINE_YEARS[0], 1, 1), date(BASELINE_YEARS[-1], 12, 31)
+        )
     return power_response(
         year,
-        season,
-        history,
+        season.result(),
+        history.result(),
         base_temp_c=settings.gdd_base_temp_c,
         min_tmax_c=settings.bee_flight_min_tmax_c,
         max_wind_ms=settings.bee_flight_max_wind_ms,
@@ -474,24 +478,26 @@ def hls_imagery(
 ) -> m.HlsImagery:
     """Return true-colour HLS map tiles of a timeline week's clearest passes."""
 
-    def answer(
-        tiles: str | None, kind: Literal["Observed", "Missing"], note: str
-    ) -> m.HlsImagery:
-        provenance = m.Provenance(
-            kind=kind, source=hls_pc.SOURCE, observed_at=None, note=note
-        )
-        return m.HlsImagery(tiles=tiles, provenance=provenance)
+    def missing(note: str) -> m.HlsImagery:
+        provenance = m.Provenance.missing(hls_pc.SOURCE, note)
+        return m.HlsImagery(tiles=None, provenance=provenance)
 
     if not Settings().planetary_computer:
-        return answer(None, "Missing", "HLS mirror switched off")
+        return missing("HLS mirror switched off")
     start, end = week_start(year, week), week_end(year, week)
     try:
         tiles = hls_pc.week_tiles(start, end)
     except Exception as exc:  # any failure becomes Missing
         log.warning("HLS imagery request failed: %s", exc)
-        return answer(None, "Missing", "The HLS mirror did not answer; try again")
+        return missing("The HLS mirror did not answer; try again")
     note = f"Clearest Sentinel-2 passes of {start} to {end}, true colour"
-    return answer(tiles, "Observed", f"{note}; clouds are not removed")
+    provenance = m.Provenance(
+        kind="Observed",
+        source=hls_pc.SOURCE,
+        observed_at=None,
+        note=f"{note}; clouds are not removed",
+    )
+    return m.HlsImagery(tiles=tiles, provenance=provenance)
 
 
 @router.post("/polygon/hls")
@@ -508,8 +514,5 @@ def hls_latest(
         return hls.missing_response(
             "Polygon too large for a satellite read; draw one around a single field"
         )
-    try:
-        return latest(polygon)
-    except Exception as exc:  # any NASA failure becomes Missing
-        log.warning("HLS request failed: %s", exc)
-        return hls.missing_response(reason("HLS", exc))
+    got = attempt("HLS", partial(latest, polygon))[0]
+    return hls.missing_response(got) if isinstance(got, str) else got

@@ -10,7 +10,6 @@ import pytest
 from pollination.geo import SmapCell
 from pollination.nasa.smap import (
     SmapSeason,
-    cells_geojson,
     clean_value,
     parse_dap4_csv,
     percentile_rank,
@@ -128,17 +127,6 @@ def test_second_season_reuses_the_cache(tmp_path: Path) -> None:
     assert fake.reads == first_reads
     run(fake, tmp_path, 2022)
     assert fake.reads == first_reads
-
-
-def test_cells_geojson() -> None:
-    """Cell polygons come out as a GeoJSON FeatureCollection with the cell id."""
-    cells = [SmapCell(200, 2000), SmapCell(200, 2001)]
-    collection = cells_geojson(cells)
-    assert collection["type"] == "FeatureCollection"
-    assert [f["properties"]["cell_id"] for f in collection["features"]] == [
-        c.id for c in cells
-    ]
-    assert collection["features"][0]["geometry"]["type"] == "Polygon"
 
 
 # A real Hyrax DAP4 answer (window [207:210][2159:2162], granule of 2024-06-12).

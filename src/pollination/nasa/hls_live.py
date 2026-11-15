@@ -39,6 +39,7 @@ from pollination.nasa.hls_pc import (
     COMMON_BANDS,
     HTTP_TIMEOUT_S,
     MAX_SCENE_CLOUD_PERCENT,
+    NIR_BANDS,
 )
 
 log = logging.getLogger(__name__)
@@ -48,10 +49,9 @@ FILL_VALUE = -9999
 REDIRECT_STATUSES = (301, 302, 303, 307)
 # Band file suffix per role; the NIR band differs between Sentinel-2 and Landsat.
 _PRODUCTS = {
-    "HLSS30": {**COMMON_BANDS, "nir": "B8A"},
-    "HLSL30": {**COMMON_BANDS, "nir": "B05"},
+    "HLSS30": {**COMMON_BANDS, "nir": NIR_BANDS["hls2-s30"]},
+    "HLSL30": {**COMMON_BANDS, "nir": NIR_BANDS["hls2-l30"]},
 }
-_ROLES = ("blue", "green", "red", "nir", "fmask")
 
 
 def _cloud(granule: Any) -> float | None:
@@ -96,7 +96,7 @@ def search_scenes(bbox: Bbox, start: date, end: date) -> list[Scene]:
                 for url in links
                 if url.split("?")[0].endswith(f".{band}.tif")
             }
-            if len(urls) == len(_ROLES):
+            if len(urls) == len(suffixes):
                 granule_id = granule["umm"]["GranuleUR"]
                 scenes.append(
                     Scene(granule_id, scene_day(granule_id), urls, _cloud(granule))
@@ -190,7 +190,7 @@ def read_window(scene: Scene, polygon: Polygon) -> BandWindow | None:
         row1, col1 = ref.index(right, bottom)
         window = Window.from_slices((row0, row1 + 1), (col0, col1 + 1))
         bands = {"red": ref} | {
-            role: open_band(role) for role in _ROLES if role != "red"
+            role: open_band(role) for role in scene.urls if role != "red"
         }
 
         def reflectance(role: str) -> np.ndarray:

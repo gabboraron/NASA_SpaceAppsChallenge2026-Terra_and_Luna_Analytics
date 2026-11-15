@@ -29,7 +29,7 @@ START_YEAR = 2020  # the mirror holds nothing older
 _PAGE = 250
 _TOKEN_MARGIN = timedelta(minutes=5)
 # NIR asset per collection; the other bands share their names.
-_NIR = {"hls2-s30": "B8A", "hls2-l30": "B05"}
+NIR_BANDS = {"hls2-s30": "B8A", "hls2-l30": "B05"}
 COMMON_BANDS = {"blue": "B02", "green": "B03", "red": "B04", "fmask": "Fmask"}
 # True colour (red, green, blue) stretched over 0 to 0.3 reflectance.
 _TRUE_COLOUR = "collection=hls2-s30&assets=B04&assets=B03&assets=B02&rescale=0,3000"
@@ -66,7 +66,7 @@ def search_scenes(bbox: Bbox, start: date, end: date) -> list[Scene]:
     """
     url: str | None = f"{_API}/stac/v1/search"
     body: dict[str, Any] = {
-        "collections": list(_NIR),
+        "collections": list(NIR_BANDS),
         "bbox": list(bbox),
         "datetime": _span(start, end),
         "limit": _PAGE,
@@ -78,7 +78,7 @@ def search_scenes(bbox: Bbox, start: date, end: date) -> list[Scene]:
         response.raise_for_status()
         page = response.json()
         for item in page["features"]:
-            bands = {**COMMON_BANDS, "nir": _NIR[item["collection"]]}
+            bands = {**COMMON_BANDS, "nir": NIR_BANDS[item["collection"]]}
             assets = item["assets"]
             if all(band in assets for band in bands.values()):
                 urls = {role: assets[band]["href"] for role, band in bands.items()}
@@ -146,12 +146,16 @@ def week_tiles(start: date, end: date) -> str:
     }
     with _tiles_lock:
         held = _tiles.get((start, end))
-        if held is None or monotonic() - held[1] > _TILES_TTL_S:
-            response = _CLIENT.post(f"{_API}/data/v1/mosaic/register", json=search)
-            response.raise_for_status()
-            tiles = (
-                f"{_API}/data/v1/mosaic/{response.json()['searchid']}/tiles/"
-                f"WebMercatorQuad/{{z}}/{{x}}/{{y}}?{_TRUE_COLOUR}&format=png"
-            )
-            held = _tiles[start, end] = (tiles, monotonic())
-    return held[0]
+    if held is not None and monotonic() - held[1] <= _TILES_TTL_S:
+        return held[0]
+    # Registered outside the lock so other weeks are not held up; a race only
+    # registers the same week twice.
+    response = _CLIENT.post(f"{_API}/data/v1/mosaic/register", json=search)
+    response.raise_for_status()
+    tiles = (
+        f"{_API}/data/v1/mosaic/{response.json()['searchid']}/tiles/"
+        f"WebMercatorQuad/{{z}}/{{x}}/{{y}}?{_TRUE_COLOUR}&format=png"
+    )
+    with _tiles_lock:
+        _tiles[start, end] = (tiles, monotonic())
+    return tiles

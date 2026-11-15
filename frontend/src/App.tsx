@@ -317,13 +317,12 @@ export function App() {
   const selectedCard = matches.cards?.find((c) => c.parcel_id === selected);
   // Verification only rewrites blooming weeks, so a non-blooming week keeps the
   // model's own provenance for the season's bloom estimate.
-  const estimate = useMemo(
-    () =>
-      [...(timeline?.parcel_weeks ?? []), ...own.weeks].find(
-        (w) => w.parcel_id === selected && w.bloom_state !== "blooming",
-      )?.bloom_provenance,
-    [timeline, own.weeks, selected],
-  );
+  const estimate = useMemo(() => {
+    const estimated = (w: ParcelWeek) =>
+      w.parcel_id === selected && w.bloom_state !== "blooming";
+    return (timeline?.parcel_weeks.find(estimated) ?? own.weeks.find(estimated))
+      ?.bloom_provenance;
+  }, [timeline, own.weeks, selected]);
   const rings = useMemo(() => {
     const centres: Parameters<typeof foragingRings>[0] = [];
     if (homeAt) centres.push({ center: homeAt, kind: "beekeeper" });
@@ -431,6 +430,9 @@ export function App() {
   const selectedSmap = selectedRow?.smap_cell_id
     ? smapIndex.get(`${selectedRow.smap_cell_id}:${week}`)
     : undefined;
+  const stay = selectedParcel ? stayOf(selectedParcel, selectedRow) : null;
+  // The calculator replaces the parcel panel (not for own parcels).
+  const showPlan = !!selectedParcel && planning && !!profile && !selectedOwn;
 
   return (
     <div className={styles.page}>
@@ -470,7 +472,7 @@ export function App() {
       </SiteHeader>
       <main
         className={styles.workspace}
-        data-plan={!!selectedParcel && planning && !!profile && !selectedOwn}
+        data-plan={showPlan}
         data-layers={layersOpen}
         data-sheet={sheet}
       >
@@ -721,11 +723,11 @@ export function App() {
               Select a parcel on the map, or a match, to see its bloom, nectar
               and your move there, priced from your home apiary.
             </p>
-          ) : planning && profile && !selectedOwn ? (
+          ) : showPlan ? (
             <MoveCalculator
               parcel={selectedParcel}
               profile={profile}
-              stay={stayOf(selectedParcel, selectedRow)}
+              stay={stay}
               year={year}
               week={week}
               onBack={closePlan}
@@ -763,7 +765,7 @@ export function App() {
                     card={selectedCard}
                     hasHome={!!profile}
                     failed={matches.error}
-                    stay={stayOf(selectedParcel, selectedRow)}
+                    stay={stay}
                     onAdjust={() => setPlanning(true)}
                   />
                 )

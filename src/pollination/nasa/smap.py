@@ -182,18 +182,3 @@ def season(  # noqa: PLR0913  # injectable bbox/read/cache/progress keep it test
             percentile = None if value is None else percentile_rank(value, history)
             weeks[cell][w] = SmapWeek(value, percentile, week_mid(year, w))
     return SmapSeason(weeks, _baseline_label(baseline_years, with_data))
-
-
-def cells_geojson(cells: Sequence[SmapCell]) -> dict[str, Any]:
-    """Cell outlines as a GeoJSON FeatureCollection (``cell_id`` property)."""
-    return {
-        "type": "FeatureCollection",
-        "features": [
-            {
-                "type": "Feature",
-                "geometry": cell.polygon().model_dump(mode="json"),
-                "properties": {"cell_id": cell.id},
-            }
-            for cell in cells
-        ],
-    }
