@@ -49,6 +49,7 @@ import {
 import { MatchPanel } from "./components/MatchPanel/MatchPanel";
 import { MoveCalculator } from "./components/MoveCalculator/MoveCalculator";
 import { MoveSummary } from "./components/MoveSummary/MoveSummary";
+import { MyParcels } from "./components/MyParcels/MyParcels";
 import { NewParcel } from "./components/NewParcel/NewParcel";
 import { TimeSlider } from "./components/TimeSlider/TimeSlider";
 import {
@@ -355,6 +356,19 @@ export function App() {
     setFieldPolygon(null);
     select(id);
   };
+  // Remove an own parcel after asking; the panel closes if it was open.
+  const removeOwn = (id: string) => {
+    const name = ownList.find((p) => p.id === id)?.name ?? "this parcel";
+    const isHome = id === home?.id;
+    if (
+      !window.confirm(
+        `Remove "${name}"?${isHome ? " It is your home apiary: your next parcel takes over." : ""}`,
+      )
+    )
+      return;
+    removeParcel(id);
+    if (selected === id) select("");
+  };
   // This season's bloom window of a parcel: the suggested stay of a request.
   const stayOf = (parcel: Parcel, row?: ParcelWeek) =>
     row?.estimated_bloom ??
@@ -522,13 +536,7 @@ export function App() {
                 </strong>
                 <span>{why.reason}</span>
                 {why.refused ? (
-                  <button
-                    type="button"
-                    onClick={() => {
-                      removeParcel(id);
-                      if (selected === id) select("");
-                    }}
-                  >
+                  <button type="button" onClick={() => removeOwn(id)}>
                     Remove it and draw again
                   </button>
                 ) : (
@@ -667,6 +675,15 @@ export function App() {
               honeySpan={honeySpan}
               onWeek={setWeek}
               requested={requested}
+              mine={
+                <MyParcels
+                  parcels={ownList}
+                  homeId={home?.id ?? ""}
+                  selected={selected}
+                  onSelect={select}
+                  onRemove={removeOwn}
+                />
+              }
               weekRows={weekRows}
               hovered={hovered}
               onHover={setHovered}
@@ -710,10 +727,7 @@ export function App() {
                   failed: own.failed.get(selectedOwn.id)?.reason,
                   onHome: () =>
                     updateAccount((a) => ({ ...a, home_id: selectedOwn.id })),
-                  onRemove: () => {
-                    removeParcel(selectedOwn.id);
-                    select("");
-                  },
+                  onRemove: () => removeOwn(selectedOwn.id),
                 }
               }
               move={

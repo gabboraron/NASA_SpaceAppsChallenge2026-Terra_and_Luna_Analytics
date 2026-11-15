@@ -163,6 +163,23 @@
 .cell[data-skeleton] {
   cursor: default;
   background: var(--wash);
+  /* A honey wave runs across the empty comb while the season loads. */
+  animation: comb 1.6s ease-in-out infinite;
+  animation-delay: calc(var(--i, 0) * 45ms);
+}
+@keyframes comb {
+  0%,
+  100% {
+    background: var(--wash);
+  }
+  45% {
+    background: var(--honey-pale);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .cell[data-skeleton] {
+    animation: none;
+  }
 }
 .tick {
   padding-top: 0.625rem;

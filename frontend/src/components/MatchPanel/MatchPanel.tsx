@@ -1,3 +1,4 @@
+import type { ReactNode } from "react";
 import type { MatchCard, Parcel, ParcelWeek, Season } from "../../api/client";
 import type { Matches } from "../../hooks/useMatches";
 import { BLOOM_COLORS, weekStateText } from "../MapCanvas/layers";
@@ -30,6 +31,8 @@ type Props = {
   onWeek: (week: number) => void;
   /** Parcel ids the beekeeper has already requested. */
   requested: ReadonlySet<string>;
+  /** The beekeeper's own parcels, shown above the honey filter. */
+  mine?: ReactNode;
 };
 
 const CONFIDENCE = { low: "Low", medium: "Medium", high: "High" } as const;
@@ -158,6 +161,8 @@ export function MatchPanel(props: Props) {
           For {props.name || "you"}, from your home apiary, with your own costs.
         </small>
       </div>
+
+      {props.mine}
 
       {honeys.length > 0 && (
         <fieldset className={styles.honey}>

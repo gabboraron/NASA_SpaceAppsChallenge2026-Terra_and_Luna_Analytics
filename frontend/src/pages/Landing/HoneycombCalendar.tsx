@@ -1,4 +1,4 @@
-import { useEffect, useId, useMemo, useState } from "react";
+import { useEffect, useId, useMemo, useState, type CSSProperties } from "react";
 import { getParcels, getTimeline, type Season } from "../../api/client";
 import { SEASONS, WEEKS, weekLabel } from "../../domain/season";
 import { Link, ROUTES } from "../../site/router";
@@ -105,7 +105,12 @@ export function HoneycombCalendar() {
                       <span className={styles.skelText} />
                     </span>
                     {WEEK_NUMBERS.map((w) => (
-                      <span key={w} className={styles.cell} data-skeleton />
+                      <span
+                        key={w}
+                        className={styles.cell}
+                        data-skeleton
+                        style={{ "--i": w + r * 3 } as CSSProperties}
+                      />
                     ))}
                   </div>
                 ))}

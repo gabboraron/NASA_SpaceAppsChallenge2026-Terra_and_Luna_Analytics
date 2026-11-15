@@ -1,0 +1,75 @@
+.box {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+.box h3 {
+  margin: 0;
+  font-size: 0.8125rem;
+  font-weight: 600;
+}
+.box ul {
+  display: flex;
+  flex-direction: column;
+  gap: 0.375rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.box li {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0 0.25rem 0 0.75rem;
+  border: 1.5px solid var(--line);
+  border-radius: 10px;
+  background: white;
+}
+.box li[data-selected="true"] {
+  border-color: var(--focus);
+}
+.swatch {
+  flex: none;
+  width: 14px;
+  height: 12px;
+  border: 3px solid var(--focus);
+  border-radius: 2px;
+}
+.name {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  min-height: 44px;
+  justify-content: center;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--ink);
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+.name strong {
+  font-size: 0.875rem;
+}
+.name small {
+  font-size: 0.75rem;
+  color: var(--muted);
+}
+.remove {
+  display: grid;
+  place-items: center;
+  flex: none;
+  width: 44px;
+  height: 44px;
+  border: 0;
+  border-radius: 8px;
+  background: none;
+  color: var(--drought-ink);
+  cursor: pointer;
+}
+.remove:hover {
+  background: var(--alert-wash);
+}
