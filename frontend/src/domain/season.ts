@@ -4,12 +4,28 @@ import type { ParcelWeek, Season, Timeline } from "../api/client";
 
 /** Demo seasons: 2022 (drought) and 2024. */
 export const SEASONS = [2022, 2024] as const satisfies readonly Season[];
+
+/**
+ * Latest season whose NASA data is complete: this year from mid-September.
+ * The same rule as `latest_season` in the API (`weeks.py`).
+ */
+export function latestSeason(today: Date): Season {
+  const settled = new Date(today.getTime() - 14 * 86_400_000);
+  // Months count from 0: September is 8.
+  return settled.getUTCFullYear() - (settled.getUTCMonth() >= 8 ? 0 : 1);
+}
+/** The season the API reads live from NASA instead of the shipped cache. */
+export const LIVE_SEASON = latestSeason(new Date());
+/** Seasons of the map: the demo seasons and the live one. */
+export const MAP_SEASONS: readonly Season[] = [
+  ...new Set([...SEASONS, LIVE_SEASON]),
+];
 export const SEASON_LABELS: Record<Season, string> = {
+  [LIVE_SEASON]: "Latest season, live from NASA",
   2022: "Drought year",
   2024: "Comparison year",
 };
-export const isSeason = (n: number): n is Season =>
-  (SEASONS as readonly number[]).includes(n);
+export const isSeason = (n: number): n is Season => MAP_SEASONS.includes(n);
 
 export const CROP_NAMES: Record<string, string> = {
   sunflower: "Sunflower",

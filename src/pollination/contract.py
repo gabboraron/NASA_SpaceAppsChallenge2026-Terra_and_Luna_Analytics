@@ -6,10 +6,11 @@ NASA failures become ``Missing`` values with a reason, never errors or made-up d
 """
 
 import logging
+from collections import defaultdict
 from collections.abc import Callable
 from datetime import date
 from functools import cache
-from threading import Lock
+from threading import Lock, Thread
 from time import monotonic
 from typing import Annotated
 
@@ -22,12 +23,17 @@ from pollination.datafiles import Catalog, load_catalog
 from pollination.engine import calculator
 from pollination.engine.matching import match
 from pollination.engine.polygon import BASELINE_YEARS, power_response
-from pollination.engine.timeline import SeasonInputs, build_timeline, fetch_inputs
+from pollination.engine.timeline import (
+    SeasonInputs,
+    build_timeline,
+    fetch_inputs,
+    pending_inputs,
+)
 from pollination.geo import centroid, to_shape
 from pollination.nasa import hls
 from pollination.nasa.failure import no_token, reason
 from pollination.nasa.power import PowerDaily, daily_point
-from pollination.weeks import SEASON_END
+from pollination.weeks import SEASON_END, latest_season
 
 log = logging.getLogger(__name__)
 router = APIRouter()
@@ -49,40 +55,90 @@ def catalog() -> Catalog:
 
 
 # Each season's inputs with when they were fetched.
-_inputs_by_year: dict[m.Season, tuple[SeasonInputs, float]] = {}
+_inputs_by_year: dict[int, tuple[SeasonInputs, float]] = {}
 # One lock per season: a slow NASA fetch for one season does not block the other.
-_inputs_locks = {year: Lock() for year in m.Season}
+_inputs_locks: defaultdict[int, Lock] = defaultdict(Lock)
 # Each season's timeline with the inputs it was built from.
-_timelines: dict[m.Season, tuple[SeasonInputs, m.TimelineResponse]] = {}
+_timelines: dict[int, tuple[SeasonInputs, m.TimelineResponse]] = {}
 _timelines_lock = Lock()
+# Seasons whose HLS and SMAP a background thread is fetching right now.
+_fetching: set[int] = set()
 
 
-def season_inputs(year: m.Season) -> SeasonInputs:
+def check_season(year: int) -> None:
+    """Refuse a season that is neither in the shipped cache nor the latest one.
+
+    Raises:
+        HTTPException: 422 for any other year.
+    """
+    seasons = sorted({*map(int, m.Season), latest_season(date.today())})
+    if year not in seasons:
+        detail = f"Season must be one of {seasons}"
+        raise HTTPException(status_code=422, detail=detail)
+
+
+def _fetch(year: int, *, satellites: bool) -> SeasonInputs:
+    """Fetch a season's inputs from NASA (or its cache), or only POWER for now."""
+    settings, data = Settings(), catalog()
+    if not satellites:
+        return pending_inputs(year, data.parcels, settings.cache_dir, data.phenology)
+    return fetch_inputs(
+        year,
+        data.parcels,
+        settings.cache_dir,
+        earthdata=settings.has_earthdata,
+        phenology=data.phenology,
+    )
+
+
+def _keep(year: int, inputs: SeasonInputs) -> None:
+    """Store a season's inputs; the caller holds the season's lock."""
+    _inputs_by_year[year] = (inputs, monotonic())
+    _timelines.pop(year, None)  # built from the inputs just replaced
+
+
+def _fetch_satellites(year: int) -> None:
+    """Background: replace a season's pending inputs with the full ones.
+
+    The slow read runs outside the season's lock, so requests keep being answered.
+    """
+    try:
+        inputs = _fetch(year, satellites=True)
+        with _inputs_locks[year]:
+            _keep(year, inputs)
+    finally:
+        _fetching.discard(year)
+
+
+def season_inputs(year: int) -> SeasonInputs:
     """Dependency: the season's NASA inputs (tests override it to stay offline).
 
     Inputs are kept in memory; inputs with a failed request only for
     ``RETRY_FAILED_S``, after which a call fetches again. Concurrent first requests
     wait for one fetch instead of each starting one.
+
+    A season outside the shipped cache needs minutes of HLS and SMAP reads, so with
+    an Earthdata token it answers at once with POWER only (``pending``) and a
+    background thread fetches the rest.
     """
+    check_season(year)
     with _inputs_locks[year]:
         kept = _inputs_by_year.get(year)
         if kept and (not kept[0].failed or monotonic() - kept[1] < RETRY_FAILED_S):
             return kept[0]
-        settings = Settings()
-        inputs = fetch_inputs(
-            year,
-            catalog().parcels,
-            settings.cache_dir,
-            earthdata=settings.has_earthdata,
-            phenology=catalog().phenology,
-        )
-        _inputs_by_year[year] = (inputs, monotonic())
-        _timelines.pop(year, None)  # built from the inputs just replaced
+        if year in _fetching and kept:
+            return kept[0]  # failed POWER; the running fetch will replace it
+        slow = year not in set(m.Season) and Settings().has_earthdata
+        inputs = _fetch(year, satellites=not slow)
+        _keep(year, inputs)
+        if slow:
+            _fetching.add(year)
+            Thread(target=_fetch_satellites, args=(year,), daemon=True).start()
         return inputs
 
 
 def season_timeline(
-    year: m.Season, inputs: Annotated[SeasonInputs, Depends(season_inputs)]
+    year: int, inputs: Annotated[SeasonInputs, Depends(season_inputs)]
 ) -> m.TimelineResponse:
     """Dependency: the season's timeline.
 
@@ -192,7 +248,7 @@ def verify(id: str) -> m.Provenance:
 def power(
     polygon: m.Polygon,
     fetch: Annotated[PowerFetch, Depends(power_daily)],
-    year: m.Season = m.Season.COMPARISON,
+    year: int = m.Season.COMPARISON,
 ) -> m.PowerResponse:
     """Return heat units, rain and bee-flight weather at a drawn polygon.
 
@@ -200,6 +256,7 @@ def power(
     ``year``) and the 2015-2024 rain baseline; a failed request is a ``Missing``
     value with its reason.
     """
+    check_season(year)
     settings = Settings()
     lon, lat = centroid(polygon)
 

@@ -1,12 +1,15 @@
 """Failed season inputs wait before the next NASA attempt (WP23)."""
 
-from collections.abc import Iterator
+from collections.abc import Callable, Iterator
+from datetime import date
 
 import pytest
+from fastapi import HTTPException
 
 from pollination import contract
 from pollination import models as m
 from pollination.engine.timeline import SeasonInputs
+from pollination.weeks import latest_season
 
 YEAR = m.Season(2024)
 
@@ -92,3 +95,62 @@ def test_the_timeline_of_failed_inputs_is_rebuilt_after_a_retry(
     contract.season_timeline(YEAR, contract.season_inputs(YEAR))
     assert len(built) == 2
     assert not built[-1].failed
+
+
+def test_latest_season_starts_once_its_nasa_data_has_settled() -> None:
+    assert latest_season(date(2026, 9, 14)) == 2025
+    assert latest_season(date(2026, 9, 15)) == 2026
+    assert latest_season(date(2027, 2, 1)) == 2026
+
+
+def test_a_season_that_is_neither_shipped_nor_the_latest_is_refused() -> None:
+    with pytest.raises(HTTPException) as caught:
+        contract.season_inputs(2019)
+    assert caught.value.status_code == 422
+
+
+def test_the_latest_season_answers_with_power_then_gets_the_satellites(
+    monkeypatch: pytest.MonkeyPatch, clock: Clock
+) -> None:
+    """With a token: POWER at once (pending), HLS and SMAP from a background fetch."""
+    year = latest_season(date.today())
+    monkeypatch.setenv("EARTHDATA_TOKEN", "token")
+    running: set[int] = set()
+    monkeypatch.setattr(contract, "_fetching", running)
+    full = SeasonInputs(power={}, hls="n/a", smap="n/a")
+    quick = SeasonInputs(power={}, hls="n/a", smap="n/a", pending=True)
+    started: list[Callable[[], None]] = []
+
+    class Later:
+        """A thread the test runs by hand."""
+
+        def __init__(
+            self, target: Callable[[int], None], args: tuple[int], daemon: bool
+        ) -> None:
+            self.run = lambda: target(*args)
+
+        def start(self) -> None:
+            started.append(self.run)
+
+    monkeypatch.setattr(contract, "fetch_inputs", lambda *a, **k: full)  # pyright: ignore[reportUnknownLambdaType, reportUnknownArgumentType]  # any arguments
+    monkeypatch.setattr(contract, "pending_inputs", lambda *a: quick)  # pyright: ignore[reportUnknownLambdaType, reportUnknownArgumentType]  # any arguments
+    monkeypatch.setattr(contract, "Thread", Later)
+
+    first = contract.season_inputs(year)
+    assert first is quick
+    assert contract.season_inputs(year) is quick  # no second fetch while it runs
+    assert len(started) == 1
+    started[0]()
+    assert contract.season_inputs(year) is full
+    assert not running
+
+
+def test_without_a_token_the_latest_season_is_fetched_in_one_go(
+    monkeypatch: pytest.MonkeyPatch, clock: Clock
+) -> None:
+    """HLS and SMAP then only read the cache, which is quick."""
+    monkeypatch.setenv("EARTHDATA_TOKEN", "")
+    made = fetches(monkeypatch, False)
+    inputs = contract.season_inputs(latest_season(date.today()))
+    assert inputs is made[0]
+    assert not inputs.pending

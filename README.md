@@ -56,6 +56,10 @@ No login is needed for the demo: the repository ships a small warmed cache of th
 seasons (`data/nasa-cache.zip`, see [`docs/cache_setup.md`](docs/cache_setup.md)), which the API imports when it starts.
 New responses are cached in the `nasa-cache` volume, so they survive rebuilds. Run `docker compose down -v` to clear it.
 
+Next to the two demo seasons the map offers the latest complete season, read live from NASA. Its weather-based bloom
+needs no login; its satellite bloom and soil moisture need an Earthdata token and arrive a few minutes after the first
+request, so the map shows the weather-based part first.
+
 Optional settings go in a `.env` file next to `compose.yaml`. It is gitignored, so never commit it.
 
 | Variable | Purpose |

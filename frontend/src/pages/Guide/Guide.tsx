@@ -10,7 +10,7 @@ const IMG = `${import.meta.env.BASE_URL}guide/`;
 const STEPS = [
   {
     title: "Pick a season",
-    text: "2022 or 2024, top right. 2022 was a drought year; compare the two.",
+    text: "2022, 2024 or the latest season, top right. 2022 was a drought year; compare it with 2024.",
   },
   {
     title: "Move the week",
@@ -80,6 +80,10 @@ const TROUBLE = [
   [
     "Fetching the season from NASA…",
     "The first load of a season. With the shipped cache it takes seconds; a cold cache can take a minute.",
+  ],
+  [
+    "Fetching satellite data from NASA…",
+    "The live season only. Bloom from weather is already shown; the map asks again every 20 seconds until satellite bloom and soil moisture arrive, which can take several minutes.",
   ],
   [
     "Lost connection to the API",
@@ -316,6 +320,12 @@ function Features() {
           week and compare: in mid-July 2022 the soil moisture cells are red and
           the flowering sunflower is hatched as high bloom, low nectar; in 2024
           the same fields bloom normally.
+        </p>
+        <p className={page.body}>
+          The third button, marked live, is the latest complete season. It is
+          read from NASA when you open it, not from the shipped cache: bloom
+          from weather shows at once, and satellite bloom and soil moisture
+          follow where the server has an Earthdata login.
         </p>
         <div className={styles.pair}>
           <Shot

@@ -33,6 +33,7 @@ const row = (
 });
 const season = (rows: ParcelWeek[]): Timeline => ({
   year: 2024,
+  pending: false,
   parcel_weeks: rows,
   smap_cells: [],
 });
