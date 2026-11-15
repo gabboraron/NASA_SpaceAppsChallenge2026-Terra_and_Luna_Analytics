@@ -102,7 +102,12 @@ def _assess(
             f"availability {_span(available)}"
         )
     elif window is not None and ahead == 0:
-        blocks.append(f"Bloom ended {window.end:%d %b}, before the selected week")
+        blocks.append(
+            f"Bloom ended {window.end:%d %b}, before the selected week"
+            if window.end < week.starts_on
+            else f"Beekeeper is available only until {available.end:%d %b}, "
+            "before the selected week"
+        )
 
     evidence = ranking.provenance_confidence[week.bloom_provenance.kind]
     warnings: list[str] = []

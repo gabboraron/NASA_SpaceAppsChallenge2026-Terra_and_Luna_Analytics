@@ -50,7 +50,8 @@ def catalog() -> Catalog:
 
 # Each season's inputs with when they were fetched.
 _inputs_by_year: dict[m.Season, tuple[SeasonInputs, float]] = {}
-_inputs_lock = Lock()
+# One lock per season: a slow NASA fetch for one season does not block the other.
+_inputs_locks = {year: Lock() for year in m.Season}
 # Each season's timeline with the inputs it was built from.
 _timelines: dict[m.Season, tuple[SeasonInputs, m.TimelineResponse]] = {}
 _timelines_lock = Lock()
@@ -63,7 +64,7 @@ def season_inputs(year: m.Season) -> SeasonInputs:
     ``RETRY_FAILED_S``, after which a call fetches again. Concurrent first requests
     wait for one fetch instead of each starting one.
     """
-    with _inputs_lock:
+    with _inputs_locks[year]:
         kept = _inputs_by_year.get(year)
         if kept and (not kept[0].failed or monotonic() - kept[1] < RETRY_FAILED_S):
             return kept[0]

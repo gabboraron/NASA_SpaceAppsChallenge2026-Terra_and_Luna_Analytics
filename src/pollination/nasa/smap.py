@@ -155,7 +155,10 @@ def season(  # injectable bbox/read/cache keep it testable
     with ThreadPoolExecutor(max_workers=_WORKERS) as pool:
         data = dict(zip(jobs, pool.map(sample, jobs), strict=True))
 
-    with_data = sum(any(data[(y, w)] for w in WEEKS) for y in baseline_years)
+    with_data = sum(
+        any(v is not None for w in WEEKS for v in (data[(y, w)] or {}).values())
+        for y in baseline_years
+    )
     weeks: dict[SmapCell, dict[int, SmapWeek]] = {}
     for cell in cells:
         weeks[cell] = {}

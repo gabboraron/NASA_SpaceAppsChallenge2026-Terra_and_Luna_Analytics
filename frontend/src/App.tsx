@@ -47,7 +47,7 @@ import {
 } from "./domain/season";
 import { useEscape } from "./hooks/useEscape";
 import { useField } from "./hooks/useField";
-import { useMatches } from "./hooks/useMatches";
+import { forgetMatches, useMatches } from "./hooks/useMatches";
 import { SiteHeader } from "./site/SiteHeader";
 import styles from "./App.module.css";
 
@@ -262,7 +262,10 @@ export function App() {
   const verify = (id: string) => {
     setVerifyState("pending");
     verifyParcel(id)
-      .then(() => getTimeline(year))
+      .then(() => {
+        forgetMatches(); // ranks and confidence depend on the bloom evidence
+        return getTimeline(year);
+      })
       .then((data) => {
         setTimelines({ [year]: { data } });
         setVerifiedIds((ids) => new Set(ids).add(id));
