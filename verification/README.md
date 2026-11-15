@@ -121,7 +121,9 @@ S5 rests on two colonies at one site, so treat it as a direction with no statist
 - The model's onset is the modelled bloom start the timeline returns (`estimated_bloom.start`, the median of the
   crop's blooming parcels). Until this was read, the onset was the first day of the first blooming week, up to
   6 days earlier: S1 then reported black locust 11 days early in both years and failed, where the modelled
-  dates (15 May 2022, 25 April 2024) are 6 and 5 days early. The gate was not changed. Peaks are still weekly.
+  dates (15 May 2022, 25 April 2024) are 6 and 5 days early. The gate was not changed. S1 still
+  reports the weekly reading (`week_error_days`), because the week slider shows the bloom from that week. Peaks
+  are still weekly.
 - The sunflower bloom in the timeline is the grower's declared window, which is synthetic in the demo, so S4
   and the sunflower line of B0 compare a declaration with the hives, not a model.
 - S5 is not an independent test: the nectar rule's percentile and crop scope were chosen with these same hive
