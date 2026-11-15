@@ -21,7 +21,7 @@ the latest season from NASA again, which takes about 20 minutes on a cold cache.
 | Resource group | `rg-pollination` | everything below lives here |
 | Container registry | see repo variable `AZURE_ACR` | Basic SKU; the app pulls with its managed identity |
 | Container Apps environment | `cae-pollination` | Consumption plan, North Europe, Log Analytics workspace |
-| Container App | `pollination` | 0.5 vCPU, 1 GiB, external HTTPS ingress on port 8000, 1 replica |
+| Container App | `happybee` | 0.5 vCPU, 1 GiB, external HTTPS ingress on port 8000, 1 replica |
 | Storage account | `stpollination627b46` | Standard LRS; file share `nasa-cache` (5 GiB) mounted at `/app/.cache` |
 | Entra app | `gh-pollination-deploy` | federated credential for `main`, Contributor on the resource group |
 
@@ -30,7 +30,7 @@ process memory. `min-replicas 1` avoids a cold start for visitors; set it to 0 t
 inside the monthly free grant when nobody is looking:
 
 ```sh
-az containerapp update -g rg-pollination -n pollination --min-replicas 0
+az containerapp update -g rg-pollination -n happybee --min-replicas 0
 ```
 
 ## One-time setup
@@ -48,7 +48,7 @@ az containerapp env create -g $RG -n cae-pollination -l $LOC
 az acr login -n $ACR
 docker buildx build --platform linux/amd64 -t $ACR.azurecr.io/happybee:initial --push .
 
-az containerapp create -g $RG -n pollination --environment cae-pollination \
+az containerapp create -g $RG -n happybee --environment cae-pollination \
   --image $ACR.azurecr.io/happybee:initial \
   --registry-server $ACR.azurecr.io --registry-identity system \
   --ingress external --target-port 8000 \
@@ -68,7 +68,7 @@ gh variable set AZURE_CLIENT_ID -b $APPID
 gh variable set AZURE_TENANT_ID -b $(az account show --query tenantId -o tsv)
 gh variable set AZURE_SUBSCRIPTION_ID -b $(az account show --query id -o tsv)
 gh variable set AZURE_RESOURCE_GROUP -b $RG
-gh variable set AZURE_CONTAINERAPP -b pollination
+gh variable set AZURE_CONTAINERAPP -b happybee
 gh variable set AZURE_ACR -b $ACR
 ```
 
@@ -90,14 +90,14 @@ az containerapp env storage set -g $RG -n cae-pollination --storage-name nasacac
   --azure-file-account-key "$(az storage account keys list -g $RG -n $ST --query '[0].value' -o tsv)"
 ```
 
-Then add the volume and mount to the app's YAML (`az containerapp show -g $RG -n pollination -o yaml`)
-and apply it with `az containerapp update -g $RG -n pollination --yaml app.yaml`:
+Then add the volume and mount to the app's YAML (`az containerapp show -g $RG -n happybee -o yaml`)
+and apply it with `az containerapp update -g $RG -n happybee --yaml app.yaml`:
 
 ```yaml
 properties:
   template:
     containers:
-      - name: pollination
+      - name: happybee
         volumeMounts:
           - volumeName: nasa-cache
             mountPath: /app/.cache
@@ -115,16 +115,16 @@ values in `.env`:
 
 ```sh
 set -a; . ./.env; set +a
-az containerapp secret set -g rg-pollination -n pollination \
+az containerapp secret set -g rg-pollination -n happybee \
   --secrets earthdata-token="$EARTHDATA_TOKEN"
-az containerapp update -g rg-pollination -n pollination \
+az containerapp update -g rg-pollination -n happybee \
   --set-env-vars EARTHDATA_TOKEN=secretref:earthdata-token
 ```
 
 ## Domain
 
-The app's free address is `https://pollination.<id>.northeurope.azurecontainerapps.io`
-(`az containerapp show -g rg-pollination -n pollination --query properties.configuration.ingress.fqdn`),
+The app's free address is `https://happybee.<id>.northeurope.azurecontainerapps.io`
+(`az containerapp show -g rg-pollination -n happybee --query properties.configuration.ingress.fqdn`),
 with a managed TLS certificate. Azure has no free custom domains; for one you own, add a
 CNAME and a TXT record, then `az containerapp hostname add` and `az containerapp hostname bind`
 with a free managed certificate.

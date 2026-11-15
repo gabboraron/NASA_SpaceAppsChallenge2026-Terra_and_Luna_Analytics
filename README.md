@@ -17,7 +17,7 @@ NASA Earth observations tell beekeepers and growers when and where crops bloom, 
 [![NASA Open Data](https://img.shields.io/badge/data-NASA%20open%20data-0B3D91?style=flat-square)](#data-and-citations)
 [![AI use disclosed](https://img.shields.io/badge/AI%20use-disclosed-8A2BE2?style=flat-square)](AI_USAGE.md)
 
-**[Try the live demo](https://pollination.happyhill-b1bb4730.northeurope.azurecontainerapps.io)**: it runs in the browser, no login needed
+**[Try the live demo](https://happybee.happyhill-b1bb4730.northeurope.azurecontainerapps.io)**: it runs in the browser, no login needed
 
 [About](#about) · [Run it](#run-it) · [Repo layout](#repository-layout) · [Data](#data-and-citations) · [Team](#team)
 
