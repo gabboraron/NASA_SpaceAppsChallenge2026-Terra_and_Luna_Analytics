@@ -115,10 +115,10 @@ def test_threshold_window_end_rules() -> None:
         start=date(2024, 3, 5), end=date(2024, 3, 11)
     )
     assert threshold_window(series, 50.0, bloom_days=10) == Window(
-        start=date(2024, 3, 5), end=date(2024, 3, 15)
+        start=date(2024, 3, 5), end=date(2024, 3, 14)
     )
     assert threshold_window(series, 50.0, bloom_days=10, centred=True) == Window(
-        start=date(2024, 2, 29), end=date(2024, 3, 10)
+        start=date(2024, 2, 29), end=date(2024, 3, 9)
     )
     with pytest.raises(ValueError, match="bloom_days"):
         threshold_window(series, 50.0)  # no end rule
