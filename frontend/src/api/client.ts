@@ -20,7 +20,8 @@ export type CalculatorResult = Schemas["CalculatorResult"];
 export type PowerResponse = Schemas["PowerResponse"];
 export type HlsResponse = Schemas["HlsResponse"];
 
-export const useMocks = import.meta.env.VITE_USE_MOCKS !== "false";
+// The real API is the default; `VITE_USE_MOCKS=true` runs the map offline on fixtures.
+export const useMocks = import.meta.env.VITE_USE_MOCKS === "true";
 
 async function get<T>(path: string, init?: RequestInit): Promise<T> {
   const response = await fetch("/api" + path, init);
