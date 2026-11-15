@@ -32,6 +32,18 @@ export const GLOSSARY = [
     def: "Rings at 1, 2 and 3 km around your home parcel and the selected parcel: a visual guide to how far bees from there may fly.",
   },
   {
+    term: "Home apiary",
+    def: "The one of your own parcels where your hives stand. Every move, distance and match starts from it; your first parcel is the home apiary until you choose another.",
+  },
+  {
+    term: "Honey filter",
+    def: "Keeps on the map and in your matches only the parcels whose bloom gives the honey you chose: acacia, sunflower, fruit blossom or meadow.",
+  },
+  {
+    term: "Placement request",
+    def: "Asking to keep hives on a listed parcel for a period. In the demo it is stored in your browser only and no grower is contacted.",
+  },
+  {
     term: "Natura 2000",
     def: "The European network of protected sites, used here as the protected-area layer.",
   },
@@ -71,8 +83,20 @@ export const FAQ: { q: string; a: ReactNode }[] = [
     a: "Not a real one. The explorer works as a signed-in beekeeper, and one click on Continue as demo beekeeper is enough. You can also register: the account, its parcels and placement requests live only in your browser, the password is not stored or checked, and nothing personal is sent to a server. A simulated field photo is kept in memory only and is gone when the server restarts.",
   },
   {
+    q: "Where are my parcels saved?",
+    a: "In your browser, with your demo account. They stay after a reload or a new version of the site, but not in another browser or on another device, and clearing the site data removes them. Nothing is stored on the server.",
+  },
+  {
+    q: "Why can't I save the parcel I drew?",
+    a: "It is larger than a field. A parcel can be at most about 8 km across, which is easy to exceed when drawing zoomed out. Discard it, zoom in to your apiary and draw around a single field.",
+  },
+  {
+    q: "What do the circles, hexagons and the hive on the map mean?",
+    a: "Circles are parcels seen from far out: the fill is this week's bloom and the rim the crop (thick blue for your own). Numbered honey hexagons are the ranks of your placements, the same numbers as the cards. The dark box with two stripes is your home apiary, with 1, 2 and 3 km foraging rings.",
+  },
+  {
     q: "Does it work outside the pilot region?",
-    a: "The NASA datasets are global, so the method carries over. Each new region needs parcels, protected-area boundaries and phenology parameters with sources. Drawing a field already works anywhere on the map.",
+    a: "The NASA datasets are global, so the method carries over. Each new region needs parcels, protected-area boundaries and phenology parameters with sources. Your own parcels already work anywhere: their bloom is modelled from NASA POWER where they lie.",
   },
   {
     q: "Which crops does it know?",

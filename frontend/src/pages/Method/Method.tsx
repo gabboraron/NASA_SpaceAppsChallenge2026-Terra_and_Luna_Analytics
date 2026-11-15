@@ -18,7 +18,7 @@ const STEPS = [
   {
     title: "Decide",
     tag: "matches · calculator",
-    text: "Ranked placements with reasons, and the economics of a move against staying put.",
+    text: "Placements ranked from your own apiary with their reasons, and the economics of a move, with your own costs, against staying put.",
   },
 ];
 
@@ -209,6 +209,13 @@ export function MethodPage() {
               and drawn dashed; they are never shown as observations.
             </p>
             <p className={page.body}>
+              A parcel you draw is modelled the same way at its own spot: black
+              locust, apple and sour cherry from NASA POWER temperatures at the
+              parcel&apos;s grid node, anywhere on Earth. Satellite bloom is
+              read for the listed sunflower parcels only, so an own sunflower or
+              grassland parcel uses the dates you declare, labelled Reported.
+            </p>
+            <p className={page.body}>
               The black-locust bloom dates are checked against hive-scale
               records the model never saw:{" "}
               <Link to={ROUTES.evidence}>see the evidence</Link>.
@@ -250,10 +257,14 @@ export function MethodPage() {
 
           <Section id="match" title="Matching">
             <p className={page.body}>
-              Hard filters first: the beekeeper&apos;s goal (pollination service
-              or forage) and protected-area blocks. The rest are ranked, and
-              each card shows its reasons, warnings, missing items and a
-              confidence level.
+              Matches are computed for the signed-in beekeeper from their home
+              apiary, over every listed parcel, both pollination service and
+              forage. Hard filters come first: protected-area blocks, the
+              beekeeper&apos;s distance limit and colonies, and whether the
+              bloom window overlaps their availability from the selected week
+              on. The rest are ranked, and each card shows its reasons,
+              warnings, missing items and a confidence level. The honey filter
+              only narrows what is shown; it does not change the ranking.
             </p>
             <p className={page.body}>
               Distance is the straight-line distance times a 1.3 detour factor,
@@ -269,9 +280,10 @@ export function MethodPage() {
               The calculator reports the{" "}
               <strong>contribution after incremental costs</strong> of a move,
               and its <strong>benefit relative to the alternative</strong> of
-              staying put. Every input is prefilled from the match and the
-              moving costs of your account, and can be changed. It makes no
-              yield claims.
+              staying put. Every input is prefilled from the match, and the
+              moving costs you set in your account replace the marketplace
+              defaults (labelled Reported, “Your cost settings”). Any input can
+              still be changed for one move. It makes no yield claims.
             </p>
           </Section>
 

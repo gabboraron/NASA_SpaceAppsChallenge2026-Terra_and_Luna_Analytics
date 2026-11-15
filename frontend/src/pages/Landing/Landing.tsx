@@ -329,10 +329,11 @@ export function LandingPage() {
           figure={<Receipt />}
         >
           <p>
-            Each placement comes with its reasons, warnings and what is still
-            missing. The calculator prefills fee, distance and colonies, lets
-            the beekeeper change any of them, and compares the move with staying
-            put.
+            Put your apiary on the map and pick the honey you want. Each parcel
+            you open is then priced as a move from there, with your own fuel and
+            labour costs, against keeping the hives at home. Every placement
+            comes with its reasons, warnings and what is still missing, and you
+            can request a parcel for the weeks it blooms.
           </p>
           <Link to={ROUTES.app} className={styles.try}>
             Try it in the explorer

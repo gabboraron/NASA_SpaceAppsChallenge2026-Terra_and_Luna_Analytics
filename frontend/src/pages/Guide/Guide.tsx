@@ -9,24 +9,24 @@ const IMG = `${import.meta.env.BASE_URL}guide/`;
 
 const STEPS = [
   {
-    title: "Pick a season",
-    text: "2022, 2024 or the latest season, top right. 2022 was a drought year; compare it with 2024.",
+    title: "Sign in",
+    text: "Continue as the demo beekeeper in one click, or register with any email.",
   },
   {
-    title: "Move the week",
-    text: "Drag the slider or press play. Parcels recolour by bloom.",
+    title: "Draw your apiary",
+    text: "Add my parcel, click its corners, confirm. Its bloom is modelled at that spot.",
   },
   {
-    title: "Sign in, draw your apiary",
-    text: "Continue as the demo beekeeper in one click, or register. Matches from your home parcel appear on the right.",
+    title: "Pick a honey",
+    text: "Acacia, sunflower, fruit blossom or meadow. Other parcels fade; jump to their bloom weeks.",
   },
   {
     title: "Open a parcel",
-    text: "Its week in detail, with the source of every value.",
+    text: "Your move there is priced at once, with your own fuel and labour costs.",
   },
   {
-    title: "Calculate the move",
-    text: "Change any input and compare with staying put.",
+    title: "Request it",
+    text: "Pick the dates and colonies. Your requests are listed under My placements.",
   },
 ];
 
@@ -34,15 +34,21 @@ const TOC = [
   { id: "problem", label: "The problem" },
   { id: "solution", label: "Our solution" },
   { id: "start", label: "Quick start" },
+  { id: "signin", label: "Signing in" },
   { id: "tour", label: "The explorer at a glance" },
   { id: "season", label: "Seasons and drought" },
   { id: "week", label: "Week slider" },
   { id: "layers", label: "Layers and legend" },
+  { id: "apiary", label: "Your apiary parcels" },
+  { id: "honey", label: "Honey you want to make" },
   { id: "matches", label: "Matches" },
   { id: "parcel", label: "Parcel details" },
-  { id: "verify", label: "Field photo" },
+  { id: "move", label: "Your move and requests" },
   { id: "calculator", label: "Move calculator" },
-  { id: "draw", label: "Draw your own field" },
+  { id: "account", label: "Account and moving costs" },
+  { id: "placements", label: "My placements" },
+  { id: "verify", label: "Field photo" },
+  { id: "draw", label: "Live NASA readings" },
   { id: "provenance", label: "Where values come from" },
   { id: "more", label: "Phone, links, errors" },
   { id: "glossary", label: "Glossary" },
@@ -50,20 +56,26 @@ const TOC = [
 ];
 
 const TOUR = [
-  ["Season switch", "Top right. Each season is loaded once, then kept."],
+  [
+    "Top bar",
+    "The season switch, and the menu with the site pages, My placements and your account.",
+  ],
   [
     "Layers",
     "Left. Toggles and the legend for colours, outlines and hatching.",
   ],
   [
     "Map",
-    "Parcels, protected sites, soil moisture cells and your own parcels. Hover a parcel for its week; click it for details.",
+    "Listed parcels, your own parcels (blue outline), protected sites and soil moisture cells. Hover a parcel for its week; click it for details.",
   ],
   [
     "Week slider",
     "Bottom. 26 weeks from 1 March; the strip above it shows how many parcels bloom.",
   ],
-  ["Side panel", "Right. Your matches, a parcel's details, or the calculator."],
+  [
+    "Side panel",
+    "Right. Your parcels, the honey filter and your matches; a parcel's details and your move; or the calculator.",
+  ],
 ];
 
 const KINDS = [
@@ -87,6 +99,14 @@ const TROUBLE = [
     "The map keeps what it has and checks again every 5 seconds; the rest reloads by itself.",
   ],
   ["Could not load …", "Press Try again. Only the parts that failed reload."],
+  [
+    "This shape is larger than a field",
+    "A parcel can be at most about 8 km across. Discard it, zoom in to your apiary and draw again.",
+  ],
+  [
+    "Could not model the bloom of …",
+    "The message under it says why. If the parcel itself was refused, remove it and draw it again; otherwise press Try again.",
+  ],
   [
     "Soil moisture not available",
     "No SMAP cells for that season, so nectar shows as unknown on drought-sensitive crops.",
@@ -282,6 +302,41 @@ function QuickStart() {
   );
 }
 
+function SignIn() {
+  return (
+    <Section id="signin" title="Signing in">
+      <Split
+        shot={
+          <Shot
+            src="signin.webp"
+            w={1400}
+            h={783}
+            alt="The sign-in page: three steps on the left, and a card with Sign in and Register tabs, a Continue as demo beekeeper button, email and password fields and the demo note."
+          />
+        }
+      >
+        <p className={page.body}>
+          The explorer, your account and your placements need a beekeeper
+          account. <strong>Continue as demo beekeeper</strong> signs you in with
+          one click as a ready-made beekeeper who already has a home apiary, so
+          matches show at once.
+        </p>
+        <p className={page.body}>
+          To start from scratch, choose <strong>Register</strong> and enter a
+          name and an email. After signing in you land on the page you asked
+          for.
+        </p>
+        <p className={styles.note}>
+          Sign-in is a demo. Accounts, parcels and requests live in this browser
+          only: they survive a reload, but not another browser or clearing the
+          site data. The password is not stored or checked, and nothing is sent
+          to a server.
+        </p>
+      </Split>
+    </Section>
+  );
+}
+
 function Features() {
   return (
     <>
@@ -290,8 +345,8 @@ function Features() {
           src="overview.webp"
           w={1600}
           h={1000}
-          alt="The explorer: layer toggles on the left, the map with parcels and soil moisture cells in the middle, the week slider at the bottom and ranked placements on the right."
-          caption="The 2022 season, week 20 (mid-July). Screenshot from an earlier version."
+          alt="The explorer signed in as the demo beekeeper: layer toggles on the left; the map with the home apiary, rank hexagons and soil moisture cells; the week slider at the bottom; and on the right the honey filter set to acacia with ranked placements."
+          caption="2024, week 9 (late April), with the acacia filter on."
         />
         <dl className={styles.tour}>
           {TOUR.map(([t, d], i) => (
@@ -309,10 +364,10 @@ function Features() {
       <Section id="season" title="Seasons and the drought comparison">
         <Shot
           src="season.webp"
-          w={748}
-          h={112}
+          w={453}
+          h={40}
           narrow
-          alt="The top bar with the Demo · synthetic actors label and the 2022 and 2024 season buttons."
+          alt="The top bar with the Demo · illustrative listings label and the 2022, 2024 and live season buttons."
         />
         <p className={page.body}>
           Switch between 2022, a drought year, and 2024. Put both on the same
@@ -372,10 +427,10 @@ function Features() {
           shot={
             <Shot
               src="layers.webp"
-              w={544}
-              h={2000}
+              w={542}
+              h={2106}
               narrow
-              alt="The layers panel with switches for parcels, Natura 2000, soil moisture, foraging radius, beekeepers and satellite imagery, and the bloom and crop legends."
+              alt="The layers panel with switches for parcels, Natura 2000, soil moisture, foraging radius, my apiary and ranks and satellite imagery, and the bloom and crop legends with your own parcel."
             />
           }
         >
@@ -395,8 +450,8 @@ function Features() {
             </dd>
             <dt>Foraging radius</dt>
             <dd>
-              1, 2 and 3 km rings around the beekeeper&apos;s home and the
-              selected parcel.
+              1, 2 and 3 km rings around your home apiary and the selected
+              parcel.
             </dd>
             <dt>My apiary and ranks</dt>
             <dd>
@@ -411,6 +466,149 @@ function Features() {
             on a phone it is the Layers tab.
           </p>
         </Split>
+        <h3 className={styles.h3}>Circles, hexagons and the hive pin</h3>
+        <Split
+          shot={
+            <Shot
+              src="pins.webp"
+              w={940}
+              h={780}
+              alt="A close-up of the map: round parcel markers in bloom colours with crop-coloured rims, numbered honey hexagons beside some of them, and the dark hive pin of the home apiary with dashed rings around it."
+            />
+          }
+        >
+          <dl className={styles.defs}>
+            <dt>Circles are parcels</dt>
+            <dd>
+              Zoomed out, each parcel is a circle, because a parcel is only a
+              few hectares. Zoom in and it becomes the field&apos;s real shape.
+              The fill is the bloom state this week (honey yellow blooming, pale
+              yellow before, brown after, beige not in bloom, white no data).
+              The rim is the crop; a thick blue rim is one of your own parcels,
+              and a red rim means bloom on dry soil, nectar at risk.
+            </dd>
+            <dt>Numbered honey hexagons are your ranks</dt>
+            <dd>
+              A hexagon sits up and right of each parcel you can place hives on
+              this week, with the same number as its card in the side panel.
+              Blocked parcels get none, and the honey filter hides the ranks of
+              other blooms.
+            </dd>
+            <dt>The dark box with two stripes is your hive</dt>
+            <dd>
+              Your home apiary, where moves and distances start. The dashed
+              rings around it are 1, 2 and 3 km, a guide to how far the bees
+              forage.
+            </dd>
+          </dl>
+        </Split>
+      </Section>
+
+      <Section id="apiary" title="Your apiary parcels">
+        <Split
+          shot={
+            <Shot
+              src="save-dialog.webp"
+              w={832}
+              h={932}
+              narrow
+              alt="The Save this parcel? dialog: a name field, What blooms here set to sunflower, bloom from and until dates, and Save parcel and Discard buttons."
+            />
+          }
+        >
+          <ol className={styles.points}>
+            <li>
+              Zoom in to where your hives stand. A parcel can be at most about 8
+              km across.
+            </li>
+            <li>
+              Press <strong>Add my parcel</strong> at the top left of the map
+              and click the corners of the field. Click the first point again,
+              or press Enter, to finish.
+            </li>
+            <li>
+              A dialog asks you to confirm. Name the parcel and say what blooms
+              there, then press <strong>Save parcel</strong>. Discard or Esc
+              keeps nothing. A shape larger than a field cannot be saved.
+            </li>
+          </ol>
+          <p className={page.body}>
+            Your first parcel becomes your <strong>home apiary</strong>: every
+            move and distance starts from it. Black locust, apple and sour
+            cherry bloom is modelled at the parcel&apos;s own spot from NASA
+            POWER temperatures, for each season. For sunflower and grassland you
+            can give the bloom dates yourself; they show as Reported.
+          </p>
+        </Split>
+        <Split
+          shot={
+            <Shot
+              src="own-parcel.webp"
+              w={383}
+              h={2544}
+              narrow
+              alt="The panel of the home apiary parcel: blooming this week, with the heat-unit model as the source, the satellite and weather values, the estimated bloom window 25 April to 4 May, and Your parcel with its area and role."
+            />
+          }
+        >
+          <p className={page.body}>
+            Click your parcel on the map, or its name under{" "}
+            <strong>My parcels</strong> in the side panel, to see its bloom this
+            week, where each value comes from, and the live NASA weather at that
+            spot.
+          </p>
+          <ul className={styles.points}>
+            <li>
+              <strong>Use as my home apiary</strong> moves your starting point
+              to another of your parcels.
+            </li>
+            <li>
+              The bin icon in My parcels, or <strong>Remove this parcel</strong>{" "}
+              in its panel, removes it after you confirm.
+            </li>
+            <li>
+              Rename a parcel or change its crop under{" "}
+              <Link to={ROUTES.account}>Account</Link>.
+            </li>
+          </ul>
+        </Split>
+      </Section>
+
+      <Section id="honey" title="Honey you want to make">
+        <Split
+          shot={
+            <Shot
+              src="honey.webp"
+              w={343}
+              h={182}
+              narrow
+              alt="The Honey I want to make filter with Acacia (black locust) chosen, and the note that black locust blooms in weeks 8 to 10, with a link to the first bloom week."
+            />
+          }
+        >
+          <p className={page.body}>
+            Pick the honey you are after, above your matches:{" "}
+            <strong>Acacia</strong> (black locust), <strong>Sunflower</strong>,{" "}
+            <strong>Fruit blossom</strong> (apple and sour cherry) or{" "}
+            <strong>Meadow</strong> (grassland).
+          </p>
+          <ul className={styles.points}>
+            <li>
+              Parcels of other blooms fade on the map and drop out of your
+              matches and ranks.
+            </li>
+            <li>
+              The note says in which weeks that bloom is out this season.{" "}
+              <strong>Go to the first bloom week</strong> moves the slider
+              there.
+            </li>
+            <li>The week strip counts only the chosen honey&apos;s parcels.</li>
+          </ul>
+          <p className={styles.note}>
+            The honey kind names the parcel&apos;s bloom. The map does not
+            forecast honey yield or quality.
+          </p>
+        </Split>
       </Section>
 
       <Section id="matches" title="Matches: where to place hives">
@@ -419,10 +617,9 @@ function Features() {
             <Shot
               src="matches.webp"
               w={766}
-              h={2000}
+              h={2100}
               narrow
-              alt="The matches panel of an earlier version: beekeeper cards and a ranked placement card for a sunflower parcel with distance, reasons, warnings and missing items."
-              caption="Screenshot from an earlier version, which had a beekeeper picker."
+              alt="The matches panel: My parcels with the home apiary, the honey filter set to acacia, and ranked cards for black locust parcels with distance, bloom this week, reasons, warnings, missing items and the Calculate this move and Request placement buttons."
             />
           }
         >
@@ -448,25 +645,23 @@ function Features() {
               as a spray calendar.
             </li>
             <li>
-              <strong>Calculate this move</strong> opens the calculator. You can
-              also send a placement request for a period; in the demo it is
-              stored in your browser only, under{" "}
-              <Link to={ROUTES.placements}>My placements</Link>, and no grower
-              is contacted.
+              <strong>Calculate this move</strong> opens the calculator;{" "}
+              <strong>Request placement</strong> opens the parcel with its
+              request form. A parcel you already requested says Requested ✓.
             </li>
           </ul>
           <p className={page.body}>
             Hover a card to outline its parcel on the map; click the title to
-            open the parcel. Parcels that cannot be used are listed under{" "}
-            <strong>Not possible</strong> with the reason.
+            open the parcel. Parcels that cannot be used this week are listed
+            under <strong>Not possible this week</strong> with the reason.
           </p>
           <Shot
             src="blocked.webp"
-            w={686}
-            h={1478}
+            w={343}
+            h={1458}
             narrow
-            alt="The Not possible list: black locust parcels whose bloom ended, and grassland parcels inside a Natura 2000 site."
-            caption="A forage search in July: black locust has finished; grassland inside a protected site is blocked."
+            alt="The Not possible this week list: orchard and black locust parcels whose bloom ended, a parcel wanting more colonies than you have, and grassland inside a Natura 2000 site."
+            caption="Mid-July: the orchards and black locust have finished; grassland inside a protected site is blocked."
           />
         </Split>
       </Section>
@@ -476,18 +671,24 @@ function Features() {
           shot={
             <Shot
               src="parcel.webp"
-              w={766}
-              h={1979}
+              w={383}
+              h={2942}
               narrow
-              alt="Parcel P07, sunflower: a Natura 2000 warning, the week's state High bloom / Low nectar with bloom and nectar sources, and the satellite and weather values with their badges."
+              alt="Parcel P15, black locust: Your move here with the verdict and the request form, then the week's bloom and nectar with their sources, the satellite and weather values, the bloom window and the listing."
             />
           }
         >
           <p className={page.body}>
             Click a parcel on the map, or the title of a match. The panel shows
-            everything known about it for the selected week:
+            your move there first, then everything known about the parcel for
+            the selected week:
           </p>
           <dl className={styles.defs}>
+            <dt>Your move here</dt>
+            <dd>
+              Priced at once from your home apiary with your own costs (see
+              below).
+            </dd>
             <dt>Protected-area notice</dt>
             <dd>
               Red if the parcel is inside a site (blocked), amber if a site is
@@ -512,9 +713,61 @@ function Features() {
               (synthetic) grower.
             </dd>
           </dl>
+          <p className={page.body}>Press Esc or ✕ to close the panel.</p>
+        </Split>
+      </Section>
+
+      <Section id="move" title="Your move and placement requests">
+        <Split
+          shot={
+            <Shot
+              src="move.webp"
+              w={343}
+              h={731}
+              narrow
+              alt="Your move here: the verdict Do not move with the benefit relative to the alternative, distance, colonies and rank, a note to enter the honey margin, the calculator button and the Request this parcel for a period form with dates and colonies."
+            />
+          }
+        >
           <p className={page.body}>
-            <strong>Calculate a move here</strong> opens the calculator for a
-            move from your home parcel. Press Esc or ✕ to close.
+            When you open a listed parcel, <strong>Your move here</strong>{" "}
+            prices the move straight away: from your home apiary, with the
+            colonies, distance limit and availability of your profile, and the
+            moving costs you set in your account.
+          </p>
+          <ul className={styles.points}>
+            <li>
+              <em>Move pays off</em> or <em>Do not move</em>, with the benefit
+              relative to keeping the hives at home, and how it holds in the low
+              and high cases.
+            </li>
+            <li>
+              Forage hosts pay no fee, so a forage move only pays through honey:
+              enter your honey margin in the calculator to judge it.
+            </li>
+            <li>
+              <strong>Open the calculator and adjust the numbers</strong> for
+              anything that differs for this one move.
+            </li>
+          </ul>
+          <h3 className={styles.h3}>Request the parcel for a period</h3>
+          <p className={page.body}>
+            The request form is prefilled with this season&apos;s bloom window
+            and your colonies. Change the dates or the number and press{" "}
+            <strong>Request placement</strong>. It then shows as requested, can
+            be cancelled there, and is listed under{" "}
+            <Link to={ROUTES.placements}>My placements</Link>.
+          </p>
+          <Shot
+            src="requested.webp"
+            w={343}
+            h={192}
+            narrow
+            alt="Placement requested: 25 April to 4 May 2024, 50 colonies, with links to My placements and Cancel request."
+          />
+          <p className={styles.note}>
+            Requests are a demo: they are stored in this browser only and no
+            grower is contacted.
           </p>
         </Split>
       </Section>
@@ -550,16 +803,17 @@ function Features() {
           shot={
             <Shot
               src="calculator.webp"
-              w={900}
-              h={2346}
+              w={503}
+              h={3009}
               narrow
-              alt="The move calculator: verdict Move pays off with the benefit in the base case, low, base and high bars, the breakdown table and the editable assumptions."
+              alt="The move calculator: the verdict with the benefit in the base case, low, base and high bars, the breakdown table, the editable assumptions and the request form."
             />
           }
         >
           <p className={page.body}>
-            The calculator compares moving the colonies to this parcel with
-            keeping them at home.
+            The calculator compares moving your colonies to this parcel with
+            keeping them at home. Open it from a match card or from Your move
+            here.
           </p>
           <dl className={styles.defs}>
             <dt>Verdict</dt>
@@ -580,10 +834,12 @@ function Features() {
             <dt>Assumptions</dt>
             <dd>
               Colonies, road distance, trips, fee, honey margin, fuel, labour,
-              feed and what the colonies earn at home. All prefilled, from the
-              moving costs of your <Link to={ROUTES.account}>account</Link>{" "}
-              where you set them, each with its source, all editable.{" "}
-              <strong>Reset to prefilled</strong> undoes your changes.
+              feed and what the colonies earn at home. All prefilled, each with
+              its source: your own moving costs show as Reported, “Your cost
+              settings”; the rest are marketplace defaults. Changes here apply
+              to this move only; <strong>Reset to prefilled</strong> undoes
+              them. To change a cost for every move, set it in your{" "}
+              <Link to={ROUTES.account}>account</Link>.
             </dd>
           </dl>
           <p className={styles.note}>
@@ -594,37 +850,84 @@ function Features() {
         </Split>
       </Section>
 
-      <Section id="draw" title="Draw your own field">
+      <Section id="account" title="Account and moving costs">
+        <Shot
+          src="account-costs.webp"
+          w={968}
+          h={497}
+          alt="My moving costs in the account: fuel price 2.4 and labour rate 25 with a blue border and the label Yours with the default, the other costs empty with Default under them, and a Reset to defaults button."
+        />
+        <p className={page.body}>
+          Open <Link to={ROUTES.account}>Account</Link> from your name in the
+          menu. Everything saves as you type.
+        </p>
+        <dl className={styles.defs}>
+          <dt>Profile</dt>
+          <dd>
+            Your name, colonies (20 to 100), how far you will travel, when you
+            are available (month and day; every season uses the same dates),
+            your vehicle&apos;s fuel use, and what the colonies earn if they
+            stay home. Matches and every move use these.
+          </dd>
+          <dt>My moving costs</dt>
+          <dd>
+            Fuel price, vehicle cost, average speed, trips per move, labour
+            rate, loading time, extra feed and other placement costs such as
+            site rent. A value you set has a blue border and says <em>Yours</em>{" "}
+            with the default next to it; an empty field uses the marketplace
+            default shown in grey. Reset to defaults clears them.
+          </dd>
+          <dt>My parcels</dt>
+          <dd>
+            Rename your parcels, change what blooms there or the declared bloom
+            dates, mark one as your home apiary, or delete one.
+          </dd>
+        </dl>
+        <Shot
+          src="account-parcels.webp"
+          w={968}
+          h={580}
+          alt="My parcels in the account: the home apiary with a blue border, black locust, and a second parcel, sunflower, with declared bloom dates, each with Irrigated, Home apiary, Show on map and Delete."
+        />
+        <p className={page.body}>
+          <strong>Sign out</strong> is in the account menu. Your account stays
+          in this browser for the next time you sign in.
+        </p>
+      </Section>
+
+      <Section id="placements" title="My placements">
+        <Shot
+          src="placements.webp"
+          w={1400}
+          h={719}
+          alt="My placements: a March to August timeline with the requested stay on P15, black locust, and a table with parcel, crop, service, stay, colonies, benefit relative to the alternative, request date, status Requested · demo and a Cancel button."
+        />
+        <p className={page.body}>
+          Every parcel you requested, with its stay on a March to August bar,
+          the colonies, and the benefit relative to the alternative when you
+          requested it. <strong>Cancel</strong> withdraws a request. The menu
+          shows how many requests you have next to My placements.
+        </p>
+      </Section>
+
+      <Section id="draw" title="Live NASA readings for your parcel">
         <Shot
           src="draw.webp"
           w={1100}
           h={702}
-          alt="A field drawn on the map with its card: heat sum, rain, rain against 2015–2024 and bee-flight days from NASA POWER, and the HLS satellite rows."
+          alt="A drawn shape on the map with its card: heat sum, rain, rain against 2015–2024 and bee-flight days from NASA POWER, and the HLS satellite rows."
         />
-        <ol className={styles.points}>
-          <li>
-            Press <strong>Draw a field</strong> at the top left of the map.
-          </li>
-          <li>
-            Click the corners of the field. Click the first point again, or
-            press Enter, to finish.
-          </li>
-          <li>
-            The card fetches live from NASA for the selected season: heat sum
-            and rain since 1 March, rain against the 2015–2024 mean and the
-            number of good bee-flight days from POWER, and NDVI and NDYI from
-            the latest HLS satellite scene.
-          </li>
-        </ol>
         <p className={page.body}>
-          This works anywhere on the map, not only on the listed parcels. The
-          first read of a new field can take a minute.
+          While you draw a parcel, and whenever you open one of yours, a card on
+          the map reads NASA live for the selected season: heat sum and rain
+          since 1 March, rain against the 2015–2024 mean and the number of good
+          bee-flight days from POWER, and NDVI and NDYI from the latest HLS
+          satellite scene.
         </p>
         <p className={page.body}>
-          A parcel you draw is kept in your account as an apiary site: choose
-          its crop and its bloom is modelled where it lies from NASA POWER
-          weather. Name it, mark it as your home apiary or delete it under{" "}
-          <Link to={ROUTES.account}>Account</Link>.
+          This works anywhere on Earth, including far from the listed parcels.
+          The first read of a new place can take a minute. After that the answer
+          is kept for the session.
         </p>
         <p className={styles.note}>
           Satellite rows need a NASA Earthdata token on the server; without one
@@ -659,18 +962,19 @@ function Features() {
           shot={
             <Shot
               src="mobile-map.webp"
-              w={780}
-              h={1688}
+              w={390}
+              h={844}
               narrow
-              alt="The explorer on a phone: the map on top, the week slider, and tabs for Matches, Parcel and Layers."
+              alt="The explorer on a phone, signed in: the map with the home apiary on top, the week slider, and tabs for Matches, Parcel and Layers."
             />
           }
         >
           <h3 className={styles.h3}>On a phone</h3>
           <p className={page.body}>
             The map sits on top and the panels move into tabs below it:{" "}
-            <strong>Matches</strong>, <strong>Parcel</strong> and{" "}
-            <strong>Layers</strong>. The menu button opens the site pages.
+            <strong>Matches</strong> (with your parcels and the honey filter),{" "}
+            <strong>Parcel</strong> and <strong>Layers</strong>. The menu button
+            opens the site pages, My placements and your account.
           </p>
           <h3 className={styles.h3}>Share a view</h3>
           <p className={page.body}>
@@ -771,6 +1075,7 @@ export function GuidePage() {
           <Problem />
           <Solution />
           <QuickStart />
+          <SignIn />
           <Features />
           <Reference />
         </div>
