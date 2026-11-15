@@ -13,7 +13,10 @@ type Props = {
   onWeek: (week: number) => void;
 };
 
-/** Weekly scrubber for March–August (D12); the map recolours from loaded data only. */
+/**
+ * Weekly scrubber for March–August (D12); the map recolours from loaded data only.
+ * One honeycomb cell per week shows how much is in bloom; a bee is the handle.
+ */
 export function TimeSlider({ year, week, summary, onWeek }: Props) {
   const [playing, setPlaying] = useState(false);
   useEffect(() => {
@@ -33,7 +36,11 @@ export function TimeSlider({ year, week, summary, onWeek }: Props) {
     `calc(var(--thumb) / 2 + (100% - var(--thumb)) * ${(w - 1) / (WEEKS - 1)})`;
 
   return (
-    <section className={styles.slider} aria-label="Season timeline">
+    <section
+      className={styles.slider}
+      aria-label="Season timeline"
+      data-playing={playing}
+    >
       <div className={styles.head}>
         <button
           type="button"
@@ -58,7 +65,14 @@ export function TimeSlider({ year, week, summary, onWeek }: Props) {
           </span>
         </p>
         <span className={styles.season}>
-          Season starts 1 March · {WEEKS} weeks
+          <span className={styles.count} data-kind="bloom">
+            {summary[week - 1]?.blooming ?? 0} in bloom
+          </span>
+          {(summary[week - 1]?.low ?? 0) > 0 && (
+            <span className={styles.count} data-kind="low">
+              {summary[week - 1].low} low nectar
+            </span>
+          )}
         </span>
       </div>
       <div className={styles.rail}>
@@ -72,9 +86,10 @@ export function TimeSlider({ year, week, summary, onWeek }: Props) {
               key={i}
               style={{
                 left: at(i + 1),
-                opacity: s.blooming ? 0.3 + (0.7 * s.blooming) / most : 1,
+                opacity: s.blooming ? 0.35 + (0.65 * s.blooming) / most : 1,
               }}
               data-state={s.low ? "low" : s.blooming ? "bloom" : "none"}
+              data-current={i + 1 === week}
             />
           ))}
         </div>

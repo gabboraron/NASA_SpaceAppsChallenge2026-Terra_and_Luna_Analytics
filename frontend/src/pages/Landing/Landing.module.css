@@ -174,12 +174,17 @@
   display: flex;
   gap: 4px;
   margin-left: auto;
+  padding: 4px;
+  border: 2px solid var(--ink);
+  border-radius: 999px;
+  background: var(--card);
 }
 .seasons button,
 .calError button {
-  min-height: 44px;
-  padding: 0 14px;
-  border: 1px solid var(--ink);
+  min-height: 40px;
+  padding: 0 16px;
+  border: 0;
+  border-radius: 999px;
   background: transparent;
   color: var(--ink);
   font-family: var(--font-mono);
@@ -187,14 +192,23 @@
   cursor: pointer;
 }
 .seasons button[aria-pressed="true"] {
-  background: var(--ink);
-  color: var(--paper);
+  background: var(--honey);
+  color: var(--ink);
+  font-weight: 600;
+}
+.calError button {
+  border: 2px solid var(--ink);
 }
 .calBody {
   display: grid;
   grid-template-columns: minmax(0, 1fr) 260px;
   gap: 2rem;
   align-items: start;
+  padding: 1.5rem 1.5rem 1.25rem;
+  background: var(--card);
+  border: 2.5px solid var(--ink);
+  border-radius: 22px;
+  box-shadow: 6px 6px 0 var(--honey);
 }
 .calScroll {
   overflow-x: auto;
@@ -214,16 +228,23 @@
 }
 .rowLabel {
   display: flex;
-  flex-direction: column;
-  justify-content: center;
+  align-items: center;
+  gap: 0.5rem;
   padding-right: 0.75rem;
   line-height: 1.2;
+}
+.rowLabel > span {
+  display: flex;
+  flex-direction: column;
+}
+.rowLabel svg {
+  flex: none;
 }
 .rowLabel strong {
   font-weight: 600;
   font-size: 0.9375rem;
 }
-.rowLabel span {
+.rowLabel span span {
   font-size: 0.6875rem;
   color: var(--muted);
 }
@@ -263,12 +284,24 @@
     var(--line) 4px 6px
   );
 }
+/* The selected week keeps its bloom colour and gets an ink outline. */
 .cell[data-selected="true"] {
-  background: var(--ink);
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100' preserveAspectRatio='none'%3E%3Cpolygon points='50,1 99,25 99,75 50,99 1,75 1,25' fill='none' stroke='%231c1912' stroke-width='5' vector-effect='non-scaling-stroke'/%3E%3C/svg%3E");
+  background-size: 100% 100%;
 }
-.cell[data-selected="true"][data-state="none"],
 .cell[data-selected="true"][data-state="missing"] {
-  background: #a8987a;
+  background-color: var(--wash);
+}
+/* A bee hovers over the selected week. */
+.hover {
+  display: flex;
+  justify-content: center;
+  align-items: flex-end;
+  height: 28px;
+}
+.hover svg {
+  flex: none;
+  animation: float 3s ease-in-out infinite;
 }
 .cell[data-skeleton] {
   cursor: default;
@@ -304,8 +337,9 @@
 .tick[data-selected="true"] {
   color: var(--ink);
 }
-/* Week slider: keyboard and screen-reader control for the honeycomb. The
-   inline margins centre the 20px thumb on the first and last week columns. */
+/* Week slider: keyboard and screen-reader control for the honeycomb, drawn
+   as a bee on a dashed flight line. The inline margins centre the 30px bee
+   on the first and last week columns. */
 .rangeLabel {
   align-self: center;
   font-size: 0.6875rem;
@@ -315,36 +349,41 @@
 }
 .range {
   grid-column: 2 / -1;
-  height: 28px;
-  margin: 0.25rem calc(100% / 52 - 10px) 0;
+  height: 34px;
+  margin: 0.25rem calc(100% / 52 - 15px) 0;
   background: transparent;
   cursor: pointer;
   appearance: none;
 }
 .range::-webkit-slider-runnable-track {
   height: 2px;
-  background: var(--line-strong);
+  background: repeating-linear-gradient(
+    90deg,
+    #c98a12 0 3px,
+    transparent 3px 8px
+  );
 }
 .range::-moz-range-track {
   height: 2px;
-  background: var(--line-strong);
+  background: repeating-linear-gradient(
+    90deg,
+    #c98a12 0 3px,
+    transparent 3px 8px
+  );
 }
 .range::-webkit-slider-thumb {
-  width: 20px;
-  height: 23px;
-  margin-top: -10.5px;
+  width: 30px;
+  height: 30px;
+  margin-top: -14px;
   border: 0;
-  clip-path: var(--hex);
-  background: var(--ink);
+  background: var(--bee-handle) center / contain no-repeat;
   appearance: none;
 }
 .range::-moz-range-thumb {
-  width: 20px;
-  height: 23px;
+  width: 30px;
+  height: 30px;
   border: 0;
-  border-radius: 0;
-  clip-path: var(--hex);
-  background: var(--ink);
+  background: var(--bee-handle) center / contain no-repeat;
 }
 .calError {
   display: flex;
@@ -364,8 +403,18 @@
   flex-direction: column;
   gap: 0.625rem;
   padding-left: 1.25rem;
-  border-left: 2px solid var(--ink);
+  border-left: 2px dashed var(--honey);
   font-size: 0.9375rem;
+}
+/* The bee's mood follows the week: in love with full bloom, thirsty on
+   dry bloom, asleep when nothing flowers. */
+.readoutBee {
+  width: 76px;
+  margin-bottom: -0.25rem;
+  animation: float 5s ease-in-out infinite;
+}
+.readoutBee svg {
+  display: block;
 }
 .readoutWeek {
   font-size: 0.8125rem;
@@ -408,8 +457,8 @@
 .key li::before {
   content: "";
   width: 14px;
-  height: 14px;
-  border-radius: 2px;
+  height: 16px;
+  clip-path: var(--hex);
   background: var(--bloom-none);
 }
 .key li[data-state="full"]::before {
@@ -430,7 +479,9 @@
   outline: 1px solid var(--line);
 }
 .key li[data-state="selected"]::before {
-  background: var(--ink);
+  background: var(--bloom-none)
+    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100' preserveAspectRatio='none'%3E%3Cpolygon points='50,1 99,25 99,75 50,99 1,75 1,25' fill='none' stroke='%231c1912' stroke-width='5' vector-effect='non-scaling-stroke'/%3E%3C/svg%3E")
+    center / 100% 100%;
 }
 .swipe {
   display: none;
@@ -479,7 +530,9 @@
   }
 }
 @media (prefers-reduced-motion: reduce) {
-  .pal {
+  .pal,
+  .readoutBee,
+  .hover svg {
     animation: none;
   }
 }
@@ -745,6 +798,10 @@
 
 /* ---- phone ---- */
 @media (width < 760px) {
+  .rowLabel svg,
+  .readoutBee {
+    display: none;
+  }
   .flight {
     display: none;
   }
