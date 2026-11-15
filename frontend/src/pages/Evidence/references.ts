@@ -20,7 +20,7 @@ export const REFERENCES: Reference[] = [
   {
     text: "Kim S, Kim TK, Yoon S, et al. (2021). J. Korean Soc. For. Sci. 110(3):322-340.",
     ...doi("10.14578/jkfs.2021.110.3.322"),
-    use: "Black-locust parameters; validation error 4.6 to 6.1 days over 26 sites.",
+    use: "Black-locust parameters; validation error (RMSE) 6.1 days.",
   },
   {
     text: "Cesaraccio C, Spano D, Snyder RL, Duce P (2004). Chilling and forcing model to predict bud-burst of crop and forest species. Agric. For. Meteorol. 126:1-13.",

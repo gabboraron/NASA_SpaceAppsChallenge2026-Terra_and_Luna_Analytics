@@ -17,7 +17,7 @@ export const GLOSSARY = [
   },
   {
     term: "Root-zone percentile",
-    def: "How dry the soil is compared with the same week in 2015–2024, for one SMAP cell. The 5th percentile means drier than in 95 % of those weeks.",
+    def: "How dry the soil is compared with the same week in 2015 to 2024, for one SMAP cell. The 5th percentile means drier than in 95 % of those weeks.",
   },
   {
     term: "SMAP cell",
@@ -25,7 +25,7 @@ export const GLOSSARY = [
   },
   {
     term: "Interpolated week",
-    def: "A week between two clear satellite passes. Drawn dashed, never shown as observed.",
+    def: "A week between two clear satellite passes at most 21 days apart, filled in by interpolation. Drawn dashed and labelled as an estimate.",
   },
   {
     term: "Foraging radius",
@@ -80,7 +80,7 @@ export const FAQ: { q: string; a: ReactNode }[] = [
   },
   {
     q: "Do I need an account?",
-    a: "Not a real one. The explorer works as a signed-in beekeeper, and one click on Continue as demo beekeeper is enough. You can also register: the account, its parcels and placement requests live only in your browser, the password is not stored or checked, and nothing personal is sent to a server. A simulated field photo is kept in memory only and is gone when the server restarts.",
+    a: "Not a real one. The explorer works as a signed-in beekeeper, and one click on Continue as demo beekeeper is enough. You can also register: the account, its parcels and placement requests live only in your browser, the password is not stored or checked, and your name and email never leave the browser. The server receives your apiary location, parcel shapes and profile numbers to compute matches and bloom, and stores none of them. A simulated field photo is kept in memory only and is gone when the server restarts.",
   },
   {
     q: "Where are my parcels saved?",
@@ -88,7 +88,7 @@ export const FAQ: { q: string; a: ReactNode }[] = [
   },
   {
     q: "Why can't I save the parcel I drew?",
-    a: "It is larger than a field. A parcel can be at most about 8 km across, which is easy to exceed when drawing zoomed out. Discard it, zoom in to your apiary and draw around a single field.",
+    a: "It is larger than a field. A parcel can span at most 0.1° (about 8 to 11 km), which is easy to exceed when drawing zoomed out. Discard it, zoom in to your apiary and draw around a single field.",
   },
   {
     q: "What do the circles, hexagons and the hive on the map mean?",
@@ -102,8 +102,10 @@ export const FAQ: { q: string; a: ReactNode }[] = [
     q: "Which crops does it know?",
     a: (
       <>
-        Sunflower, apple, sour cherry and black locust have a bloom signal;
-        grassland and any other crop use the window the grower declares. See{" "}
+        Apple, sour cherry and black locust have a bloom model. Sunflower shows
+        the satellite yellowness index as evidence but, like grassland and any
+        other crop, takes its bloom weeks from the window the grower declares;
+        without a declaration the bloom is Missing. See{" "}
         <Link to={`${ROUTES.method}#bloom`}>Bloom by crop</Link>.
       </>
     ),
@@ -122,7 +124,7 @@ export const FAQ: { q: string; a: ReactNode }[] = [
   },
   {
     q: "Why is only sunflower flagged for low nectar?",
-    a: "Orchards are usually irrigated, and for black locust the drought rule did not agree with hive-scale records, so it is left out rather than guessed.",
+    a: "Orchards are assumed not to be water-limited, and for black locust the drought rule did not agree with hive-scale records, so it is left out.",
   },
   {
     q: "Why 3 km around protected sites?",
@@ -134,7 +136,7 @@ export const FAQ: { q: string; a: ReactNode }[] = [
   },
   {
     q: "Why can the satellite part of a drawn field say Missing?",
-    a: "Reading HLS for a new shape needs a NASA Earthdata token on the server. Without one the weather from NASA POWER still loads, and the satellite rows say why they are empty.",
+    a: "The satellite rows use the latest usable HLS scene of the last 30 days. If cloud covered the field on every pass, or the read failed, they say so. The weather from NASA POWER still loads.",
   },
   {
     q: "Is it free and open?",

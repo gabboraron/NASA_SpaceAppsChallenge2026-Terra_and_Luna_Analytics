@@ -60,7 +60,7 @@ const SOURCES: Source[] = [
     badge: "POWER",
     tone: "honey",
     title: "NASA POWER daily weather",
-    text: "Temperature for growing degree days, plus precipitation and wind for flight-weather days.",
+    text: "Daily maximum and minimum temperature for the heat-unit bloom models; for a parcel you draw, also rain totals and wind for bee-flight weather days.",
     facts: [
       ["Basis", "MERRA-2"],
       ["Grid", "0.5° × 0.625°"],
@@ -131,7 +131,7 @@ const SOURCES: Source[] = [
     badge: "CHECK",
     tone: "ink",
     title: "Hive scales, iNaturalist and PEP725",
-    text: "Past hive weights, black-locust observations and orchard flowering dates. Used only to check the models, not by the map.",
+    text: "Past hive weights and black-locust photo counts, used only to check the models, not by the map. Orchard flowering dates (PEP725) are supported but none were supplied, so orchards are unchecked.",
     facts: [["Use", "verification only"]],
     licence: "CC BY 4.0 and the providers' terms",
     href: "https://doi.org/10.17632/3v3hhkddmz.1",
@@ -142,15 +142,15 @@ const SOURCES: Source[] = [
 const RULES = [
   {
     title: "No invented values",
-    text: "A failed NASA request shows Missing with the reason, never a filled-in number.",
+    text: "A failed NASA request shows Missing with the reason. No number is filled in.",
   },
   {
     title: "Dates on estimates",
-    text: "Each Estimated value shows the date of its latest usable observation.",
+    text: "Each estimate derived from NASA data shows the date of its latest usable observation. Assumptions, such as cost defaults, carry no date.",
   },
   {
     title: "Synthetic people",
-    text: "Growers are synthetic and labelled. A beekeeper account lives only in your browser; no personal data reaches the server.",
+    text: "Growers are synthetic and labelled. A beekeeper account lives only in your browser. Your name and email never leave it; the server receives your apiary location, parcel shapes and profile numbers to compute matches and bloom, and stores none of them.",
   },
 ];
 

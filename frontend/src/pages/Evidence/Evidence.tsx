@@ -57,11 +57,11 @@ const SIGNAL_STEPS = [
 const DESIGN = [
   {
     title: "Independent reference",
-    text: "The model reads satellite and weather data. The reference is a scale under a beehive. Neither uses the other.",
+    text: "The black-locust model reads NASA temperature data only. The reference is a scale under a beehive. Neither uses the other.",
   },
   {
     title: "Parameters not fitted here",
-    text: "The black-locust model and its three parameters are taken as published, fitted on trees in another continent. Nothing was tuned to these hives.",
+    text: "The black-locust model and its three parameters are taken as published, fitted on trees in another continent, and the 10-day bloom length comes from a second published source. Nothing was tuned to these hives.",
   },
   {
     title: "Limits set first",
@@ -77,7 +77,7 @@ const DESIGN = [
   },
   {
     title: "The checks are tested",
-    text: "On synthetic data a correct model passes every check, and a model three weeks late fails.",
+    text: "On synthetic data a correct model passes every check with a limit, and a model three weeks late fails the bloom-start check.",
   },
 ];
 
@@ -272,11 +272,11 @@ input:  NASA POWER T2M_MAX, T2M_MIN (daily)`}
                 <span className="mono">verification/thresholds.toml</span>
               </a>
               : 10 days for the bloom start, 7 days for the shift between years.
-              A week is the unit a beekeeper plans in, and the published model
-              error is 4.6 to 6.1 days on sites it was not fitted to (Kim et al.
-              2021). Judging a forecast against a simple reference is standard
-              forecast verification, and holding out whole years follows the
-              advice for data that is ordered in time (Roberts et al. 2017).
+              A week is the unit a beekeeper plans in, and the published
+              validation error of the model is 6.1 days (Kim et al. 2021).
+              Judging a forecast against a simple reference is standard forecast
+              verification, and holding out whole years follows the advice for
+              data that is ordered in time (Roberts et al. 2017).
             </p>
           </Section>
 
@@ -339,8 +339,9 @@ input:  NASA POWER T2M_MAX, T2M_MIN (daily)`}
             </p>
 
             <p className={page.body}>
-              The app counts a day as flying weather when POWER gives at least
-              15 °C and wind below 5 m/s. On 782 such days in the bloom seasons,
+              This check counts a day as flying weather when POWER gives at
+              least 15 °C and wind below 5 m/s; the app&apos;s own card uses 6
+              m/s, which was not tested. On 782 such days in the bloom seasons,
               the hives gained 0.3 kg or more on 34%. On the 50 other days they
               did so on 14%, and the median day lost weight.
             </p>
@@ -377,7 +378,7 @@ input:  NASA POWER T2M_MAX, T2M_MIN (daily)`}
             </p>
             <pre className={`mono ${method.rule}`}>
               {`docker compose up -d --wait
-uv run python -m verification      # full report, exit code 1 on a failed limit
+uv run python -m verification --api http://127.0.0.1:8080/api   # full report, exit code 1 on a failed limit
 uv run pytest verification         # the checks' own tests, no network`}
             </pre>
             <div className={method.scroll}>

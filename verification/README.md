@@ -37,7 +37,7 @@ The European pollen reanalyses (CAMS, SILAM) cover the same allergen taxa and ha
 | S1 | Does black-locust bloom start when the flow started? | onset (POWER GDD) | hive spring-flow onset | \|error\| ≤ 10 days per year |
 | S2 | Is the year-to-year shift right? | onset shift between the years | hive shift (iNaturalist shift shown) | same direction, \|Δ\| ≤ 7 days |
 | S3 | Is accumulated GDD a better clock than the calendar? | POWER temperature at the hives, all years | hive onsets, leave-one-year-out | report |
-| S4 | Does sunflower bloom peak with the summer flow? | peak (HLS NDYI) | hive summer-flow peak | \|error\| ≤ 14 days per year |
+| S4 | Does sunflower bloom peak with the summer flow? | peak of the declared window (synthetic in the demo) | hive summer-flow peak | \|error\| ≤ 14 days per year |
 | S5 | Does the low-nectar flag mark weak years? | `low_nectar` share (SMAP L4 rule) | season flow kg per year | report |
 | S6 | Are POWER flight-weather days real? | Tmax ≥ 15 °C and wind < 5 m/s | daily hive gain | report |
 | S7 | Does the locust peak match iNaturalist? | locust peak | weekly observation peak | report |
@@ -82,8 +82,9 @@ uv run pytest verification
 VERIFY_LIVE=1 uv run pytest verification
 VERIFY_LIVE=1 VERIFY_API=http://127.0.0.1:8000 uv run pytest verification/test_live.py
 
-# full report against the running stack (docker compose up -d --wait, or uvicorn on :8000)
+# full report against the running stack: uvicorn on :8000, or docker compose up -d --wait
 uv run python -m verification --api http://127.0.0.1:8000
+uv run python -m verification --api http://127.0.0.1:8080/api   # Docker
 uv run python -m verification --only S1,S2,B0
 uv run python -m verification --pep725 my_pep725_export.csv
 ```

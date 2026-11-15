@@ -88,7 +88,7 @@ const KINDS = [
 const TROUBLE = [
   [
     "Fetching the season from NASA…",
-    "The first load of a season. With the shipped cache it takes seconds; a cold cache can take a minute.",
+    "The first load of a season. With the shipped cache it takes seconds; a cold cache can take several minutes.",
   ],
   [
     "Loading soil moisture for this view…",
@@ -96,7 +96,7 @@ const TROUBLE = [
   ],
   [
     "Fetching satellite data from NASA…",
-    "The live season only. Bloom from weather is already shown; the map asks again every 5 seconds until satellite bloom and soil moisture arrive, which can take several minutes.",
+    "The live season only. Bloom from weather is already shown; the map asks again every 5 seconds until the satellite indices and soil moisture arrive, which can take several minutes.",
   ],
   [
     "Lost connection to the API",
@@ -105,7 +105,7 @@ const TROUBLE = [
   ["Could not load …", "Press Try again. Only the parts that failed reload."],
   [
     "This shape is larger than a field",
-    "A parcel can be at most about 8 km across. Discard it, zoom in to your apiary and draw again.",
+    "A parcel can span at most 0.1° (about 8 to 11 km). Discard it, zoom in to your apiary and draw again.",
   ],
   [
     "Could not model the bloom of …",
@@ -189,7 +189,7 @@ function Problem() {
           <a href="#src-klein">1</a>
         </sup>
         . The food production that relies directly on pollination is worth an
-        estimated US$235–577 billion a year
+        estimated US$235 to 577 billion a year
         <sup>
           <a href="#src-ipbes">2</a>
         </sup>
@@ -266,10 +266,10 @@ function Solution() {
         </div>
       </div>
       <p className={page.body}>
-        Every number shows its source and date. When NASA has no usable data,
-        the map says Missing and gives the reason. The method is written up in{" "}
-        <Link to={ROUTES.method}>How it works</Link>; every source is listed
-        under <Link to={ROUTES.data}>Data</Link>.
+        Every value shows its source, and its date when it comes from NASA data.
+        When NASA has no usable data, the map says Missing and gives the reason.
+        The method is written up in <Link to={ROUTES.method}>How it works</Link>
+        ; every source is listed under <Link to={ROUTES.data}>Data</Link>.
       </p>
       <p className={styles.note}>
         Demo status: the NASA data is real. Sign-in is a mock: your account,
@@ -333,8 +333,10 @@ function SignIn() {
         <p className={styles.note}>
           Sign-in is a demo. Accounts, parcels and requests live in this browser
           only: they survive a reload, but not another browser or clearing the
-          site data. The password is not stored or checked, and nothing is sent
-          to a server.
+          site data. The password is not stored or checked, and your name and
+          email never leave the browser. The server receives your apiary
+          location, parcel shapes and profile numbers to compute matches and
+          bloom, and stores none of them.
         </p>
       </Split>
     </Section>
@@ -382,8 +384,8 @@ function Features() {
         <p className={page.body}>
           The third button, marked live, is the latest complete season. It is
           read from NASA when you open it, not from the shipped cache: bloom
-          from weather shows at once, and satellite bloom and soil moisture
-          follow where the server has an Earthdata login.
+          from weather shows at once, the HLS indices follow within minutes, and
+          soil moisture follows where the server has an Earthdata login.
         </p>
         <div className={styles.pair}>
           <Shot
@@ -445,8 +447,8 @@ function Features() {
             <dd>
               The fill shows the bloom state this week (not in bloom, before,
               blooming, after); the outline colour shows the crop. A hatched
-              fill means high bloom, low nectar; a dashed outline means the week
-              is interpolated.
+              fill means high bloom, low nectar; a dashed outline means the
+              week's satellite indices are interpolated between two passes.
             </dd>
             <dt>Natura 2000</dt>
             <dd>Protected sites, hatched green. No hives inside.</dd>
@@ -530,8 +532,8 @@ function Features() {
         >
           <ol className={styles.points}>
             <li>
-              Zoom in to where your hives stand. A parcel can be at most about 8
-              km across.
+              Zoom in to where your hives stand. A parcel can span at most 0.1°
+              (about 8 to 11 km).
             </li>
             <li>
               Press <strong>Add my parcel</strong> at the top left of the map
@@ -803,7 +805,8 @@ function Features() {
             <strong>Simulate grower field photo</strong> stands in for a
             geotagged photo taken by the grower. The parcel&apos;s blooming
             weeks switch from Reported or Estimated to <strong>Observed</strong>
-            , and match confidence goes up.
+            , and its match confidence becomes high in those weeks. The bloom
+            dates themselves do not change.
           </p>
           <p className={styles.note}>
             Demo only. Nothing is uploaded, and it resets when the server
@@ -929,23 +932,24 @@ function Features() {
           src="draw.webp"
           w={1100}
           h={702}
-          alt="A drawn shape on the map with its card: heat sum, rain, rain against 2015–2024 and bee-flight days from NASA POWER, and the HLS satellite rows."
+          alt="A drawn shape on the map with its card: heat sum, rain, rain against 2015 to 2024 and bee-flight days from NASA POWER, and the HLS satellite rows."
         />
         <p className={page.body}>
           While you draw a parcel, and whenever you open one of yours, a card on
-          the map reads NASA live for the selected season: heat sum and rain
-          since 1 March, rain against the 2015–2024 mean and the number of good
-          bee-flight days from POWER, and NDVI and NDYI from the latest HLS
-          satellite scene.
+          the map reads NASA live: for the selected season, heat sum and rain
+          since 1 March, rain against the 2015 to 2024 mean and the number of
+          bee-flight days (at least 15 °C and wind below 6 m/s) from POWER; and
+          NDVI and NDYI from the latest usable HLS scene of the last 30 days,
+          whichever season is selected.
         </p>
         <p className={page.body}>
           This works anywhere on Earth, including far from the listed parcels.
           The first read of a new place can take a minute. After that the answer
-          is kept for the session.
+          is kept until you reload the page.
         </p>
         <p className={styles.note}>
-          Satellite rows need a NASA Earthdata token on the server; without one
-          they show Missing with that reason, as here.
+          Satellite rows show Missing, with the reason, when the last 30 days
+          had no clear pass over the parcel or the HLS read failed.
         </p>
       </Section>
 
@@ -1050,7 +1054,7 @@ function Reference() {
         <ol>
           <li id="src-klein">
             Klein, A.-M. et al. (2007). Importance of pollinators in changing
-            landscapes for world crops. <em>Proc. R. Soc. B</em> 274, 303–313.{" "}
+            landscapes for world crops. <em>Proc. R. Soc. B</em> 274, 303-313.{" "}
             <a href="https://doi.org/10.1098/rspb.2006.3721">
               doi.org/10.1098/rspb.2006.3721
             </a>

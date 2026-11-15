@@ -8,7 +8,7 @@ const STEPS = [
   {
     title: "Observe",
     tag: "HLS · SMAP L4 · POWER",
-    text: "Requests to NASA for each parcel, cached on disk so a season replays without refetching. Each value shows the date it describes.",
+    text: "Weather per POWER grid node, HLS scenes per sunflower parcel and soil moisture per 9 km cell, cached on disk so a season replays without refetching. Each NASA-derived value shows the date it describes.",
   },
   {
     title: "Model",
@@ -90,7 +90,7 @@ const ZONES = [
 
 const LIMITS = [
   "Sign-in is a mock kept in your browser; growers in the demo are synthetic and listed parcels are illustrative, not real holdings.",
-  "Clouds hide fields from HLS; long gaps lower confidence and show as Missing.",
+  "Clouds hide fields from HLS; weeks with no clear pass within 21 days on both sides show as Missing.",
   "No real booking: a placement request is stored in your browser only and no grower is contacted.",
   "Spray calendars and road routing are not modelled.",
 ];
@@ -206,8 +206,9 @@ export function MethodPage() {
             <p className={styles.note}>
               Each phenology threshold in{" "}
               <span className="mono">data/phenology.json</span> carries a cited
-              source. Weeks between two clear satellite passes are interpolated
-              and drawn dashed; they are never shown as observations.
+              source. Weeks between two clear satellite passes at most 21 days
+              apart are interpolated and drawn dashed; they are never shown as
+              observations.
             </p>
             <p className={page.body}>
               A parcel you draw is modelled the same way at its own spot: black
@@ -228,15 +229,16 @@ export function MethodPage() {
               For each SMAP cell we compare this week&apos;s root-zone soil
               moisture with the same week in that cell&apos;s own history. When
               it is the driest such week on record (below the 10th percentile of
-              2015&ndash;2024), flowering sunflower in the cell is downgraded to{" "}
+              2015 to 2024), flowering sunflower in the cell is downgraded to{" "}
               <strong>bloom, low nectar</strong>: dry soil during bloom puts
-              nectar at risk. Orchards are assumed irrigated. Black locust is
-              left out, because the rule did not agree with hive-scale records
-              for it.
+              nectar at risk. Orchards and parcels listed as irrigated are
+              assumed not to be water-limited. Black locust is left out, because
+              the rule did not agree with hive-scale records for it; for it and
+              every other crop nectar shows as unknown.
             </p>
             <pre className={`mono ${styles.rule}`}>
               {`low_nectar = flowering
-  and crop == sunflower
+  and crop == sunflower and not irrigated
   and rootzone_moisture < p10(cell, same week, 2015-2024)`}
             </pre>
             <p className={styles.note}>
@@ -272,7 +274,7 @@ export function MethodPage() {
               labelled Estimated and editable in the calculator. The ranking
               weighs three things: how much of the bloom window the beekeeper
               can cover, how close the parcel is, and how well the bloom timing
-              is evidenced. The weights are a design choice, not a measurement.
+              is evidenced. The weights are our design choice.
             </p>
           </Section>
 
@@ -284,7 +286,9 @@ export function MethodPage() {
               staying put. Every input is prefilled from the match, and the
               moving costs you set in your account replace the marketplace
               defaults (labelled Reported, “Your cost settings”). Any input can
-              still be changed for one move. It makes no yield claims.
+              still be changed for one move. A pollination fee carries an 8 %
+              marketplace commission, an illustrative figure; forage moves earn
+              no fee and pay none. It makes no yield claims.
             </p>
           </Section>
 
