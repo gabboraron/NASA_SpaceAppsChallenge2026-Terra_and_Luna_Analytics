@@ -176,7 +176,7 @@ Format: **WP-id · title · track · depends on**, then tasks and **Done when** 
 - **Done when:** map renders OpenFreeMap basemap centered on the pilot region; CI frontend job green.
 
 **WP4 · Geometry & config files · DATA · none**
-- Bbox around the Újfehértó–Nyírbátor–Mátészalka triangle (≈ lon 21.6–22.4, lat 47.7–48.05; refine).
+- Bbox of the pilot region (≈ lon 21.6–22.4, lat 47.7–48.05; refine).
 - Download EEA Natura 2000 (GeoPackage), clip to bbox in QGIS (or a one-off script with geopandas in a dev-only group; not a runtime dependency), export `natura2000.geojson` (EPSG:4326).
 - Trace ~18 parcels over Esri imagery in QGIS/geojson.io: ~6 apple/sour cherry orchards, ~5 sunflower, ~4 black locust, ~2–3 parcels **inside** Natura (grassland), at least one parcel whose 3 km buffer overlaps Natura. Fill §4.2 properties.
 - `phenology.json`: per crop `base_temp_c`, `gdd_bloom_start`, `gdd_bloom_end`, `uncertainty_days`, `source` (citation URL/DOI). **Look values up; do not invent.**

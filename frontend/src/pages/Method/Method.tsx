@@ -251,9 +251,10 @@ export function MethodPage() {
             </p>
             <p className={page.body}>
               Distance is the straight-line distance times a 1.3 detour factor,
-              labelled Estimated and editable in the calculator. Today the
-              ranking uses distance only, and the app says so on every list;
-              bloom fit and nectar are scored next.
+              labelled Estimated and editable in the calculator. The ranking
+              weighs three things: how much of the bloom window the beekeeper
+              can cover, how close the parcel is, and how well the bloom timing
+              is evidenced. The weights are a design choice, not a measurement.
             </p>
           </Section>
 
