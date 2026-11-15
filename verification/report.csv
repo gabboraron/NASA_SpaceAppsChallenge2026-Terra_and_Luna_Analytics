@@ -1,0 +1,93 @@
+id,status,metric,value
+R0,REPORTED,black_locust_2021_hive12,"2021-05-26..2021-06-03 peak 2021-05-31 (ISO wk 22), +17.4 kg; season +25.1 kg"
+R0,REPORTED,black_locust_2022_hive12,"2022-05-20..2022-05-24 peak 2022-05-24 (ISO wk 21), +17.0 kg; season +31.9 kg"
+R0,REPORTED,black_locust_2022_hive18,"2022-05-21..2022-05-30 peak 2022-05-24 (ISO wk 21), +15.1 kg; season +15.1 kg"
+R0,REPORTED,black_locust_2023_hive12,"2023-05-19..2023-05-25 peak 2023-05-22 (ISO wk 21), +15.2 kg; season +20.5 kg"
+R0,REPORTED,black_locust_2023_hive18,"2023-05-23..2023-05-26 peak 2023-05-23 (ISO wk 21), +11.6 kg; season +14.9 kg"
+R0,REPORTED,black_locust_2024_hive12,"2024-04-30..2024-05-06 peak 2024-05-03 (ISO wk 18), +23.0 kg; season +38.3 kg"
+R0,REPORTED,black_locust_2024_hive18,"2024-04-30..2024-05-04 peak 2024-05-01 (ISO wk 18), +21.2 kg; season +43.9 kg"
+R0,REPORTED,black_locust_2025_hive12,"2025-04-24..2025-05-03 peak 2025-04-30 (ISO wk 18), +11.6 kg; season +15.9 kg"
+R0,REPORTED,black_locust_2025_hive18,"2025-04-24..2025-05-03 peak 2025-04-30 (ISO wk 18), +6.5 kg; season +10.9 kg"
+R0,REPORTED,sunflower_2021_hive12,"2021-07-03..2021-07-09 peak 2021-07-06 (ISO wk 27), +20.3 kg; season +30.9 kg"
+R0,REPORTED,sunflower_2022_hive12,"2022-07-04..2022-07-07 peak 2022-07-04 (ISO wk 27), +12.1 kg; season +30.4 kg"
+R0,REPORTED,sunflower_2023_hive12,"2023-06-25..2023-07-07 peak 2023-07-05 (ISO wk 27), +15.6 kg; season +18.7 kg"
+R0,REPORTED,sunflower_2023_hive18,"2023-06-27..2023-07-08 peak 2023-07-08 (ISO wk 27), +16.7 kg; season +33.9 kg"
+R0,REPORTED,sunflower_2024_hive12,"2024-07-06..2024-07-12 peak 2024-07-09 (ISO wk 28), +8.5 kg; season +8.5 kg"
+R0,REPORTED,sunflower_2024_hive18,"2024-07-06..2024-07-10 peak 2024-07-06 (ISO wk 27), +13.5 kg; season +23.4 kg"
+S1,PASS,2022_model_onset,2022-05-15
+S1,PASS,2022_hive_onset,2022-05-21
+S1,PASS,2022_error_days,-6
+S1,PASS,2024_model_onset,2024-04-25
+S1,PASS,2024_hive_onset,2024-04-30
+S1,PASS,2024_error_days,-5
+S1,PASS,2022_first_blooming_week,2022-05-10
+S1,PASS,2022_week_error_days,-11
+S1,PASS,2024_first_blooming_week,2024-04-19
+S1,PASS,2024_week_error_days,-11
+S1,PASS,limit_days,10.00
+S2,PASS,inat_shift_days,-23
+S2,PASS,years,2022->2024
+S2,PASS,model_shift_days,-19
+S2,PASS,hive_shift_days,-20
+S2,PASS,difference_days,1
+S2,PASS,limit_days,7.00
+S3,REPORTED,years,"2021,2022,2023,2024,2025"
+S3,REPORTED,calendar_baseline_mae_days,15.40
+S3,REPORTED,base0_gdd_at_onset_mean,915.20
+S3,REPORTED,base0_cv,0.13
+S3,REPORTED,base0_loo_mae_days,7.60
+S3,REPORTED,base5_gdd_at_onset_mean,443.27
+S3,REPORTED,base5_cv,0.13
+S3,REPORTED,base5_loo_mae_days,7.20
+S3,REPORTED,base10_gdd_at_onset_mean,161.59
+S3,REPORTED,base10_cv,0.19
+S3,REPORTED,base10_loo_mae_days,5.20
+S3,REPORTED,best_base_c,10.00
+S3,REPORTED,gdd_beats_calendar,True
+S3,REPORTED,gdd_stable,False
+S4,PASS,2022_model_peak,2022-07-08
+S4,PASS,2022_hive_peak,2022-07-04
+S4,PASS,2022_error_days,4
+S4,PASS,2024_model_peak,2024-07-08
+S4,PASS,2024_hive_peak,2024-07-07
+S4,PASS,2024_error_days,1
+S4,PASS,2022_jaccard,0.20
+S4,PASS,2024_jaccard,0.50
+S4,PASS,limit_days,14.00
+S5,REPORTED,black_locust_2022_low_nectar_share,0.00
+S5,REPORTED,black_locust_2022_hive_flow_kg,23.49
+S5,REPORTED,black_locust_2024_low_nectar_share,0.00
+S5,REPORTED,black_locust_2024_hive_flow_kg,41.08
+S5,REPORTED,sunflower_2022_low_nectar_share,1.00
+S5,REPORTED,sunflower_2022_hive_flow_kg,30.40
+S5,REPORTED,sunflower_2024_low_nectar_share,0.00
+S5,REPORTED,sunflower_2024_hive_flow_kg,15.97
+S5,REPORTED,sunflower_ranking_agrees,False
+S6,REPORTED,flight_days,782
+S6,REPORTED,non_flight_days,50
+S6,REPORTED,flight_median_gain_kg,0.00
+S6,REPORTED,non_flight_median_gain_kg,-0.10
+S6,REPORTED,flight_share_gaining,0.34
+S6,REPORTED,non_flight_share_gaining,0.14
+S6,REPORTED,rule_consistent,True
+S7,REPORTED,2021_inat_obs_in_season,38
+S7,REPORTED,2021_inat_peak,2021-05-27
+S7,REPORTED,2021_inat_minus_hive_days,-4
+S7,REPORTED,2022_inat_obs_in_season,91
+S7,REPORTED,2022_inat_peak,2022-05-19
+S7,REPORTED,2022_inat_minus_hive_days,-5
+S7,REPORTED,2022_model_minus_inat_days,-6
+S7,REPORTED,2023_inat_obs_in_season,101
+S7,REPORTED,2023_inat_peak,2023-05-25
+S7,REPORTED,2023_inat_minus_hive_days,3
+S7,REPORTED,2024_inat_obs_in_season,262
+S7,REPORTED,2024_inat_peak,2024-04-25
+S7,REPORTED,2024_inat_minus_hive_days,-7
+S7,REPORTED,2024_model_minus_inat_days,-3
+S7,REPORTED,2025_inat_obs_in_season,238
+S7,REPORTED,2025_inat_peak,2025-05-15
+S7,REPORTED,2025_inat_minus_hive_days,15
+B0,PASS,black_locust_model_mae_days,5.50
+B0,PASS,black_locust_calendar_mae_days,13.00
+B0,PASS,sunflower_model_mae_days,2.50
+B0,PASS,sunflower_calendar_mae_days,2.50
