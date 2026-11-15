@@ -5,6 +5,8 @@ downloads that HDF5 product with the token in ``earthdata.key``, and samples
 the HH/HV pixel nearest the requested coordinate.
 
 Run with ``uv run python scripts/nisar_rvi.py 22.13 47.84``.
+
+Jupyter notebook demo: ../jupyter_notebook_live_demo/nisar-demo.ipynb
 """
 
 # pyright: basic
@@ -46,7 +48,7 @@ def _token(path: Path) -> str:
         raise FileNotFoundError(f"Earthdata key file not found: {path}")
     text = path.read_text(encoding="utf-8").strip()
     if not text:
-        raise ValueError(f"Earthdata key file is empty: {path}")
+        raise ValueError(f"Earthdata key file is empty: {path}; must contain a bearer token: https://urs.earthdata.nasa.gov/users/username/user_tokens. Befoe that, accept the user agreement at https://urs.earthdata.nasa.gov/terms-of-service.")
     if text.startswith("{"):
         payload = json.loads(text)
         for key in ("access_token", "token", "earthdata_token"):
