@@ -4,16 +4,13 @@ import logging
 import zipfile
 from collections.abc import AsyncGenerator
 from contextlib import asynccontextmanager
-from datetime import date
-from threading import Thread
 
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from pollination.config import Settings
-from pollination.contract import router, season_inputs
+from pollination.contract import prefetch_latest_season, router
 from pollination.nasa.cache_share import import_cache
-from pollination.weeks import latest_season
 
 log = logging.getLogger(__name__)
 SHIPPED_CACHE = "nasa-cache.zip"
@@ -36,23 +33,11 @@ def import_shipped_cache(settings: Settings) -> None:
     log.info("Shipped NASA cache: %s", counts)
 
 
-def prefetch_latest_season() -> None:
-    """Start fetching the latest season in the background.
-
-    Its HLS and SMAP reads take minutes on a cold cache, so they are under way
-    before the first visitor asks for the season.
-    """
-    year = latest_season(date.today())
-    Thread(target=season_inputs, args=(year,), daemon=True).start()
-
-
 @asynccontextmanager
 async def lifespan(_app: FastAPI) -> AsyncGenerator[None]:
     """Import the shipped NASA cache, then prefetch the latest season if possible."""
-    settings = Settings()
-    import_shipped_cache(settings)
-    if settings.has_earthdata:
-        prefetch_latest_season()
+    import_shipped_cache(Settings())
+    prefetch_latest_season()
     yield
 
 

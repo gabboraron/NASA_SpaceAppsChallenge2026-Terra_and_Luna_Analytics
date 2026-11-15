@@ -47,7 +47,7 @@ import {
   indexWeeks,
 } from "./domain/season";
 import { useEscape } from "./hooks/useEscape";
-import { useField } from "./hooks/useField";
+import { type Answer, useField } from "./hooks/useField";
 import { forgetMatches, useMatches } from "./hooks/useMatches";
 import { SiteHeader } from "./site/SiteHeader";
 import styles from "./App.module.css";
@@ -178,10 +178,10 @@ export function App() {
   const timeline = current?.data ?? null;
   // Something is on its way from NASA: the season, its satellite part, or a
   // drawn field's reads. The status cards say what; this drives the moving bar.
-  const waiting = (a: { data?: unknown; error?: unknown }) =>
-    a.data === undefined && !a.error;
+  const waiting = (a: Answer<unknown>) => a.data === undefined && !a.error;
   const fetching =
-    (current ? !!current.data?.pending : true) ||
+    !current ||
+    !!current.data?.pending ||
     (!!fieldPolygon && (waiting(field.power) || waiting(field.hls)));
   const parcels = useMemo(() => base.data?.parcels ?? [], [base.data]);
   const beekeepers = useMemo(
