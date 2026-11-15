@@ -92,8 +92,8 @@ export function Receipt() {
         )}
       </div>
       <figcaption>
-        Fig. 5 · A calculator result computed by the app for a synthetic beekeeper. Line items
-        come from the app.
+        Fig. 5 · A calculator result computed by the app for a synthetic
+        beekeeper. Line items come from the app.
       </figcaption>
     </figure>
   );
