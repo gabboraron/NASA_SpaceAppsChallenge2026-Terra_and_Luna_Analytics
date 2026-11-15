@@ -4,6 +4,7 @@ from collections.abc import Callable
 from datetime import date, timedelta
 from pathlib import Path
 
+import numpy as np
 import pytest
 from pytest_httpx import HTTPXMock
 
@@ -12,8 +13,9 @@ from pollination.config import Settings
 from pollination.datafiles import PhenologyEntry, load_phenology
 from pollination.engine import timeline as tl
 from pollination.geo import centroid, smap_cell
+from pollination.nasa import hls
 from pollination.nasa import smap as smap_client
-from pollination.nasa.hls import Obs
+from pollination.nasa.hls import BandWindow, Obs, Scene
 from pollination.nasa.power import PowerDaily
 
 PHENOLOGY = load_phenology(Settings().data_dir)
@@ -342,7 +344,9 @@ def test_fetch_inputs_turns_failures_into_reasons(
     httpx_mock: HTTPXMock, tmp_path: Path
 ) -> None:
     httpx_mock.add_response(status_code=503)
-    inputs = tl.fetch_inputs(2024, [parcel()], tmp_path, earthdata=False, phenology={})
+    inputs = tl.fetch_inputs(
+        2024, [parcel("sunflower")], tmp_path, earthdata=False, phenology=PHENOLOGY
+    )
     assert inputs.power["P1"] == "NASA POWER is unavailable right now (HTTP 503)"
     assert inputs.failed
     assert isinstance(inputs.hls, str)
@@ -392,7 +396,7 @@ def test_fetch_inputs_reads_smap_when_a_token_is_set(
     inputs = tl.fetch_inputs(2022, [parcel()], tmp_path, earthdata=True, phenology={})
     assert inputs.smap is season
     assert not inputs.failed
-    assert seen == {"year": 2022, "cache_dir": tmp_path}
+    assert seen == {"year": 2022, "read": None, "cache_dir": tmp_path}
 
 
 def test_fetch_inputs_turns_a_smap_failure_into_a_reason(
@@ -408,6 +412,73 @@ def test_fetch_inputs_turns_a_smap_failure_into_a_reason(
     inputs = tl.fetch_inputs(2022, [parcel()], tmp_path, earthdata=True, phenology={})
     assert inputs.smap == "NASA SMAP request failed: OPeNDAP down"
     assert inputs.failed
+
+
+def no_power(monkeypatch: pytest.MonkeyPatch) -> None:
+    """Stub POWER so only the HLS and SMAP steps are under test."""
+    daily = PowerDaily(lat=47.5, lon=21.875, days=[], values={})
+
+    def fake_power(*args: object, **kwargs: object) -> PowerDaily:
+        return daily
+
+    monkeypatch.setattr(tl, "daily_point", fake_power)
+
+
+def test_without_a_token_a_warm_cache_still_gives_hls_and_smap(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+) -> None:
+    """The shipped cache is enough: no token, no NASA call, real values (WP24)."""
+    no_power(monkeypatch)
+    field = parcel("sunflower")
+    scene = Scene("HLS.S30.T34TET.2022190T094031.v2.0", date(2022, 7, 9), {}, 5.0)
+    seen = BandWindow(
+        blue=np.full((2, 2), 0.04, dtype=np.float32),
+        green=np.full((2, 2), 0.08, dtype=np.float32),
+        red=np.full((2, 2), 0.05, dtype=np.float32),
+        nir=np.full((2, 2), 0.40, dtype=np.float32),
+        fmask=np.zeros((2, 2), dtype=np.uint8),
+        inside=np.ones((2, 2), dtype=np.bool_),
+    )
+
+    def search(*_: object) -> list[Scene]:
+        return [scene]
+
+    def read(*_: object) -> BandWindow:
+        return seen
+
+    def read_day(*_: object) -> dict[str, float | None]:
+        return {}
+
+    warm = hls.parcel_indices(
+        [field],
+        date(2022, 3, 1),
+        date(2022, 8, 31),
+        search=search,
+        read=read,
+        cache_dir=tmp_path,
+    )
+    smap_client.season(2022, read=read_day, cache_dir=tmp_path)
+
+    inputs = tl.fetch_inputs(
+        2022, [field], tmp_path, earthdata=False, phenology=PHENOLOGY
+    )
+
+    assert warm["P1"]
+    assert inputs.hls == warm
+    assert isinstance(inputs.smap, tl.SmapSeason)
+    assert not inputs.failed
+
+
+def test_without_a_token_a_cache_miss_is_missing_and_not_retried(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+) -> None:
+    no_power(monkeypatch)
+    inputs = tl.fetch_inputs(
+        2022, [parcel("sunflower")], tmp_path, earthdata=False, phenology=PHENOLOGY
+    )
+    assert inputs.hls == "No Earthdata token configured; HLS not queried"
+    assert inputs.smap == "No Earthdata token configured; SMAP not queried"
+    assert not inputs.failed
 
 
 def power_payload(first: date, last: date) -> dict[str, object]:
