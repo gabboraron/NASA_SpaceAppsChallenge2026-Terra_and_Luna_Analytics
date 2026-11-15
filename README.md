@@ -6,7 +6,7 @@
 
 NASA Earth observations tell beekeepers and growers when and where crops bloom, and whether moving hives there pays off
 
-[![NASA Space Apps 2026](https://img.shields.io/badge/NASA%20Space%20Apps-2026-0B3D91?style=for-the-badge&logo=nasa&logoColor=white)](https://www.spaceappschallenge.org/2026/)
+[![NASA Space Apps 2026](https://img.shields.io/badge/NASA%20Space%20Apps-2026-0B3D91?style=for-the-badge&logo=nasa&logoColor=white)](https://www.spaceappschallenge.org/2026/) [![Terra and Luna Analytics team](https://img.shields.io/badge/Terra_and_Luna_Analytics-team-EAB308?style=for-the-badge&labelColor=1E3A8A)](https://www.spaceappschallenge.org/2026/find-a-team/terra-and-luna-analytics/?tab=project)
 
 [![License](https://img.shields.io/badge/license-MPL--2.0-blue?style=flat-square)](LICENSE)
 [![Python](https://img.shields.io/badge/python-3.12-3776AB?style=flat-square&logo=python&logoColor=white)](https://www.python.org/)
