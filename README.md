@@ -89,6 +89,17 @@ Checks (same as CI): `uv run ruff check . && uv run ruff format --check . && uv 
 └── AI_USAGE.md          AI use disclosure required by Space Apps
 ```
 
+## Technical background
+```mermaid
+flowchart TD
+    A[Heat map engine] --> H
+    D[Sentinel optical data] -->|Spectral calssifier| A
+    E[NISAR measurements transformed to RVI values] -->|Biomass model| A
+    F[Weather: wind + rain] -->|Direction model| A
+    G[Flowering time interval dataset for different plants] -->|timeframe classifier| H(pollen type filter)
+    H --> B(UI heatmap)
+```  
+
 ## Data and citations
 
 | Source | Used for | Access / licence |
