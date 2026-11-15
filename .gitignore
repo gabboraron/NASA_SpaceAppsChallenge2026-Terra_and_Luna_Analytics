@@ -152,6 +152,7 @@ activemq-data/
 # Environments
 .env
 .envrc
+earthdata.key
 .venv
 env/
 venv/
