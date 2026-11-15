@@ -2,7 +2,7 @@
 # Fixed before the first run on real model output; change them only in a reviewed PR,
 # never to make a failing scenario pass.
 
-# Where the reference hives stand ("near Debrecen", the dataset gives no coordinates).
+# Where the reference hives stand (approximate: the dataset gives no coordinates).
 reference_location = [21.63, 47.53] # lon, lat
 reference_years = [2021, 2022, 2023, 2024, 2025]
 
