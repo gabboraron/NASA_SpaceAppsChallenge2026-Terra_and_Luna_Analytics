@@ -14,6 +14,7 @@ import {
   type Season,
   type Timeline,
 } from "./api/client";
+import { HEALTH_POLL_MS, useBackOnline, useOnline } from "./api/connection";
 import { DrawnField } from "./components/DrawnField/DrawnField";
 import { LayerPanel } from "./components/LayerPanel/LayerPanel";
 import { MapCanvas } from "./components/MapCanvas/MapCanvas";
@@ -267,11 +268,18 @@ export function App() {
       })
       .catch(() => setVerifyState("error"));
   };
-  const retry = () => {
+  // Run again only the loads that failed; what loaded stays on screen.
+  const retry = useCallback(() => {
     setBase((b) => (b.error ? {} : b));
-    setTimelines((t) => ({ ...t, [year]: undefined }));
+    setTimelines((t) => {
+      const kept = { ...t };
+      for (const y of SEASONS) if (kept[y]?.error) delete kept[y];
+      return kept;
+    });
     setAttempt((a) => a + 1);
-  };
+  }, []);
+  const online = useOnline();
+  useBackOnline(retry);
 
   const info =
     hovered && hovered !== selected
@@ -373,7 +381,15 @@ export function App() {
                 onClose={() => setFieldPolygon(null)}
               />
             )}
-            {error ? (
+            {!online ? (
+              <div role="alert" className={`${styles.card} ${styles.alert}`}>
+                <strong>Lost connection to the API</strong>
+                <span>
+                  Checking again every {HEALTH_POLL_MS / 1000} s. What is on the
+                  map stays; the rest reloads when the API is back.
+                </span>
+              </div>
+            ) : error ? (
               <div role="alert" className={`${styles.card} ${styles.alert}`}>
                 <strong>{error}</strong>
                 <button type="button" onClick={retry}>

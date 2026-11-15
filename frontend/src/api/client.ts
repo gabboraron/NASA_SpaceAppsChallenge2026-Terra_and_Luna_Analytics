@@ -1,4 +1,5 @@
 import type { components } from "./schema";
+import { checkApi } from "./connection";
 import * as mocks from "./mocks";
 
 type Schemas = components["schemas"];
@@ -24,10 +25,16 @@ export type HlsResponse = Schemas["HlsResponse"];
 export const useMocks = import.meta.env.VITE_USE_MOCKS === "true";
 
 async function get<T>(path: string, init?: RequestInit): Promise<T> {
-  const response = await fetch("/api" + path, init);
-  if (!response.ok)
-    throw new Error(`Request ${path} failed (${response.status}).`);
-  return response.json() as Promise<T>;
+  try {
+    const response = await fetch("/api" + path, init);
+    if (!response.ok)
+      throw new Error(`Request ${path} failed (${response.status}).`);
+    return (await response.json()) as T;
+  } catch (error) {
+    // A proxy answers 502/504 and a dead network throws: see whether the API is up.
+    if (!init?.signal?.aborted) void checkApi();
+    throw error;
+  }
 }
 
 // Static GETs are shared between pages for the whole session (landing → explorer),
