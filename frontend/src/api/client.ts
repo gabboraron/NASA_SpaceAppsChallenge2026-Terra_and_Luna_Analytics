@@ -16,6 +16,7 @@ export type Provenance = Schemas["Provenance"];
 export type Measurement = Schemas["Measurement"];
 export type Grower = Schemas["Grower"];
 export type SoilMoistureWeek = Schemas["SoilMoistureWeek"];
+export type SmapArea = Schemas["SmapArea"];
 export type MatchCard = Schemas["MatchCard"];
 export type CalculatorInput = Schemas["CalculatorInput"];
 export type CalculatorResult = Schemas["CalculatorResult"];
@@ -198,6 +199,20 @@ export const getPolygonHls = (polygon: Polygon, signal: AbortSignal) =>
   useMocks
     ? Promise.resolve(mocks.polygonHls())
     : get<HlsResponse>("/polygon/hls", post(polygon, signal));
+
+/** A map view: west, south, east, north in degrees. */
+export type View = [number, number, number, number];
+
+/**
+ * A week's SMAP cells under a map view. Not kept: the answer changes while the
+ * server fetches the view in the background.
+ */
+export const getSmapArea = (year: Season, week: number, view: View) =>
+  useMocks
+    ? Promise.resolve(mocks.smapArea())
+    : get<SmapArea>(
+        `/smap/area?year=${year}&week=${week}&west=${view[0]}&south=${view[1]}&east=${view[2]}&north=${view[3]}`,
+      );
 
 /** Map tiles of a week's clearest HLS passes, or why there are none. */
 export const getHlsImagery = (year: Season, week: number) =>

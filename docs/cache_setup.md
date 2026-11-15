@@ -19,10 +19,14 @@ login (`PLANETARY_COMPUTER=false` switches it off). A real token in `.env`
 (`EARTHDATA_TOKEN`, a user token from <https://urs.earthdata.nasa.gov>) is needed
 for SMAP, and for HLS when the mirror is off or cannot answer. For the latest season the API answers
 at once with the POWER-based bloom and fetches HLS and SMAP in the background; the
-map asks again every 20 seconds until they arrive. The API starts this
+map asks again every 5 seconds until they arrive. The API starts this
 fetch when it boots, so it is usually under way before the first visitor.
 Without a token an SMAP cache miss is a `Missing` value with the reason
 "No Earthdata token configured".
+
+With a token, `GET /smap/area` also reads SMAP for whatever the map shows, in
+blocks of 16 by 16 cells: a new block takes about 4.5 minutes (286 reads), lands in
+the same cache, and the blocks around the view are read ahead.
 
 Import is safe to repeat: it never overwrites a file you already have, and it only
 accepts `hls/`, `power/` and `smap/` entries named `<sha256>.json`. To import by

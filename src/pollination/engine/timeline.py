@@ -492,14 +492,23 @@ def parcel_weeks(  # noqa: PLR0913  # the parcel's inputs, each from its own sou
     return weeks
 
 
-def smap_cells(smap: SmapSeason | str) -> list[m.SoilMoistureWeek]:
-    """The SMAP layer of the timeline (empty when SMAP is missing)."""
+def smap_cells(
+    smap: SmapSeason | str, only_week: int | None = None
+) -> list[m.SoilMoistureWeek]:
+    """The SMAP layer of the timeline (empty when SMAP is missing).
+
+    Args:
+        smap: The season's SMAP values, or why they are missing.
+        only_week: Keep this timeline week only; None keeps all.
+    """
     if isinstance(smap, str):
         return []
     out: list[m.SoilMoistureWeek] = []
     for cell, weeks in smap.weeks.items():
         geometry = cell.polygon()
         for week, value in sorted(weeks.items()):
+            if only_week not in (None, week):
+                continue
             prov = m.Provenance(
                 kind="Estimated", source=SMAP_SOURCE, observed_at=value.observed_at
             )

@@ -91,6 +91,10 @@ const TROUBLE = [
     "The first load of a season. With the shipped cache it takes seconds; a cold cache can take a minute.",
   ],
   [
+    "Loading soil moisture for this view…",
+    "You moved the map to an area whose soil moisture is not loaded yet. It is read from NASA once, which can take a few minutes; the area around the view is read ahead in the background, so moving on is usually instant.",
+  ],
+  [
     "Fetching satellite data from NASA…",
     "The live season only. Bloom from weather is already shown; the map asks again every 5 seconds until satellite bloom and soil moisture arrive, which can take several minutes.",
   ],

@@ -25,6 +25,7 @@ import {
   type Polygon as FieldPolygon,
   type Season,
   type Timeline,
+  type View,
 } from "./api/client";
 import { HEALTH_POLL_MS, useBackOnline, useOnline } from "./api/connection";
 import { DrawnField } from "./components/DrawnField/DrawnField";
@@ -70,6 +71,7 @@ import { useEscape } from "./hooks/useEscape";
 import { type Answer, useAnswer, useField } from "./hooks/useField";
 import { forgetMatches, useMatches } from "./hooks/useMatches";
 import { useOwnParcels } from "./hooks/useOwnParcels";
+import { useSmapArea } from "./hooks/useSmapArea";
 import { SiteHeader } from "./site/SiteHeader";
 import styles from "./App.module.css";
 
@@ -260,9 +262,13 @@ export function App() {
     () => ({ ...visible, hls: visible.hls && Boolean(hlsImagery?.tiles) }),
     [visible, hlsImagery],
   );
+  // Soil moisture of wherever the map is, fetched in the background.
+  const [view, setView] = useState<View | null>(null);
+  const smapArea = useSmapArea(visible.smap, year, restingWeek, view);
+  const areaCells = restingWeek === week ? smapArea?.cells : undefined;
   const smapFc = useMemo(
-    () => smapCollection(timeline, week),
-    [timeline, week],
+    () => smapCollection(timeline, week, areaCells),
+    [timeline, week, areaCells],
   );
   // The chosen honey keeps the parcels of its bloom; the rest are faded.
   const honeyCrops = HONEYS.find((h) => h.id === honey)?.crops;
@@ -497,6 +503,7 @@ export function App() {
             drawing={drawing}
             field={fieldPolygon}
             onDrawn={onDrawn}
+            onView={setView}
           />
           <div className={styles.cards}>
             <button
@@ -633,6 +640,28 @@ export function App() {
                   </span>
                 </div>
               )}
+            {smapArea?.pending && (
+              <div role="status" className={`${styles.card} ${styles.busy}`}>
+                <strong>Loading soil moisture for this view…</strong>
+                <span>
+                  A new area is read from NASA once, which can take a few
+                  minutes; the area around it follows in the background.
+                </span>
+                <div aria-live="off" className={styles.progress}>
+                  <progress
+                    aria-label="Soil moisture loaded"
+                    value={smapArea.progress?.done ?? 0}
+                    max={smapArea.progress?.total ?? 100}
+                  />
+                </div>
+              </div>
+            )}
+            {visible.smap && smapArea?.note && (
+              <div role="status" className={`${styles.card} ${styles.warn}`}>
+                <strong>Soil moisture not loaded here</strong>
+                <span>{smapArea.note}</span>
+              </div>
+            )}
             {visible.hls && hlsImagery && !hlsImagery.tiles && (
               <div role="status" className={`${styles.card} ${styles.warn}`}>
                 <strong>Satellite view not available</strong>

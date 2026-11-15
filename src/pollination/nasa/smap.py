@@ -124,6 +124,7 @@ def season(  # noqa: PLR0913  # injectable bbox/read/cache/progress keep it test
     baseline_years: Sequence[int] = DEFAULT_BASELINE,
     *,
     bbox: Bbox | None = None,
+    cells: Sequence[SmapCell] | None = None,
     read: ReadFn | None = None,
     cache_dir: Path | None = None,
     progress: Callable[[int, int], None] | None = None,
@@ -134,6 +135,7 @@ def season(  # noqa: PLR0913  # injectable bbox/read/cache/progress keep it test
         year: Demo year (e.g. 2022 or 2024).
         baseline_years: Years whose same-week values form each percentile.
         bbox: West, south, east, north; defaults to the configured region.
+        cells: The cells to read, instead of those of ``bbox``.
         read: Granule reader for one sample day; defaults to remote HDF5 reads.
         cache_dir: Cache root; defaults to the configured one.
         progress: Called with (done, total) sample days as the reads go on.
@@ -142,7 +144,7 @@ def season(  # noqa: PLR0913  # injectable bbox/read/cache/progress keep it test
         Value, percentile and observation day for every cell and timeline week,
         and the baseline range actually used.
     """
-    cells = smap_cells(bbox or Settings().bbox)
+    cells = cells or smap_cells(bbox or Settings().bbox)
     if read is None:
         from pollination.nasa import smap_live  # noqa: PLC0415  # lazy: needs NASA libs
 

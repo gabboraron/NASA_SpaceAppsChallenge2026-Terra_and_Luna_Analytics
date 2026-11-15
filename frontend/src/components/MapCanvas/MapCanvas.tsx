@@ -14,7 +14,7 @@ import {
   ValidateNotSelfIntersecting,
 } from "terra-draw";
 import { TerraDrawMapLibreGLAdapter } from "terra-draw-maplibre-gl-adapter";
-import type { ParcelWeek, Polygon as ApiPolygon } from "../../api/client";
+import type { ParcelWeek, Polygon as ApiPolygon, View } from "../../api/client";
 import {
   BLOOM_COLORS,
   CROP_COLORS,
@@ -405,6 +405,8 @@ type Props = {
   /** The finished polygon, kept on the map until cleared. */
   field: ApiPolygon | null;
   onDrawn: (polygon: ApiPolygon) => void;
+  /** Called with the visible area once the map has stopped moving. */
+  onView: (view: View) => void;
 };
 
 const SOURCES = [
@@ -536,6 +538,17 @@ export function MapCanvas(props: Props) {
           latest.current.onDrawn(geometry as ApiPolygon);
       });
       draw.current = sketch;
+      const report = () => {
+        const b = instance.getBounds();
+        latest.current.onView([
+          Math.max(b.getWest(), -180),
+          Math.max(b.getSouth(), -85),
+          Math.min(b.getEast(), 180),
+          Math.min(b.getNorth(), 85),
+        ]);
+      };
+      instance.on("moveend", report);
+      report();
       setError("");
       setReady(true);
     });

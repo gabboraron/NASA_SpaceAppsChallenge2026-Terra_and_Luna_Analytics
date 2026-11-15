@@ -1,7 +1,13 @@
 // Pure data and style helpers for the map layers (no MapLibre instance needed).
 import circle from "@turf/circle";
 import type { Feature, FeatureCollection, Point, Polygon } from "geojson";
-import type { MatchCard, Parcel, ParcelWeek, Timeline } from "../../api/client";
+import type {
+  MatchCard,
+  Parcel,
+  ParcelWeek,
+  SoilMoistureWeek,
+  Timeline,
+} from "../../api/client";
 import { WEEKS, isHighBloomLowNectar } from "../../domain/season";
 
 export type LayerId =
@@ -143,12 +149,16 @@ export function smapOpacity(percentile: number): number {
 export function smapCollection(
   timeline: Timeline | null,
   week: number,
+  area: SoilMoistureWeek[] = [],
 ): FeatureCollection<Polygon> {
-  const cells = timeline?.smap_cells ?? [];
+  const season = (timeline?.smap_cells ?? []).filter((c) => c.week === week);
+  // The view's cells of that week; a cell of the season is not drawn twice.
+  const seen = new Set(season.map((c) => c.cell_id));
+  const cells = [...season, ...area.filter((c) => !seen.has(c.cell_id))];
   return {
     type: "FeatureCollection",
     features: cells
-      .filter((c) => c.week === week && c.percentile.value !== null)
+      .filter((c) => c.percentile.value !== null)
       .map((c) => ({
         type: "Feature",
         geometry: c.geometry as Polygon,

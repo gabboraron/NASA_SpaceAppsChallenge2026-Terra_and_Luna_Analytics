@@ -194,6 +194,19 @@ class TimelineResponse(BaseModel):
     smap_cells: list[SoilMoistureWeek]
 
 
+class SmapArea(BaseModel):
+    """One week's SMAP cells under a map view, loaded in the background.
+
+    ``pending`` means some of the view is still being fetched: ask again later;
+    ``progress`` then says how far that has got. ``note`` says why cells are absent.
+    """
+
+    cells: list[SoilMoistureWeek]
+    pending: bool = False
+    progress: FetchProgress | None = None
+    note: str = ""
+
+
 class CalculatorInput(BaseModel):
     """Editable EUR scenario assumptions and provenance keyed by field name."""
 

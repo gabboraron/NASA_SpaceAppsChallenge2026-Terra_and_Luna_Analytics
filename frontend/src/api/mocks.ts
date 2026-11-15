@@ -6,6 +6,7 @@ import type {
   CalculatorResult,
   CostDefaults,
   HlsImagery,
+  SmapArea,
   HlsResponse,
   MatchRequest,
   MatchCard,
@@ -451,6 +452,11 @@ export function polygonHls(): HlsResponse {
     provenance: prov("Missing", "Mock data: HLS not queried"),
   };
   return { observed_at: null, ndvi: gap, ndyi: gap };
+}
+
+/** Mirrors GET /smap/area: the mock region's cells are in the timeline already. */
+export function smapArea(): SmapArea {
+  return { cells: [], pending: false, progress: null, note: "" };
 }
 
 /** Mirrors GET /imagery/hls when the HLS mirror is off. */

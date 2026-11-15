@@ -60,7 +60,9 @@ New responses are cached in the `nasa-cache` volume, so they survive rebuilds. R
 Next to the two demo seasons the map offers the latest complete season, read live. Its weather-based bloom and its
 satellite bloom need no login: NASA HLS is read from its mirror on the Microsoft Planetary Computer, which answers
 faster than the NASA archive and is tried first. Soil moisture needs an Earthdata token. The satellite part arrives
-after the first request, so the map shows the weather-based part first.
+after the first request, so the map shows the weather-based part first. With a token, soil moisture also follows the
+map: a newly shown area is read from NASA in the background with a progress bar, and the area around it is read
+ahead quietly.
 
 Optional settings go in a `.env` file next to `compose.yaml`. It is gitignored, so never commit it.
 

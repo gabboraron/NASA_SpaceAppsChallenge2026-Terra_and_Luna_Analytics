@@ -248,6 +248,29 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/smap/area": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Smap View
+         * @description Return a week's SMAP cells under a map view; the rest loads in the background.
+         *
+         *     Cells not fetched yet are queued (with the area around the view), so the
+         *     answer is ``pending`` with its progress until they arrive: ask again.
+         */
+        get: operations["smap_view_smap_area_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/polygon/hls": {
         parameters: {
             query?: never;
@@ -750,6 +773,28 @@ export interface components {
         /** @enum {string} */
         ServiceType: "pollination" | "forage";
         /**
+         * SmapArea
+         * @description One week's SMAP cells under a map view, loaded in the background.
+         *
+         *     ``pending`` means some of the view is still being fetched: ask again later;
+         *     ``progress`` then says how far that has got. ``note`` says why cells are absent.
+         */
+        SmapArea: {
+            /** Cells */
+            cells: components["schemas"]["SoilMoistureWeek"][];
+            /**
+             * Pending
+             * @default false
+             */
+            pending: boolean;
+            progress?: components["schemas"]["FetchProgress"] | null;
+            /**
+             * Note
+             * @default
+             */
+            note: string;
+        };
+        /**
          * SoilMoistureWeek
          * @description Soil moisture and percentile for a regional SMAP grid cell.
          */
@@ -1155,6 +1200,42 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["HlsImagery"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    smap_view_smap_area_get: {
+        parameters: {
+            query: {
+                year: number;
+                week: number;
+                west: number;
+                south: number;
+                east: number;
+                north: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SmapArea"];
                 };
             };
             /** @description Validation Error */

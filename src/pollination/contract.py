@@ -21,7 +21,7 @@ from typing import Annotated
 from fastapi import APIRouter, Depends, HTTPException, Query
 
 from pollination import models as m
-from pollination import state, worker
+from pollination import smap_area, state, worker
 from pollination.config import Settings
 from pollination.datafiles import CalculatorDefaults, Catalog, load_catalog
 from pollination.engine import calculator
@@ -498,6 +498,34 @@ def hls_imagery(
         note=f"{note}; clouds are not removed",
     )
     return m.HlsImagery(tiles=tiles, provenance=provenance)
+
+
+def smap_fetch() -> smap_area.Fetch | None:
+    """Dependency: reads a block of SMAP cells, or None without an Earthdata token."""
+    settings = Settings()
+    return smap_area.live_fetch(settings.cache_dir) if settings.has_earthdata else None
+
+
+@router.get("/smap/area")
+def smap_view(  # noqa: PLR0913 - a season week and the four sides of the view
+    *,
+    year: int,
+    week: Annotated[int, Query(ge=WEEKS.start, lt=WEEKS.stop)],
+    west: Annotated[float, Query(ge=-180, le=180)],
+    south: Annotated[float, Query(ge=-85, le=85)],
+    east: Annotated[float, Query(ge=-180, le=180)],
+    north: Annotated[float, Query(ge=-85, le=85)],
+    fetch: Annotated[smap_area.Fetch | None, Depends(smap_fetch)],
+) -> m.SmapArea:
+    """Return a week's SMAP cells under a map view; the rest loads in the background.
+
+    Cells not fetched yet are queued (with the area around the view), so the
+    answer is ``pending`` with its progress until they arrive: ask again.
+    """
+    check_season(year)
+    if west >= east or south >= north:
+        raise HTTPException(status_code=422, detail="Empty view")
+    return smap_area.area(year, week, (west, south, east, north), fetch)
 
 
 @router.post("/polygon/hls")
