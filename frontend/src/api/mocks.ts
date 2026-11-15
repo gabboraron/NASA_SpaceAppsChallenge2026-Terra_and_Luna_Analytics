@@ -342,7 +342,7 @@ export function calculate(i: CalculatorInput): CalculatorResult {
     verdict: benefit < 0 ? "do_not_move" : "move",
     message:
       benefit < 0
-        ? `Staying at base apiary yields €${eur} more.`
-        : `Moving yields €${eur} more than the alternative.`,
+        ? `Staying at base apiary gives €${eur} more contribution.`
+        : `Moving gives €${eur} more contribution than the alternative.`,
   };
 }

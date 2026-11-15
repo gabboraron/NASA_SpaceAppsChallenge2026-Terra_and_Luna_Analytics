@@ -7,7 +7,7 @@ const STEPS = [
   {
     title: "Observe",
     tag: "HLS · SMAP L4 · POWER",
-    text: "Live requests to NASA for each parcel, cached on disk so a season replays without refetching.",
+    text: "Requests to NASA for each parcel, cached on disk so a season replays without refetching. Each value shows the date it describes.",
   },
   {
     title: "Model",

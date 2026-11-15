@@ -57,7 +57,7 @@ const GLOSSARY = [
 const FAQ: { q: string; a: ReactNode }[] = [
   {
     q: "Is this a real marketplace?",
-    a: "Not yet. It is a working demo: the NASA data is real and live, the beekeepers are synthetic, the parcels are illustrative and booking is switched off.",
+    a: "Not yet. It is a working demo: the NASA data is real (each value shows the date it describes), the beekeepers are synthetic, the parcels are illustrative and booking is switched off.",
   },
   {
     q: "Does it work outside the pilot region?",

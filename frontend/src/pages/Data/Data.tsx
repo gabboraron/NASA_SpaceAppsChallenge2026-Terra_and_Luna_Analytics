@@ -133,7 +133,7 @@ export function DataPage() {
     <ReadingPage
       kicker="Data & sources"
       title="Three NASA datasets and two open maps."
-      lead="All sources are open. NASA data is fetched live and cached locally; the cache is never committed and rebuilds from the same requests. Protected-area and parcel geometry is stored with the code."
+      lead="All sources are open. NASA data is requested from NASA and cached locally, so a value can be older than today and always shows its date; the cache is never committed and rebuilds from the same requests. Protected-area and parcel geometry is stored with the code."
     >
       <div className={`${page.wrap} ${styles.list}`}>
         {SOURCES.map((s) => (
