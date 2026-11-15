@@ -1,7 +1,8 @@
 """API routes.
 
 Every route is real: parcels, Natura 2000, actors, the timeline, grower
-verification, the calculator, the matches and the drawn-polygon POWER and HLS routes.
+verification, the calculator, the matches (for a synthetic beekeeper or a signed-in
+one's own profile) and the drawn-polygon POWER, HLS and bloom-timeline routes.
 NASA failures become ``Missing`` values with a reason, never errors or made-up data.
 """
 
@@ -21,7 +22,7 @@ from fastapi import APIRouter, Depends, HTTPException
 from pollination import models as m
 from pollination import state, worker
 from pollination.config import Settings
-from pollination.datafiles import Catalog, load_catalog
+from pollination.datafiles import CalculatorDefaults, Catalog, load_catalog
 from pollination.engine import calculator
 from pollination.engine.matching import match
 from pollination.engine.polygon import BASELINE_YEARS, power_response
@@ -29,9 +30,11 @@ from pollination.engine.timeline import (
     SeasonInputs,
     build_timeline,
     fetch_inputs,
+    parcel_power,
+    parcel_weeks,
     pending_inputs,
 )
-from pollination.geo import centroid, to_shape
+from pollination.geo import NaturaIndex, area_ha, centroid, to_shape
 from pollination.nasa import hls
 from pollination.nasa.failure import no_token, reason
 from pollination.nasa.power import PowerDaily, daily_point
@@ -46,7 +49,13 @@ MAX_POLYGON_SPAN_DEG = 0.1  # about 8 to 11 km: a field, not a region
 # does not wait for the same timeouts again.
 RETRY_FAILED_S = 120.0
 
+OWN_HLS = (
+    "Satellite bloom is read for the listed parcels only; "
+    "an own parcel uses its declared window"
+)
+
 type PowerFetch = Callable[[float, float, date, date], PowerDaily]
+type ParcelPower = Callable[[int, m.Parcel], PowerDaily | str]
 type HlsLatest = Callable[[m.Polygon], m.HlsResponse]
 
 
@@ -54,6 +63,12 @@ type HlsLatest = Callable[[m.Polygon], m.HlsResponse]
 def catalog() -> Catalog:
     """Load and validate ``data/`` on first use."""
     return load_catalog(Settings())
+
+
+@cache
+def natura_index() -> NaturaIndex:
+    """The protected-area layer, projected once, for classifying drawn parcels."""
+    return NaturaIndex.for_bbox(catalog().natura, Settings().bbox)
 
 
 # Each season's inputs with when they were fetched.
@@ -238,6 +253,16 @@ def latest_hls() -> HlsLatest:
     return latest
 
 
+def own_power() -> ParcelPower:
+    """Dependency: POWER for a drawn parcel's season (tests override it)."""
+    cache_dir = Settings().cache_dir
+
+    def fetch(year: int, parcel: m.Parcel) -> PowerDaily | str:
+        return parcel_power(year, parcel, cache_dir, catalog().phenology)
+
+    return fetch
+
+
 @router.get("/parcels")
 def parcels() -> list[m.Parcel]:
     """Return illustrative parcel listings."""
@@ -283,6 +308,48 @@ def matches(
         return []
     weeks = {w.parcel_id: w for w in timeline.parcel_weeks if w.week == week}
     return match(keeper, data.parcels, weeks, data.calculator, data.ranking)
+
+
+@router.post("/matches")
+def my_matches(
+    profile: m.MatchRequest,
+    week: m.Week,
+    timeline: Annotated[m.TimelineResponse, Depends(season_timeline)],
+) -> list[m.MatchCard]:
+    """Return a signed-in beekeeper's candidates for a week, of both service types.
+
+    The profile comes with the request and is not stored. Distances start from its
+    home, and its own costs prefill each card's calculator input.
+    """
+    data = catalog()
+    keeper = m.Beekeeper(
+        id="you",
+        name="You",
+        synthetic=False,
+        home=profile.home,
+        colonies=profile.colonies,
+        max_distance_km=profile.max_distance_km,
+        goal="forage",  # not used: both service types are matched
+        availability=profile.availability,
+        vehicle_l_per_100km=profile.vehicle_l_per_100km,
+        alternative_contribution_eur=profile.alternative_contribution_eur,
+    )
+    weeks = {w.parcel_id: w for w in timeline.parcel_weeks if w.week == week}
+    return match(
+        keeper,
+        data.parcels,
+        weeks,
+        data.calculator,
+        data.ranking,
+        costs=profile.costs,
+        services=("pollination", "forage"),
+    )
+
+
+@router.get("/calculator/defaults")
+def calculator_defaults() -> CalculatorDefaults:
+    """Return the illustrative cost defaults a beekeeper's own costs replace."""
+    return catalog().calculator
 
 
 @router.post("/calculate")
@@ -345,6 +412,58 @@ def power(
         max_wind_ms=settings.bee_flight_max_wind_ms,
         baseline_years=BASELINE_YEARS,
     )
+
+
+@router.post("/polygon/timeline")
+def own_timeline(
+    own: m.OwnParcelRequest,
+    year: int,
+    inputs: Annotated[SeasonInputs, Depends(season_inputs)],
+    fetch: Annotated[ParcelPower, Depends(own_power)],
+) -> m.OwnParcelTimeline:
+    """Return the weekly bloom of a parcel a beekeeper drew, anywhere on Earth.
+
+    Heat-unit crops are modelled from NASA POWER at the parcel's own grid node;
+    other crops use the declared window. Soil moisture comes from the season's SMAP
+    cells where they cover the parcel. Nothing is stored.
+
+    Raises:
+        HTTPException: 422 for an unknown season, or a polygon without area,
+            larger than a field, or outside the SMAP grid.
+    """
+    check_season(year)
+    shape = to_shape(own.geometry)
+    west, south, east, north = shape.bounds
+    if not shape.is_valid or shape.area == 0:
+        raise HTTPException(status_code=422, detail="The polygon has no area")
+    if max(east - west, north - south) > MAX_POLYGON_SPAN_DEG:
+        detail = "Polygon too large; draw one around a single field"
+        raise HTTPException(status_code=422, detail=detail)
+    parcel = m.Parcel(
+        id=own.id,
+        grower_id="you",
+        crop=own.crop,
+        area_ha=round(area_ha(own.geometry), 2),
+        geometry=own.geometry,
+        illustrative=False,
+        service_type="forage",
+        requested_colonies=None,
+        declared_bloom=own.declared_bloom,
+        irrigated=own.irrigated,
+        natura_status=natura_index().check(own.geometry).status,
+    )
+    try:
+        weeks = parcel_weeks(
+            parcel,
+            catalog().phenology.get(own.crop),
+            year,
+            power=fetch(year, parcel),
+            observations=OWN_HLS,
+            smap=inputs.smap,
+        )
+    except ValueError as exc:  # outside the SMAP grid (beyond about 85 degrees)
+        raise HTTPException(status_code=422, detail=str(exc)) from exc
+    return m.OwnParcelTimeline(parcel=parcel, weeks=weeks)
 
 
 @router.post("/polygon/hls")

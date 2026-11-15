@@ -99,6 +99,33 @@ export interface paths {
          */
         get: operations["matches_matches_get"];
         put?: never;
+        /**
+         * My Matches
+         * @description Return a signed-in beekeeper's candidates for a week, of both service types.
+         *
+         *     The profile comes with the request and is not stored. Distances start from its
+         *     home, and its own costs prefill each card's calculator input.
+         */
+        post: operations["my_matches_matches_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/calculator/defaults": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Calculator Defaults
+         * @description Return the illustrative cost defaults a beekeeper's own costs replace.
+         */
+        get: operations["calculator_defaults_calculator_defaults_get"];
+        put?: never;
         post?: never;
         delete?: never;
         options?: never;
@@ -167,6 +194,34 @@ export interface paths {
          *     value with its reason.
          */
         post: operations["power_polygon_power_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/polygon/timeline": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Own Timeline
+         * @description Return the weekly bloom of a parcel a beekeeper drew, anywhere on Earth.
+         *
+         *     Heat-unit crops are modelled from NASA POWER at the parcel's own grid node;
+         *     other crops use the declared window. Soil moisture comes from the season's SMAP
+         *     cells where they cover the parcel. Nothing is stored.
+         *
+         *     Raises:
+         *         HTTPException: 422 for an unknown season, or a polygon without area,
+         *             larger than a field, or outside the SMAP grid.
+         */
+        post: operations["own_timeline_polygon_timeline_post"];
         delete?: never;
         options?: never;
         head?: never;
@@ -255,6 +310,34 @@ export interface components {
         /** @enum {string} */
         BloomState: "none" | "pre_bloom" | "blooming" | "post_bloom";
         /**
+         * CalculatorDefaults
+         * @description Assumptions that prefill the move calculator where no actor states a value.
+         */
+        CalculatorDefaults: {
+            /** Source */
+            source: string;
+            /** Legs */
+            legs: number;
+            /** Fuel Price Per L */
+            fuel_price_per_l: number;
+            /** Vehicle Cost Per Km */
+            vehicle_cost_per_km: number;
+            /** Hourly Labor Cost */
+            hourly_labor_cost: number;
+            /** Average Speed Kmh */
+            average_speed_kmh: number;
+            /** Loading Hours */
+            loading_hours: number;
+            /** Extra Feed Cost */
+            extra_feed_cost: number;
+            /** Other Placement Cost */
+            other_placement_cost: number;
+            /** Price Uncertainty */
+            price_uncertainty: number;
+            /** Extra Trips Low */
+            extra_trips_low: number;
+        };
+        /**
          * CalculatorInput
          * @description Editable EUR scenario assumptions and provenance keyed by field name.
          */
@@ -321,6 +404,28 @@ export interface components {
             verdict: "move" | "do_not_move";
             /** Message */
             message: string;
+        };
+        /**
+         * CostSettings
+         * @description A beekeeper's own moving costs; an unset value uses the shipped default.
+         */
+        CostSettings: {
+            /** Legs */
+            legs?: number | null;
+            /** Fuel Price Per L */
+            fuel_price_per_l?: number | null;
+            /** Vehicle Cost Per Km */
+            vehicle_cost_per_km?: number | null;
+            /** Hourly Labor Cost */
+            hourly_labor_cost?: number | null;
+            /** Average Speed Kmh */
+            average_speed_kmh?: number | null;
+            /** Loading Hours */
+            loading_hours?: number | null;
+            /** Extra Feed Cost */
+            extra_feed_cost?: number | null;
+            /** Other Placement Cost */
+            other_placement_cost?: number | null;
         };
         /**
          * FetchProgress
@@ -402,6 +507,23 @@ export interface components {
             calculator_input: components["schemas"]["CalculatorInput"] | null;
         };
         /**
+         * MatchRequest
+         * @description A signed-in beekeeper's own profile, sent with each request (nothing stored).
+         */
+        MatchRequest: {
+            home: components["schemas"]["Position"];
+            /** Colonies */
+            colonies: number;
+            /** Max Distance Km */
+            max_distance_km: number;
+            availability: components["schemas"]["Window"];
+            /** Vehicle L Per 100Km */
+            vehicle_l_per_100km: number;
+            /** Alternative Contribution Eur */
+            alternative_contribution_eur: number;
+            costs?: components["schemas"]["CostSettings"];
+        };
+        /**
          * Measurement
          * @description A numeric indicator or an explained gap.
          */
@@ -443,6 +565,32 @@ export interface components {
         };
         /** @enum {string} */
         NectarState: "normal" | "low_nectar" | "unknown";
+        /**
+         * OwnParcelRequest
+         * @description A parcel a beekeeper drew: where it lies and what blooms there.
+         */
+        OwnParcelRequest: {
+            /** Id */
+            id: string;
+            /** Crop */
+            crop: string;
+            geometry: components["schemas"]["Polygon"];
+            /**
+             * Irrigated
+             * @default false
+             */
+            irrigated: boolean;
+            declared_bloom?: components["schemas"]["Window"] | null;
+        };
+        /**
+         * OwnParcelTimeline
+         * @description A drawn parcel with its computed area and its weekly bloom for a season.
+         */
+        OwnParcelTimeline: {
+            parcel: components["schemas"]["Parcel"];
+            /** Weeks */
+            weeks: components["schemas"]["ParcelWeek"][];
+        };
         /**
          * Parcel
          * @description Grower listing and mapped site.
@@ -769,6 +917,62 @@ export interface operations {
             };
         };
     };
+    my_matches_matches_post: {
+        parameters: {
+            query: {
+                week: number;
+                year: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["MatchRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MatchCard"][];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    calculator_defaults_calculator_defaults_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CalculatorDefaults"];
+                };
+            };
+        };
+    };
     calculate_calculate_post: {
         parameters: {
             query?: never;
@@ -855,6 +1059,41 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["PowerResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    own_timeline_polygon_timeline_post: {
+        parameters: {
+            query: {
+                year: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["OwnParcelRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["OwnParcelTimeline"];
                 };
             };
             /** @description Validation Error */

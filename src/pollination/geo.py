@@ -95,6 +95,11 @@ def centroid(polygon: m.Polygon) -> m.Position:
     return (point.x, point.y)
 
 
+def area_ha(polygon: m.Polygon) -> float:
+    """Area of a polygon in hectares (equal-area projection at its centroid)."""
+    return _projector(centroid(polygon))(to_shape(polygon)).area / 10_000
+
+
 def _projector(centre: m.Position) -> Callable[[ShapelyPolygon], ShapelyPolygon]:
     """Return a lon/lat to metres projection centred on ``centre`` (LAEA)."""
     lon, lat = centre
