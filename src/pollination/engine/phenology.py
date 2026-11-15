@@ -230,4 +230,5 @@ def threshold_window(
     if bloom_days is None:
         raise ValueError("A bloom window needs end_threshold or bloom_days")
     first = day - timedelta(days=bloom_days // 2 if centred else 0)
-    return Window(start=first, end=first + timedelta(days=bloom_days))
+    # Inclusive window: a 15-day bloom is the first day and the 14 after it.
+    return Window(start=first, end=first + timedelta(days=bloom_days - 1))
