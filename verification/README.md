@@ -51,7 +51,8 @@ model output. Change them only in a reviewed PR, and only for a reason other tha
 
 1. `model.py` fetches `/parcels` and `/timeline?year=…`. For each crop and week it computes the share of
    parcels that are `blooming`, the share flagged `low_nectar`, and the share without evidence (`Missing`
-   provenance). A week counts as blooming when at least half of the crop's parcels bloom. Timeline weeks start
+   provenance). A week counts as blooming when at least half of the crop's parcels bloom. The onset is the
+   modelled bloom start of the parcels blooming in the first such week. Timeline weeks start
    on 1 March and the hive data uses calendar dates, so the two are compared by date.
 2. `signals.py` turns the hive weights into nectar flows:
    - The last reading before 05:00, when the colony is at rest, is the night weight. A day's gain is the next
@@ -117,10 +118,10 @@ S5 rests on two colonies at one site, so treat it as a direction with no statist
 - iNaturalist counts follow observer activity, and some photos show leaves or pods. Only weeks inside the bloom
   window are used, and years with fewer than 30 records are skipped.
 - Apple and sour cherry stay unverified unless PEP725 data is supplied.
-- The model's onset is read from the weekly timeline as the first day of the first blooming week, so it can be
-  up to 6 days earlier than the modelled start date. S1 reports black locust 11 days early in 2022 and 2024 and
-  fails its 10-day gate; against the modelled start dates (15 May 2022, 25 April 2024) the difference is 6 and
-  5 days. The gate was not changed.
+- The model's onset is the modelled bloom start the timeline returns (`estimated_bloom.start`, the median of the
+  crop's blooming parcels). Until this was read, the onset was the first day of the first blooming week, up to
+  6 days earlier: S1 then reported black locust 11 days early in both years and failed, where the modelled
+  dates (15 May 2022, 25 April 2024) are 6 and 5 days early. The gate was not changed. Peaks are still weekly.
 - The sunflower bloom in the timeline is the grower's declared window, which is synthetic in the demo, so S4
   and the sunflower line of B0 compare a declaration with the hives, not a model.
 - S5 is not an independent test: the nectar rule's percentile and crop scope were chosen with these same hive

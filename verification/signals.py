@@ -150,9 +150,16 @@ def bloom_weeks(weeks: Sequence[ModelWeek], share: float) -> list[ModelWeek]:
 
 
 def model_onset(weeks: Sequence[ModelWeek], share: float) -> date | None:
-    """First day of the first blooming week, or None if the crop never blooms."""
+    """Day the crop's bloom starts, or None if the crop never blooms.
+
+    This is the modelled start date of the parcels blooming in the first blooming
+    week. A week without a modelled window gives its first day, which can be up to
+    6 days before the bloom the model means.
+    """
     blooming = bloom_weeks(weeks, share)
-    return blooming[0].starts_on if blooming else None
+    if not blooming:
+        return None
+    return blooming[0].bloom_start or blooming[0].starts_on
 
 
 def model_peak(weeks: Sequence[ModelWeek], share: float) -> date | None:
