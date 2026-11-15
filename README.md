@@ -131,6 +131,7 @@ observations from past years, and lists what the models cannot yet show.
 | [NASA HLS](https://lpdaac.usgs.gov/products/hlss30v002/) (HLSS30 / HLSL30 v2.0, LP DAAC) | NDVI, NDYI (sunflower bloom evidence) | Earthdata login; NASA open data |
 | [NASA SMAP L4](https://nsidc.org/data/spl4smgp) (SPL4SMGP, NSIDC) | Root-zone soil moisture, drought percentile | Earthdata login; NASA open data |
 | [NASA POWER](https://power.larc.nasa.gov/) daily point API (MERRA-2 based) | Temperature (GDD), precipitation, wind | No login; NASA open data |
+| [NASA NISAR](https://asf.alaska.edu/datasets/daac/nisar/) (L2 GCOV, L-band SAR, ASF DAAC) | Radar vegetation index (RVI) from HH/HV backscatter; experimental script, not used by the map | Earthdata login; NASA open data |
 | [EEA Natura 2000](https://bio.discomap.eea.europa.eu/arcgis/rest/services/ProtectedSites/Natura2000Sites/MapServer) (EEA map service) | Protected-area boundaries | EEA reuse policy |
 | [OpenStreetMap](https://www.openstreetmap.org/copyright) via Overpass | Illustrative parcel geometry | ODbL |
 | [OpenFreeMap](https://openfreemap.org/) | Basemap tiles | OSM data, ODbL |
