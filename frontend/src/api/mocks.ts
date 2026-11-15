@@ -1,4 +1,4 @@
-// Offline fixtures for VITE_USE_MOCKS (the default). Shapes follow the API contract.
+// Offline fixtures for VITE_USE_MOCKS=true (and the unit tests). Shapes follow the API contract.
 import type {
   Actors,
   Beekeeper,

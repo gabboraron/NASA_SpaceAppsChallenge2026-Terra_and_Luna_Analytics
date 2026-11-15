@@ -4,8 +4,8 @@ WORKDIR /app
 COPY package.json package-lock.json ./
 RUN npm ci
 COPY . .
-# "false" = talk to the real API; "true" = built-in typed mocks.
-ARG VITE_USE_MOCKS=false
+# Unset = talk to the real API; "true" = built-in typed mocks.
+ARG VITE_USE_MOCKS
 ENV VITE_USE_MOCKS=$VITE_USE_MOCKS
 RUN npm run build
 
