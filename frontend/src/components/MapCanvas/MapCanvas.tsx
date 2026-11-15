@@ -22,6 +22,7 @@ import {
   INK,
   NATURA,
   OTHER_CROP,
+  OWN,
   PAPER,
   hatch,
   isInterpolated,
@@ -35,8 +36,8 @@ const REGION = new maplibregl.LngLatBounds([21.6, 47.7], [22.4, 48.05]);
 const BASEMAP = "https://tiles.openfreemap.org/styles/liberty";
 const IMAGERY =
   "https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}";
-// Same blue as --focus: not a crop, bloom or drought colour.
-const FIELD = "#1f5f8b";
+// A sketch in progress: the same blue as the beekeeper's own parcels.
+const FIELD = OWN;
 const EMPTY: FeatureCollection = { type: "FeatureCollection", features: [] };
 
 /** Draw a `width` × `height` px icon on a canvas and return its pixels for `addImage`. */
@@ -117,6 +118,15 @@ const cropColor: ExpressionSpecification = [
   OTHER_CROP,
 ] as unknown as ExpressionSpecification; // TS tuple types cannot express a spread of match pairs
 
+const own: ExpressionSpecification = ["boolean", ["get", "own"], false];
+// Parcels that do not give the chosen honey are faded.
+const faded = (shown: number): ExpressionSpecification => [
+  "case",
+  ["boolean", ["get", "dim"], false],
+  shown * 0.25,
+  shown,
+];
+
 const PARCEL_HIT = ["parcels-fill", "parcels-dot"];
 
 const bloomColor: ExpressionSpecification = [
@@ -193,7 +203,7 @@ const LAYERS: (LayerSpecification & { group: LayerId })[] = [
     source: "parcels",
     paint: {
       "fill-color": bloomColor,
-      "fill-opacity": 0.9,
+      "fill-opacity": faded(0.9),
     },
   },
   {
@@ -225,8 +235,9 @@ const LAYERS: (LayerSpecification & { group: LayerId })[] = [
     type: "line",
     source: "parcels",
     paint: {
-      "line-color": ["case", low, DROUGHT, cropColor],
-      "line-width": ["case", low, 4, 3],
+      "line-color": ["case", own, OWN, low, DROUGHT, cropColor],
+      "line-width": ["case", own, 5, low, 4, 3],
+      "line-opacity": faded(1),
     },
   },
   {
@@ -257,8 +268,31 @@ const LAYERS: (LayerSpecification & { group: LayerId })[] = [
     paint: {
       "circle-radius": 7,
       "circle-color": bloomColor,
-      "circle-stroke-color": ["case", low, DROUGHT, cropColor],
-      "circle-stroke-width": ["case", low, 3.5, 2.5],
+      "circle-opacity": faded(1),
+      "circle-stroke-color": ["case", own, OWN, low, DROUGHT, cropColor],
+      "circle-stroke-width": ["case", own, 4.5, low, 3.5, 2.5],
+      "circle-stroke-opacity": faded(1),
+    },
+  },
+  {
+    // The signed-in beekeeper's own parcels carry their name, at every zoom.
+    group: "parcels",
+    id: "own-label",
+    type: "symbol",
+    source: "parcel-dots",
+    filter: own,
+    layout: {
+      "text-field": ["get", "label"],
+      "text-font": ["Noto Sans Bold"],
+      "text-size": 13,
+      "text-offset": [0, -1.6],
+      "text-anchor": "bottom",
+      "text-allow-overlap": true,
+    },
+    paint: {
+      "text-color": OWN,
+      "text-halo-color": PAPER,
+      "text-halo-width": 2,
     },
   },
   {
@@ -276,7 +310,7 @@ const LAYERS: (LayerSpecification & { group: LayerId })[] = [
     },
   },
   {
-    // The selected beekeeper's ranks, up and right of each parcel (WP18).
+    // The beekeeper's ranks, up and right of each parcel (WP18).
     group: "beekeepers",
     id: "match-badge",
     type: "symbol",

@@ -1,0 +1,63 @@
+.form {
+  display: flex;
+  flex-direction: column;
+  gap: 0.55rem;
+  padding: 0.85rem 0.9rem;
+  border: 2px solid var(--focus);
+  border-radius: 12px;
+  background: white;
+  box-shadow: 0 2px 10px rgb(28 25 18 / 16%);
+  color: var(--ink);
+  font-size: 0.875rem;
+  pointer-events: auto;
+}
+.form label {
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+  font-size: 0.8125rem;
+  font-weight: 600;
+}
+.form input,
+.form select {
+  min-height: 44px;
+  width: 100%;
+  padding: 0 0.6rem;
+  border: 1px solid var(--line-strong);
+  border-radius: 8px;
+  background: white;
+  color: var(--ink);
+  font: inherit;
+}
+.form small {
+  color: var(--muted);
+  font-size: 0.8125rem;
+}
+.dates {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.5rem;
+}
+.actions {
+  display: flex;
+  gap: 0.5rem;
+}
+.actions button {
+  min-height: 44px;
+  padding: 0 1rem;
+  border: 1.5px solid var(--ink);
+  border-radius: 8px;
+  background: white;
+  color: var(--ink);
+  font: inherit;
+  font-weight: 600;
+  cursor: pointer;
+}
+.actions .primary {
+  background: var(--ink);
+  color: white;
+}
+.form .error {
+  color: var(--drought-ink);
+  font-weight: 600;
+}

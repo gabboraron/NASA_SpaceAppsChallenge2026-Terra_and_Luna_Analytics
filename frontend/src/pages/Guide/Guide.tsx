@@ -17,8 +17,8 @@ const STEPS = [
     text: "Drag the slider or press play. Parcels recolour by bloom.",
   },
   {
-    title: "Choose a beekeeper",
-    text: "B1, B2 and B3 are synthetic. Their placements appear on the right.",
+    title: "Sign in, draw your apiary",
+    text: "Continue as the demo beekeeper in one click, or register. Matches from your home parcel appear on the right.",
   },
   {
     title: "Open a parcel",
@@ -57,16 +57,13 @@ const TOUR = [
   ],
   [
     "Map",
-    "Parcels, protected sites, soil moisture cells and the beekeepers' homes. Hover a parcel for its week; click it for details.",
+    "Parcels, protected sites, soil moisture cells and your own parcels. Hover a parcel for its week; click it for details.",
   ],
   [
     "Week slider",
     "Bottom. 26 weeks from 1 March; the strip above it shows how many parcels bloom.",
   ],
-  [
-    "Side panel",
-    "Right. Matches for a beekeeper, a parcel's details, or the calculator.",
-  ],
+  ["Side panel", "Right. Your matches, a parcel's details, or the calculator."],
 ];
 
 const KINDS = [
@@ -251,8 +248,10 @@ function Solution() {
         under <Link to={ROUTES.data}>Data</Link>.
       </p>
       <p className={styles.note}>
-        Demo status: the NASA data is real; beekeepers and growers are
-        synthetic, parcels are illustrative, and booking is switched off.
+        Demo status: the NASA data is real. Sign-in is a mock: your account,
+        parcels and placement requests are stored in your browser only and no
+        grower is contacted. Growers are synthetic and the listed parcels are
+        illustrative.
       </p>
     </Section>
   );
@@ -292,7 +291,7 @@ function Features() {
           w={1600}
           h={1000}
           alt="The explorer: layer toggles on the left, the map with parcels and soil moisture cells in the middle, the week slider at the bottom and ranked placements on the right."
-          caption="The 2022 season, week 20 (mid-July), beekeeper B1."
+          caption="The 2022 season, week 20 (mid-July). Screenshot from an earlier version."
         />
         <dl className={styles.tour}>
           {TOUR.map(([t, d], i) => (
@@ -399,8 +398,11 @@ function Features() {
               1, 2 and 3 km rings around the beekeeper&apos;s home and the
               selected parcel.
             </dd>
-            <dt>Beekeepers</dt>
-            <dd>Home apiaries of the synthetic beekeepers.</dd>
+            <dt>My apiary and ranks</dt>
+            <dd>
+              Your home apiary pin and the ranks of your placements. The parcels
+              you drew always show with a blue outline.
+            </dd>
             <dt>Satellite imagery</dt>
             <dd>Swaps the street basemap for aerial imagery.</dd>
           </dl>
@@ -419,15 +421,17 @@ function Features() {
               w={766}
               h={2000}
               narrow
-              alt="The matches panel: beekeeper cards B1, B2, B3 and a ranked placement card for a sunflower parcel with distance, reasons, warnings and missing items."
+              alt="The matches panel of an earlier version: beekeeper cards and a ranked placement card for a sunflower parcel with distance, reasons, warnings and missing items."
+              caption="Screenshot from an earlier version, which had a beekeeper picker."
             />
           }
         >
           <p className={page.body}>
-            Pick a beekeeper first. <strong>B1</strong> and <strong>B2</strong>{" "}
-            offer pollination, <strong>B3</strong> seeks forage for honey; each
-            has a number of colonies and a maximum distance. The panel lists the
-            parcels that fit, nearest first.
+            Matches are computed for you, from your home parcel, with the
+            colonies, maximum distance and availability of your{" "}
+            <Link to={ROUTES.account}>account</Link>. The panel lists the
+            parcels that fit, best fit first, and you can filter them by honey
+            type (the bloom source).
           </p>
           <p className={page.body}>Each card shows:</p>
           <ul className={styles.points}>
@@ -444,8 +448,11 @@ function Features() {
               as a spray calendar.
             </li>
             <li>
-              <strong>Calculate this move</strong> opens the calculator. Request
-              quote is switched off in the demo.
+              <strong>Calculate this move</strong> opens the calculator. You can
+              also send a placement request for a period; in the demo it is
+              stored in your browser only, under{" "}
+              <Link to={ROUTES.placements}>My placements</Link>, and no grower
+              is contacted.
             </li>
           </ul>
           <p className={page.body}>
@@ -459,7 +466,7 @@ function Features() {
             h={1478}
             narrow
             alt="The Not possible list: black locust parcels whose bloom ended, and grassland parcels inside a Natura 2000 site."
-            caption="B3 in July: black locust has finished; grassland inside a protected site is blocked."
+            caption="A forage search in July: black locust has finished; grassland inside a protected site is blocked."
           />
         </Split>
       </Section>
@@ -506,8 +513,8 @@ function Features() {
             </dd>
           </dl>
           <p className={page.body}>
-            <strong>Calculate a move here</strong> opens the calculator with a
-            beekeeper whose goal fits the parcel. Press Esc or ✕ to close.
+            <strong>Calculate a move here</strong> opens the calculator for a
+            move from your home parcel. Press Esc or ✕ to close.
           </p>
         </Split>
       </Section>
@@ -573,9 +580,10 @@ function Features() {
             <dt>Assumptions</dt>
             <dd>
               Colonies, road distance, trips, fee, honey margin, fuel, labour,
-              feed and what the colonies earn at home. All prefilled, each with
-              its source, all editable. <strong>Reset to prefilled</strong>{" "}
-              undoes your changes.
+              feed and what the colonies earn at home. All prefilled, from the
+              moving costs of your <Link to={ROUTES.account}>account</Link>{" "}
+              where you set them, each with its source, all editable.{" "}
+              <strong>Reset to prefilled</strong> undoes your changes.
             </dd>
           </dl>
           <p className={styles.note}>
@@ -611,6 +619,12 @@ function Features() {
         <p className={page.body}>
           This works anywhere on the map, not only on the listed parcels. The
           first read of a new field can take a minute.
+        </p>
+        <p className={page.body}>
+          A parcel you draw is kept in your account as an apiary site: choose
+          its crop and its bloom is modelled where it lies from NASA POWER
+          weather. Name it, mark it as your home apiary or delete it under{" "}
+          <Link to={ROUTES.account}>Account</Link>.
         </p>
         <p className={styles.note}>
           Satellite rows need a NASA Earthdata token on the server; without one

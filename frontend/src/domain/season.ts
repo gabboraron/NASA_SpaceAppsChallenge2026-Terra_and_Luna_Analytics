@@ -34,15 +34,57 @@ export const CROP_NAMES: Record<string, string> = {
   sour_cherry: "Sour cherry",
   grassland: "Grassland",
 };
+/** Crops a beekeeper can give an own parcel; the first three have a heat-unit bloom model. */
+export const OWN_CROPS: readonly string[] = [
+  "black_locust",
+  "apple",
+  "sour_cherry",
+  "sunflower",
+  "grassland",
+];
+/** Own-parcel crops whose bloom is modelled from NASA POWER anywhere on Earth. */
+export const MODELLED_CROPS: ReadonlySet<string> = new Set([
+  "black_locust",
+  "apple",
+  "sour_cherry",
+]);
+
+/** Honey kinds by the bloom they come from, for filtering the map and matches. */
+export const HONEYS: readonly { id: string; label: string; crops: string[] }[] =
+  [
+    { id: "acacia", label: "Acacia (black locust)", crops: ["black_locust"] },
+    { id: "sunflower", label: "Sunflower", crops: ["sunflower"] },
+    { id: "fruit", label: "Fruit blossom", crops: ["apple", "sour_cherry"] },
+    { id: "meadow", label: "Meadow", crops: ["grassland"] },
+  ];
+
+/** First and last week in which any of the given parcels blooms, or null. */
+export function bloomSpan(
+  weeks: Map<number, Map<string, ParcelWeek>>,
+  parcelIds: ReadonlySet<string>,
+): [number, number] | null {
+  const blooming = [...weeks.entries()]
+    .filter(([, rows]) =>
+      [...rows.values()].some(
+        (r) => r.bloom_state === "blooming" && parcelIds.has(r.parcel_id),
+      ),
+    )
+    .map(([week]) => week);
+  return blooming.length
+    ? [Math.min(...blooming), Math.max(...blooming)]
+    : null;
+}
+
 /** Display name of a parcel's crop, falling back to the raw code. */
 export const cropName = (crop: string): string => CROP_NAMES[crop] ?? crop;
 
 /** Index a season once: week → parcel id → row, so a week change is a lookup. */
 export function indexWeeks(
   timeline: Timeline | null,
+  extra: ParcelWeek[] = [],
 ): Map<number, Map<string, ParcelWeek>> {
   const index = new Map<number, Map<string, ParcelWeek>>();
-  for (const row of timeline?.parcel_weeks ?? []) {
+  for (const row of [...(timeline?.parcel_weeks ?? []), ...extra]) {
     const week = index.get(row.week) ?? new Map<string, ParcelWeek>();
     week.set(row.parcel_id, row);
     index.set(row.week, week);
@@ -60,6 +102,35 @@ const MONTH_SHORT = new Intl.DateTimeFormat("en-GB", {
   month: "short",
   timeZone: "UTC",
 });
+
+const DAY = new Intl.DateTimeFormat("en-GB", {
+  day: "numeric",
+  month: "short",
+  year: "numeric",
+  timeZone: "UTC",
+});
+/** "12 Jul 2024" from an ISO date; the text itself when it is not a date. */
+export function formatDay(iso: string): string {
+  const date = new Date(iso);
+  return Number.isNaN(date.getTime()) ? iso : DAY.format(date);
+}
+
+/**
+ * A window moved to `year` by calendar date, 29 Feb becoming 28 Feb: the same
+ * rule as `window_in_year` in the API (`weeks.py`).
+ */
+export function windowInYear(
+  w: { start: string; end: string },
+  year: Season,
+): { start: string; end: string } {
+  const move = (iso: string) => {
+    const [, m, d] = iso.split("-").map(Number);
+    const leap = new Date(Date.UTC(year, 1, 29)).getUTCMonth() === 1;
+    const day = m === 2 && d === 29 && !leap ? 28 : d;
+    return `${year}-${String(m).padStart(2, "0")}-${String(day).padStart(2, "0")}`;
+  };
+  return { start: move(w.start), end: move(w.end) };
+}
 
 /** First day of a timeline week; weeks run 1 to 26 from 1 March. */
 export const weekStart = (year: Season, week: number): Date =>

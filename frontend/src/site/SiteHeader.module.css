@@ -54,12 +54,56 @@
   margin-left: auto;
   font-size: 0.9375rem;
 }
-.nav a {
+.nav a,
+.nav button {
   display: inline-flex;
   align-items: center;
   min-height: 44px;
   color: inherit;
   text-underline-offset: 4px;
+}
+.nav button {
+  padding: 0;
+  border: 0;
+  background: none;
+  font: inherit;
+  text-decoration: underline;
+  cursor: pointer;
+}
+.count {
+  margin-left: 0.4rem;
+  padding: 0 0.45rem;
+  border-radius: 999px;
+  background: var(--honey);
+  color: var(--ink);
+  font-size: 0.75rem;
+  font-weight: 600;
+  line-height: 1.4rem;
+}
+.nav a.who {
+  gap: 0.55rem;
+  padding: 0 0.85rem 0 0.25rem;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  text-decoration: none;
+}
+.avatar {
+  display: grid;
+  place-items: center;
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  background: var(--focus);
+  color: white;
+  font-size: 0.8125rem;
+  font-weight: 600;
+}
+
+.name {
+  max-width: 11rem;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 .nav a[aria-current="page"] {
   font-weight: 600;
@@ -69,7 +113,8 @@
   gap: 0.25rem;
   margin-left: 0;
 }
-.bar[data-variant="app"] .nav a {
+.bar[data-variant="app"] .nav a,
+.bar[data-variant="app"] .nav button {
   min-height: 36px;
   padding: 0 0.75rem;
   border-radius: 6px;
@@ -80,6 +125,14 @@
 .bar[data-variant="app"] .nav a[aria-current="page"] {
   background: var(--ink-raised);
   color: #fff;
+}
+.bar[data-variant="app"] .nav a.who {
+  min-height: 40px;
+  padding: 0 0.85rem 0 0.25rem;
+  border: 0;
+  border-radius: 999px;
+  background: var(--ink-raised);
+  color: white;
 }
 .extra {
   display: flex;
@@ -115,7 +168,7 @@
   color: inherit;
   cursor: pointer;
 }
-@media (width < 980px) {
+@media (width < 1280px) {
   .tagline {
     display: none;
   }

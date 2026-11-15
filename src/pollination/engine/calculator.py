@@ -10,6 +10,7 @@ from pollination.models import (
     Beekeeper,
     CalculatorInput,
     CalculatorResult,
+    CostSettings,
     Parcel,
     Provenance,
     Scenario,
@@ -18,6 +19,8 @@ from pollination.models import (
 COMMISSION_RATE = 0.08
 ROUND_TRIP_LEGS = 2
 LISTING = "Grower listing (illustrative)"
+OWN_PROFILE = "Your profile"
+OWN_COSTS = "Your cost settings"
 
 
 def _scenario(
@@ -118,23 +121,34 @@ def _source(
 
 
 def prefill(
-    beekeeper: Beekeeper, parcel: Parcel, defaults: CalculatorDefaults
+    beekeeper: Beekeeper,
+    parcel: Parcel,
+    defaults: CalculatorDefaults,
+    costs: CostSettings | None = None,
 ) -> CalculatorInput:
     """Build editable calculator inputs for moving a beekeeper's hives to a parcel.
 
     Listing values (fee, requested colonies) are Reported by the grower, vehicle and
     alternative by the beekeeper; distance and driving time are Estimated (plan D22);
-    the rest are Estimated planning assumptions from ``data/calculator.json``.
+    the rest are Estimated planning assumptions from ``data/calculator.json``, or
+    Reported where the beekeeper set an own cost.
 
     Args:
         beekeeper: Who moves the hives.
         parcel: Where the hives go.
         defaults: Assumptions for values no actor states.
+        costs: The beekeeper's own costs; each set value replaces its default.
 
     Returns:
         Inputs with a provenance for every field.
     """
-    keeper = f"Beekeeper {beekeeper.id} profile (synthetic)"
+    own = costs.model_dump(exclude_none=True) if costs else {}
+    defaults = defaults.model_copy(update=own)
+    keeper = (
+        f"Beekeeper {beekeeper.id} profile (synthetic)"
+        if beekeeper.synthetic
+        else OWN_PROFILE
+    )
     distance = travel_distance_km(beekeeper.home, centroid(parcel.geometry))
     km = distance.value or 0.0
     forage = parcel.service_type == "forage"
@@ -149,6 +163,14 @@ def prefill(
         colonies_source = _source("Reported", keeper, f"Beekeeper has {has}")
     colonies = max(MIN_COLONIES, min(MAX_COLONIES, wanted))
     assumed = _source("Estimated", defaults.source)
+
+    def cost(name: str, note: str = "") -> Provenance:
+        """Where a cost comes from: the beekeeper's setting, else the default."""
+        if name in own:
+            return _source("Reported", OWN_COSTS)
+        return _source("Estimated", defaults.source, note)
+
+    speed = "average_speed_kmh" in own
     return CalculatorInput(
         service_type=parcel.service_type,
         colonies=colonies,
@@ -174,18 +196,19 @@ def prefill(
             "fee_per_colony": _source(
                 "Reported", LISTING, "Forage hosts pay no fee" if forage else ""
             ),
-            "legs": _source("Estimated", defaults.source, "Deliver and collect"),
+            "legs": cost("legs", "Deliver and collect"),
             "fuel_l_per_100km": _source("Reported", keeper),
-            "fuel_price_per_l": assumed,
-            "vehicle_cost_per_km": assumed,
+            "fuel_price_per_l": cost("fuel_price_per_l"),
+            "vehicle_cost_per_km": cost("vehicle_cost_per_km"),
             "driving_hours": _source(
                 "Estimated",
                 f"Trips x distance at {defaults.average_speed_kmh:g} km/h",
+                "Your average speed" if speed else "",
             ),
-            "loading_hours": assumed,
-            "hourly_labor_cost": assumed,
-            "extra_feed_cost": assumed,
-            "other_placement_cost": assumed,
+            "loading_hours": cost("loading_hours"),
+            "hourly_labor_cost": cost("hourly_labor_cost"),
+            "extra_feed_cost": cost("extra_feed_cost"),
+            "other_placement_cost": cost("other_placement_cost"),
             "honey_margin": _source(
                 "Missing",
                 "No honey estimate",

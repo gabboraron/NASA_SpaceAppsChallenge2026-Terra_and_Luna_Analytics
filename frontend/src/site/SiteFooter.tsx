@@ -27,8 +27,9 @@ export function SiteFooter() {
       <div>
         <span className="mono">NOTE</span>
         <p>
-          Not affiliated with or endorsed by NASA. Beekeepers are synthetic;
-          parcels are illustrative.
+          Not affiliated with or endorsed by NASA. Demo: accounts live in your
+          browser only; growers are synthetic and listed parcels are
+          illustrative.
         </p>
       </div>
     </footer>

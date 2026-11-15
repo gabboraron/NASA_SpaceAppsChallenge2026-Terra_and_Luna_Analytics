@@ -89,9 +89,9 @@ const ZONES = [
 ];
 
 const LIMITS = [
-  "Beekeepers and growers in the demo are synthetic; parcels are illustrative, not real holdings.",
+  "Sign-in is a mock kept in your browser; growers in the demo are synthetic and listed parcels are illustrative, not real holdings.",
   "Clouds hide fields from HLS; long gaps lower confidence and show as Missing.",
-  'No booking: "Request quote" is switched off.',
+  "No real booking: a placement request is stored in your browser only and no grower is contacted.",
   "Spray calendars and road routing are not modelled.",
 ];
 
@@ -269,8 +269,9 @@ export function MethodPage() {
               The calculator reports the{" "}
               <strong>contribution after incremental costs</strong> of a move,
               and its <strong>benefit relative to the alternative</strong> of
-              staying put. Every input is prefilled from the match and can be
-              changed. It makes no yield claims.
+              staying put. Every input is prefilled from the match and the
+              moving costs of your account, and can be changed. It makes no
+              yield claims.
             </p>
           </Section>
 

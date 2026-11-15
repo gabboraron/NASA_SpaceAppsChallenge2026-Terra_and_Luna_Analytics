@@ -1,4 +1,5 @@
 import { useState, type ReactNode } from "react";
+import { useAccount } from "../account/session";
 import { BeeMark } from "./BeeMark";
 import { Link, ROUTES, usePath } from "./router";
 import styles from "./SiteHeader.module.css";
@@ -17,12 +18,27 @@ type Props = {
   children?: ReactNode;
 };
 
-/** Shared top bar: bee mark, page links, and the way into the explorer. */
+/** Shared top bar: bee mark, page links, the account, and the way into the explorer. */
 export function SiteHeader({ variant = "site", children }: Props) {
   const path = usePath();
+  const account = useAccount();
   const [open, setOpen] = useState(false);
   const app = variant === "app";
-  const links = app ? [{ to: ROUTES.app, label: "Explorer" }, ...NAV] : NAV;
+  const links = [
+    ...(app ? [{ to: ROUTES.app, label: "Explorer" }] : []),
+    ...NAV,
+    account
+      ? { to: ROUTES.placements, label: "My placements" }
+      : { to: ROUTES.login, label: "Sign in" },
+  ];
+  const requests = account?.placements.length ?? 0;
+  const initials =
+    account?.name
+      .split(/\s+/)
+      .filter(Boolean)
+      .slice(0, 2)
+      .map((w) => w[0].toUpperCase())
+      .join("") || "?";
   return (
     <header className={styles.bar} data-variant={variant}>
       <div className={styles.inner}>
@@ -65,8 +81,28 @@ export function SiteHeader({ variant = "site", children }: Props) {
               onClick={() => setOpen(false)}
             >
               {l.label}
+              {l.to === ROUTES.placements && requests > 0 && (
+                <span className={styles.count}>
+                  {requests}
+                  <span className="sr-only"> requested</span>
+                </span>
+              )}
             </Link>
           ))}
+          {account && (
+            <Link
+              to={ROUTES.account}
+              className={styles.who}
+              aria-current={path === ROUTES.account ? "page" : undefined}
+              onClick={() => setOpen(false)}
+            >
+              <span aria-hidden="true" className={styles.avatar}>
+                {initials}
+              </span>
+              <span className="sr-only">Account: </span>
+              <span className={styles.name}>{account.name}</span>
+            </Link>
+          )}
         </nav>
         {children && <div className={styles.extra}>{children}</div>}
         {!app && (

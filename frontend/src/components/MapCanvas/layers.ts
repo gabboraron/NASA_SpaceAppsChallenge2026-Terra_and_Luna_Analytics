@@ -1,13 +1,7 @@
 // Pure data and style helpers for the map layers (no MapLibre instance needed).
 import circle from "@turf/circle";
 import type { Feature, FeatureCollection, Point, Polygon } from "geojson";
-import type {
-  Beekeeper,
-  MatchCard,
-  Parcel,
-  ParcelWeek,
-  Timeline,
-} from "../../api/client";
+import type { MatchCard, Parcel, ParcelWeek, Timeline } from "../../api/client";
 import { WEEKS, isHighBloomLowNectar } from "../../domain/season";
 
 export type LayerId =
@@ -34,6 +28,8 @@ export const NATURA = "#2f6b4f";
 export const INK = "#1c1912";
 export const HONEY = "#e3a92b";
 export const PAPER = "#f7f0de";
+/** The signed-in beekeeper's own parcels and home: same blue as --focus. */
+export const OWN = "#1f5f8b";
 
 export const BLOOM_LABELS: Record<ParcelWeek["bloom_state"], string> = {
   none: "Not in bloom",
@@ -63,9 +59,13 @@ export function weekStateText(row?: ParcelWeek): string {
 /** Per week: how many parcels bloom, and how many of those are low on nectar. */
 export function weekSummary(
   weeks: Map<number, Map<string, ParcelWeek>>,
+  /** Count only these parcels (a honey filter); all when not given. */
+  only?: ReadonlySet<string>,
 ): { blooming: number; low: number }[] {
   return Array.from({ length: WEEKS }, (_, i) => {
-    const rows = [...(weeks.get(i + 1)?.values() ?? [])];
+    const rows = [...(weeks.get(i + 1)?.values() ?? [])].filter(
+      (r) => !only || only.has(r.parcel_id),
+    );
     return {
       blooming: rows.filter((r) => r.bloom_state === "blooming").length,
       low: rows.filter(isHighBloomLowNectar).length,
@@ -73,46 +73,64 @@ export function weekSummary(
   });
 }
 
+/** How a parcel is marked on the map beyond its bloom and crop. */
+export type ParcelMarks = {
+  /** The signed-in beekeeper's own parcels: id → name. */
+  own?: ReadonlyMap<string, string>;
+  /** The parcels that give the chosen honey; the others are faded. */
+  keep?: ReadonlySet<string>;
+};
+
+const marks = (p: Parcel, { own, keep }: ParcelMarks) => ({
+  id: p.id,
+  crop: p.crop,
+  own: own?.has(p.id) ?? false,
+  label: own?.get(p.id) ?? "",
+  dim: keep ? !keep.has(p.id) : false,
+});
+
 export function parcelCollection(
   parcels: Parcel[],
+  how: ParcelMarks = {},
 ): FeatureCollection<Polygon> {
   return {
     type: "FeatureCollection",
     features: parcels.map((p) => ({
       type: "Feature",
       geometry: p.geometry as Polygon,
-      properties: { id: p.id, crop: p.crop },
+      properties: marks(p, how),
     })),
   };
 }
 
-/** One point per parcel, for the low-zoom dot layer. */
-export function parcelDots(parcels: Parcel[]): FeatureCollection<Point> {
+/** One point per parcel, for the low-zoom dot layer and the own-parcel labels. */
+export function parcelDots(
+  parcels: Parcel[],
+  how: ParcelMarks = {},
+): FeatureCollection<Point> {
   return {
     type: "FeatureCollection",
     features: parcels.map((p) => ({
       type: "Feature",
       geometry: { type: "Point", coordinates: centroid(p.geometry) },
-      properties: { id: p.id, crop: p.crop },
+      properties: marks(p, how),
     })),
   };
 }
 
-export function beekeeperCollection(
-  beekeepers: Beekeeper[],
-  selectedId = "",
-): FeatureCollection<Point> {
+/** The signed-in beekeeper's home apiary pin (none until a parcel is drawn). */
+export function homePin(home?: [number, number]): FeatureCollection<Point> {
   return {
     type: "FeatureCollection",
-    features: beekeepers.map((b) => ({
-      type: "Feature",
-      geometry: { type: "Point", coordinates: b.home },
-      properties: {
-        id: b.id,
-        label: b.synthetic ? `${b.id} · synthetic` : b.id,
-        selected: b.id === selectedId,
-      },
-    })),
+    features: home
+      ? [
+          {
+            type: "Feature",
+            geometry: { type: "Point", coordinates: home },
+            properties: { id: "home", label: "Your apiary", selected: true },
+          },
+        ]
+      : [],
   };
 }
 

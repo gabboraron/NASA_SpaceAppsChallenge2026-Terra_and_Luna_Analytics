@@ -6,7 +6,14 @@ from datetime import date
 from enum import IntEnum
 from typing import Annotated, Literal
 
-from pydantic import BaseModel, Field, NonNegativeFloat, NonNegativeInt, model_validator
+from pydantic import (
+    BaseModel,
+    Field,
+    NonNegativeFloat,
+    NonNegativeInt,
+    PositiveFloat,
+    model_validator,
+)
 
 type BloomState = Literal["none", "pre_bloom", "blooming", "post_bloom"]
 type NectarState = Literal["normal", "low_nectar", "unknown"]
@@ -244,6 +251,48 @@ class MatchCard(BaseModel):
     confidence: Literal["low", "medium", "high"]
     distance_km: Measurement
     calculator_input: CalculatorInput | None
+
+
+class CostSettings(BaseModel):
+    """A beekeeper's own moving costs; an unset value uses the shipped default."""
+
+    legs: NonNegativeInt | None = None
+    fuel_price_per_l: NonNegativeFloat | None = None
+    vehicle_cost_per_km: NonNegativeFloat | None = None
+    hourly_labor_cost: NonNegativeFloat | None = None
+    average_speed_kmh: PositiveFloat | None = None
+    loading_hours: NonNegativeFloat | None = None
+    extra_feed_cost: NonNegativeFloat | None = None
+    other_placement_cost: NonNegativeFloat | None = None
+
+
+class MatchRequest(BaseModel):
+    """A signed-in beekeeper's own profile, sent with each request (nothing stored)."""
+
+    home: Position
+    colonies: NonNegativeInt
+    max_distance_km: NonNegativeFloat
+    availability: Window
+    vehicle_l_per_100km: NonNegativeFloat
+    alternative_contribution_eur: float
+    costs: CostSettings = Field(default_factory=CostSettings)
+
+
+class OwnParcelRequest(BaseModel):
+    """A parcel a beekeeper drew: where it lies and what blooms there."""
+
+    id: str
+    crop: str
+    geometry: Polygon
+    irrigated: bool = False
+    declared_bloom: Window | None = None
+
+
+class OwnParcelTimeline(BaseModel):
+    """A drawn parcel with its computed area and its weekly bloom for a season."""
+
+    parcel: Parcel
+    weeks: list[ParcelWeek]
 
 
 class GddPoint(BaseModel):

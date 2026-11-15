@@ -689,6 +689,27 @@ def _fetch_power(
     return power, failed
 
 
+def parcel_power(
+    year: int,
+    parcel: m.Parcel,
+    cache_dir: Path,
+    phenology: Mapping[str, PhenologyEntry],
+) -> PowerDaily | str:
+    """POWER at one parcel's grid node for a season, or why it is missing.
+
+    Args:
+        year: Season.
+        parcel: The parcel (anywhere on Earth).
+        cache_dir: NASA response cache root.
+        phenology: Phenology entries by crop, to know whether the previous autumn
+            is needed for winter chilling.
+
+    Returns:
+        The daily series from 1 January (or the chilling start), or the reason.
+    """
+    return _fetch_power(year, [parcel], cache_dir, phenology)[0][parcel.id]
+
+
 def pending_inputs(
     year: int,
     parcels: Sequence[m.Parcel],

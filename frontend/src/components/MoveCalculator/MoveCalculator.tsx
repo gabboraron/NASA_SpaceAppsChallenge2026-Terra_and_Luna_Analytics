@@ -2,13 +2,15 @@ import { useEffect, useMemo, useState } from "react";
 import { useEscape } from "../../hooks/useEscape";
 import {
   calculate,
-  type Beekeeper,
   type CalculatorInput,
   type CalculatorResult,
+  type MatchRequest,
   type Parcel,
   type Season,
 } from "../../api/client";
-import { BeekeeperPicker } from "../BeekeeperPicker/BeekeeperPicker";
+import { PlacementRequest } from "../PlacementRequest/PlacementRequest";
+import { Verdict } from "./Verdict";
+import { Link, ROUTES } from "../../site/router";
 import { cropName } from "../../domain/season";
 import { loadMatches } from "../../hooks/useMatches";
 import { ProvenanceBadge } from "../ProvenanceBadge/ProvenanceBadge";
@@ -18,7 +20,6 @@ import {
   GROUPS,
   eur,
   parseDraft,
-  rangeText,
   toDraft,
   type Draft,
   type Field,
@@ -63,21 +64,21 @@ type Prefill =
 
 type Props = {
   parcel: Parcel;
-  beekeepers: Beekeeper[];
-  keeperId: string;
-  onKeeper: (id: string) => void;
+  /** The signed-in beekeeper's profile: home, hives and own costs. */
+  profile: MatchRequest;
+  /** Suggested stay for a placement request: this season's bloom window. */
+  stay: { start: string; end: string } | null;
   year: Season;
   week: number;
   onBack: () => void;
   onClose: () => void;
 };
 
-/** Economics of moving one beekeeper's hives to a parcel: low / base / high (WP19). */
+/** Economics of moving the signed-in beekeeper's hives to a parcel: low / base / high (WP19). */
 export function MoveCalculator({
   parcel,
-  beekeepers,
-  keeperId,
-  onKeeper,
+  profile,
+  stay,
   year,
   week,
   onBack,
@@ -91,17 +92,20 @@ export function MoveCalculator({
   useEscape(onClose);
 
   // The match's calculator input for this beekeeper and parcel.
+  const profileKey = JSON.stringify(profile);
   useEffect(() => {
-    const controller = new AbortController();
-    loadMatches(keeperId, year, openWeek, controller.signal)
+    let stale = false;
+    loadMatches(profile, year, openWeek)
       .then((cards) => {
+        if (stale) return;
         const input = cards.find(
           (c) => c.parcel_id === parcel.id,
         )?.calculator_input;
         if (!input)
           setPrefill({
             status: "none",
-            reason: "No move to price for this beekeeper and parcel.",
+            reason:
+              "No move to price: this parcel is not possible for you in the selected week.",
           });
         else {
           const initial = toDraft(input);
@@ -115,10 +119,13 @@ export function MoveCalculator({
         }
       })
       .catch(() => {
-        if (!controller.signal.aborted) setPrefill({ status: "error" });
+        if (!stale) setPrefill({ status: "error" });
       });
-    return () => controller.abort();
-  }, [keeperId, parcel.id, year, openWeek, matchAttempt]);
+    return () => {
+      stale = true;
+    };
+    // `profileKey` holds the profile's content.
+  }, [profileKey, parcel.id, year, openWeek, matchAttempt]);
 
   const parsed = useMemo(
     () =>
@@ -183,7 +190,6 @@ export function MoveCalculator({
     } else setCalcAttempt((a) => a + 1);
   };
 
-  const keeper = beekeepers.find((b) => b.id === keeperId);
   const crop = cropName(parcel.crop);
   const forage = parcel.service_type === "forage";
   const errors = parsed?.errors ?? {};
@@ -294,16 +300,9 @@ export function MoveCalculator({
         </button>
       </div>
 
-      <BeekeeperPicker
-        beekeepers={beekeepers}
-        value={keeperId}
-        onChange={onKeeper}
-        service={parcel.service_type}
-      />
-
       {prefill.status === "loading" && (
         <p role="status" className={styles.note}>
-          Loading the match for {keeperId}…
+          Loading your move…
         </p>
       )}
       {prefill.status === "none" && (
@@ -332,27 +331,7 @@ export function MoveCalculator({
             </div>
           )}
 
-          {result && (
-            <section
-              role="status"
-              aria-live="polite"
-              aria-busy={calc.pending}
-              className={styles.verdict}
-              data-verdict={result.verdict}
-              data-pending={calc.pending}
-            >
-              <span className={styles.kicker}>
-                {result.verdict === "move" ? "Move pays off" : "Do not move"}
-              </span>
-              <strong>{eur(result.base.benefit_vs_alternative, true)}</strong>
-              <span>
-                {result.verdict === "move"
-                  ? "benefit relative to the alternative, base case"
-                  : result.message}
-              </span>
-              <span>{calc.pending ? "Updating…" : rangeText(result)}</span>
-            </section>
-          )}
+          {result && <Verdict result={result} pending={calc.pending} />}
 
           {parsed && !parsed.input && (
             <p role="status" className={styles.error}>
@@ -460,9 +439,17 @@ export function MoveCalculator({
           <p className={styles.note}>
             Illustrative economics for planning, not a quote. Contribution is
             after incremental costs only; fixed costs of the operation are not
-            included.
-            {keeper?.synthetic && ` ${keeper.id} is a synthetic beekeeper.`}
+            included. Prefilled from your home apiary, your profile and your own
+            moving costs: change those for every parcel in{" "}
+            <Link to={ROUTES.account}>Account</Link>.
           </p>
+          <PlacementRequest
+            key={parcel.id}
+            parcel={parcel}
+            stay={stay}
+            colonies={shownInput?.colonies ?? profile.colonies}
+            benefit={result?.base.benefit_vs_alternative ?? null}
+          />
         </>
       )}
     </aside>

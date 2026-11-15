@@ -1,6 +1,14 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import type { FeatureCollection, Polygon } from "geojson";
 import {
+  addParcel,
+  homeParcel,
+  newId,
+  removeParcel,
+  updateAccount,
+  useAccount,
+} from "./account/session";
+import {
   getActors,
   getNatura,
   getParcels,
@@ -8,8 +16,10 @@ import {
   useMocks,
   verifyParcel,
   type Actors,
+  type MatchRequest,
   type Natura,
   type Parcel,
+  type ParcelWeek,
   type Polygon as FieldPolygon,
   type Season,
   type Timeline,
@@ -19,9 +29,9 @@ import { DrawnField } from "./components/DrawnField/DrawnField";
 import { LayerPanel } from "./components/LayerPanel/LayerPanel";
 import { MapCanvas } from "./components/MapCanvas/MapCanvas";
 import {
-  beekeeperCollection,
   centroid,
   foragingRings,
+  homePin,
   parcelCollection,
   matchLabels,
   parcelDots,
@@ -36,19 +46,25 @@ import {
 } from "./components/ParcelDetail/ParcelDetail";
 import { MatchPanel } from "./components/MatchPanel/MatchPanel";
 import { MoveCalculator } from "./components/MoveCalculator/MoveCalculator";
+import { MoveSummary } from "./components/MoveSummary/MoveSummary";
+import { NewParcel } from "./components/NewParcel/NewParcel";
 import { TimeSlider } from "./components/TimeSlider/TimeSlider";
 import {
   LIVE_SEASON,
   MAP_SEASONS,
   SEASON_LABELS,
+  HONEYS,
   WEEKS,
+  bloomSpan,
   isSeason,
   cropName,
   indexWeeks,
+  windowInYear,
 } from "./domain/season";
 import { useEscape } from "./hooks/useEscape";
 import { type Answer, useField } from "./hooks/useField";
 import { forgetMatches, useMatches } from "./hooks/useMatches";
+import { useOwnParcels } from "./hooks/useOwnParcels";
 import { SiteHeader } from "./site/SiteHeader";
 import styles from "./App.module.css";
 
@@ -91,6 +107,7 @@ type Base = { parcels: Parcel[]; natura: Natura; actors: Actors };
 type Load<T> = { data?: T; error?: string };
 
 const NO_ROWS = new Map<string, never>();
+const NO_PARCELS: never[] = [];
 
 export function App() {
   const [base, setBase] = useState<Load<Base>>({});
@@ -109,7 +126,9 @@ export function App() {
   const [layersOpen, setLayersOpen] = useState(false);
   const [verifyState, setVerifyState] = useState<VerifyState>("idle");
   const [planning, setPlanning] = useState(false);
-  const [keeperId, setKeeperId] = useState("B1");
+  // The signed-in beekeeper (Site only shows the explorer to one).
+  const account = useAccount();
+  const [honey, setHoney] = useState("");
   // Parcels verified in this page session (server state resets on restart, D16).
   const [verifiedIds, setVerifiedIds] = useState<ReadonlySet<string>>(
     new Set(),
@@ -139,11 +158,14 @@ export function App() {
   // only the listed parcels).
   const [drawing, setDrawing] = useState(false);
   const [fieldPolygon, setFieldPolygon] = useState<FieldPolygon | null>(null);
-  const field = useField(fieldPolygon, year);
   const onDrawn = useCallback((polygon: FieldPolygon) => {
     setFieldPolygon(polygon);
     setDrawing(false);
   }, []);
+  // The beekeeper's own parcels, with their bloom modelled where each one lies.
+  const ownList = account?.parcels ?? NO_PARCELS;
+  const own = useOwnParcels(ownList, year);
+  const home = account ? homeParcel(account) : undefined;
   const startDrawing = () => {
     setFieldPolygon(null);
     setDrawing(true);
@@ -184,25 +206,60 @@ export function App() {
   // Something is on its way from NASA: the season, its satellite part, or a
   // drawn field's reads. The status cards say what; this drives the moving bar.
   const waiting = (a: Answer<unknown>) => a.data === undefined && !a.error;
-  const fetching =
-    !current ||
-    !!current.data?.pending ||
-    (!!fieldPolygon && (waiting(field.power) || waiting(field.hls)));
-  const parcels = useMemo(() => base.data?.parcels ?? [], [base.data]);
-  const beekeepers = useMemo(
-    () => base.data?.actors.beekeepers ?? [],
-    [base.data],
+  const listed = useMemo(() => base.data?.parcels ?? [], [base.data]);
+  const parcels = useMemo(
+    () => [...listed, ...own.parcels],
+    [listed, own.parcels],
   );
-  const beekeeper = beekeepers.find((b) => b.id === keeperId) ?? beekeepers[0];
-  const activeKeeperId = beekeeper?.id ?? keeperId;
-  const matches = useMatches(activeKeeperId, year, week);
-  const weeks = useMemo(() => indexWeeks(timeline), [timeline]);
+  const ownNames = useMemo(
+    () => new Map(ownList.map((p) => [p.id, p.name])),
+    [ownList],
+  );
+  // Moves are measured from the home parcel; without one there is no profile.
+  const homeAt = useMemo(() => home && centroid(home.geometry), [home]);
+  const profile = useMemo<MatchRequest | null>(
+    () =>
+      account && homeAt
+        ? {
+            home: homeAt,
+            colonies: account.colonies,
+            max_distance_km: account.max_distance_km,
+            availability: account.availability,
+            vehicle_l_per_100km: account.vehicle_l_per_100km,
+            alternative_contribution_eur: account.alternative_contribution_eur,
+            costs: account.costs,
+          }
+        : null,
+    [account, homeAt],
+  );
+  const matches = useMatches(profile, year, week);
+  const weeks = useMemo(
+    () => indexWeeks(timeline, own.weeks),
+    [timeline, own.weeks],
+  );
   const weekRows = weeks.get(week) ?? NO_ROWS;
   const smapFc = useMemo(
     () => smapCollection(timeline, week),
     [timeline, week],
   );
-  const summary = useMemo(() => weekSummary(weeks), [weeks]);
+  // The chosen honey keeps the parcels of its bloom; the rest are faded.
+  const honeyCrops = HONEYS.find((h) => h.id === honey)?.crops;
+  const honeyIds = useMemo(
+    () =>
+      honeyCrops &&
+      new Set(
+        parcels.filter((p) => honeyCrops.includes(p.crop)).map((p) => p.id),
+      ),
+    [honeyCrops, parcels],
+  );
+  const honeySpan = useMemo(
+    () => (honeyIds ? bloomSpan(weeks, honeyIds) : null),
+    [weeks, honeyIds],
+  );
+  const summary = useMemo(
+    () => weekSummary(weeks, honeyIds),
+    [weeks, honeyIds],
+  );
   const smapIndex = useMemo(
     () =>
       new Map(
@@ -211,45 +268,61 @@ export function App() {
     [timeline],
   );
 
-  const layers = useMemo(
-    () => ({
-      parcels: parcelCollection(parcels),
-      dots: parcelDots(parcels),
+  const layers = useMemo(() => {
+    const how = { own: ownNames, keep: honeyIds };
+    return {
+      parcels: parcelCollection(parcels, how),
+      dots: parcelDots(parcels, how),
       natura: (base.data?.natura ?? {
         type: "FeatureCollection",
         features: [],
       }) as FeatureCollection<Polygon>,
-    }),
-    [base.data, parcels],
-  );
-  const keeperPins = useMemo(
-    () => beekeeperCollection(beekeepers, beekeeper?.id),
-    [beekeepers, beekeeper],
-  );
+    };
+  }, [base.data, parcels, ownNames, honeyIds]);
+  const keeperPins = useMemo(() => homePin(homeAt), [homeAt]);
   const ranks = useMemo(
-    () => matchLabels(matches.cards ?? [], parcels),
-    [matches.cards, parcels],
+    () =>
+      matchLabels(
+        (matches.cards ?? []).filter(
+          (c) => !honeyIds || honeyIds.has(c.parcel_id),
+        ),
+        listed,
+      ),
+    [matches.cards, listed, honeyIds],
   );
   const selectedParcel = parcels.find((p) => p.id === selected);
+  const selectedOwn = ownList.find((p) => p.id === selected);
+  const selectedCard = matches.cards?.find((c) => c.parcel_id === selected);
   // Verification only rewrites blooming weeks, so a non-blooming week keeps the
   // model's own provenance for the season's bloom estimate.
   const estimate = useMemo(
     () =>
-      timeline?.parcel_weeks.find(
+      [...(timeline?.parcel_weeks ?? []), ...own.weeks].find(
         (w) => w.parcel_id === selected && w.bloom_state !== "blooming",
       )?.bloom_provenance,
-    [timeline, selected],
+    [timeline, own.weeks, selected],
   );
   const rings = useMemo(() => {
     const centres: Parameters<typeof foragingRings>[0] = [];
-    if (beekeeper) centres.push({ center: beekeeper.home, kind: "beekeeper" });
-    if (selectedParcel)
+    if (homeAt) centres.push({ center: homeAt, kind: "beekeeper" });
+    if (selectedParcel && selectedParcel.id !== home?.id)
       centres.push({
         center: centroid(selectedParcel.geometry),
         kind: "parcel",
       });
     return foragingRings(centres);
-  }, [beekeeper, selectedParcel]);
+  }, [homeAt, home, selectedParcel]);
+  const requested = useMemo(
+    () => new Set(account?.placements.map((p) => p.parcel_id)),
+    [account],
+  );
+  // The drawn sketch, or the selected own parcel, gets live weather at its spot.
+  const weatherPolygon = fieldPolygon ?? selectedOwn?.geometry ?? null;
+  const field = useField(weatherPolygon, year);
+  const waitingField =
+    !!weatherPolygon && (waiting(field.power) || waiting(field.hls));
+  const fetching =
+    !current || !!current.data?.pending || own.pending || waitingField;
 
   const toggle = useCallback(
     (id: LayerId) => setVisible((v) => ({ ...v, [id]: !v[id] })),
@@ -265,19 +338,25 @@ export function App() {
     setSheet(id ? "parcel" : "matches");
   }, []);
   const closeDetail = useCallback(() => select(""), [select]);
-  // Open the calculator with a beekeeper whose goal fits the parcel's service.
-  const planMove = (parcel: Parcel) => {
-    if (beekeeper?.goal !== parcel.service_type) {
-      const fit = beekeepers.find((b) => b.goal === parcel.service_type);
-      if (fit) setKeeperId(fit.id);
-    }
-    setPlanning(true);
-  };
-  // A match card's beekeeper already fits the parcel: open the calculator directly.
+  // From a match card: open the calculator for that parcel directly.
   const planMatch = (id: string) => {
     select(id);
     setPlanning(true);
   };
+  // Keep the sketch as an own parcel; the first one becomes the home apiary.
+  const saveParcel = (
+    details: Parameters<React.ComponentProps<typeof NewParcel>["onSave"]>[0],
+  ) => {
+    if (!fieldPolygon) return;
+    const id = newId("own");
+    addParcel({ id, geometry: fieldPolygon, irrigated: false, ...details });
+    setFieldPolygon(null);
+    select(id);
+  };
+  // This season's bloom window of a parcel: the suggested stay of a request.
+  const stayOf = (parcel: Parcel, row?: ParcelWeek) =>
+    row?.estimated_bloom ??
+    (parcel.declared_bloom ? windowInYear(parcel.declared_bloom, year) : null);
   // The server records the photo; refetch this season and drop the other cached one.
   const verify = (id: string) => {
     setVerifyState("pending");
@@ -323,7 +402,7 @@ export function App() {
       <SiteHeader variant="app">
         <div className={styles.bar}>
           <span className={`${styles.chip} ${styles.demo} mono`}>
-            Demo · synthetic actors
+            Demo · illustrative listings
           </span>
           {useMocks && <span className={`${styles.chip} mono`}>Mock data</span>}
           <button
@@ -356,7 +435,7 @@ export function App() {
       </SiteHeader>
       <main
         className={styles.workspace}
-        data-plan={!!selectedParcel && planning}
+        data-plan={!!selectedParcel && planning && !!profile && !selectedOwn}
         data-layers={layersOpen}
         data-sheet={sheet}
       >
@@ -391,22 +470,56 @@ export function App() {
               {drawing
                 ? "Cancel drawing"
                 : fieldPolygon
-                  ? "Draw another field"
-                  : "Draw a field"}
+                  ? "Draw it again"
+                  : ownList.length
+                    ? "Add another parcel of mine"
+                    : "Add my parcel"}
             </button>
             {drawing && (
               <div role="status" className={`${styles.card} ${styles.busy}`}>
-                <strong>Click the corners of a field</strong>
+                <strong>Click the corners of your parcel</strong>
                 <span>
                   Click the first point again, or press Enter, to finish.
                 </span>
               </div>
             )}
+            {!drawing && !fieldPolygon && ownList.length === 0 && (
+              <div role="status" className={`${styles.card} ${styles.warn}`}>
+                <strong>Put yourself on the map</strong>
+                <span>
+                  Draw the parcel where your hives stand. Its bloom is modelled
+                  at that spot, and every listed parcel is priced as a move from
+                  there.
+                </span>
+              </div>
+            )}
             {fieldPolygon && (
+              <NewParcel
+                name={
+                  ownList.length
+                    ? `My parcel ${ownList.length + 1}`
+                    : "Home apiary"
+                }
+                first={ownList.length === 0}
+                onSave={saveParcel}
+                onCancel={() => setFieldPolygon(null)}
+              />
+            )}
+            {own.failed.size > 0 && (
+              <div role="alert" className={`${styles.card} ${styles.alert}`}>
+                <strong>Could not model the bloom of your parcel</strong>
+                <button type="button" onClick={own.retry}>
+                  Try again
+                </button>
+              </div>
+            )}
+            {weatherPolygon && (
               <DrawnField
                 year={year}
                 field={field}
-                onClose={() => setFieldPolygon(null)}
+                onClose={
+                  fieldPolygon ? () => setFieldPolygon(null) : closeDetail
+                }
               />
             )}
             {!online ? (
@@ -468,7 +581,10 @@ export function App() {
             {info && visible.parcels && (
               <div className={styles.card} aria-live="polite">
                 <strong>
-                  {cropName(info.crop)} · {info.id}
+                  {cropName(info.crop)} ·{" "}
+                  {ownNames.has(info.id)
+                    ? `${ownNames.get(info.id)} (yours)`
+                    : info.id}
                 </strong>
                 <span>{weekStateText(infoWeek)}</span>
                 <small>Click for details</small>
@@ -514,13 +630,18 @@ export function App() {
         >
           {sheet !== "parcel" ? (
             <MatchPanel
-              beekeepers={beekeepers}
-              keeperId={activeKeeperId}
-              onKeeper={setKeeperId}
+              name={account?.name ?? ""}
+              hasHome={!!profile}
               year={year}
               week={week}
               matches={matches}
-              parcels={parcels}
+              parcels={listed}
+              honey={honey}
+              honeyIds={honeyIds}
+              onHoney={setHoney}
+              honeySpan={honeySpan}
+              onWeek={setWeek}
+              requested={requested}
               weekRows={weekRows}
               hovered={hovered}
               onHover={setHovered}
@@ -530,14 +651,13 @@ export function App() {
           ) : !selectedParcel ? (
             <p className={styles.empty}>
               Select a parcel on the map, or a match, to see its bloom, nectar
-              and where each value comes from.
+              and your move there, priced from your home apiary.
             </p>
-          ) : planning ? (
+          ) : planning && profile && !selectedOwn ? (
             <MoveCalculator
               parcel={selectedParcel}
-              beekeepers={beekeepers}
-              keeperId={activeKeeperId}
-              onKeeper={setKeeperId}
+              profile={profile}
+              stay={stayOf(selectedParcel, selectedRow)}
               year={year}
               week={week}
               onBack={closePlan}
@@ -557,8 +677,32 @@ export function App() {
               verified={verifiedIds.has(selectedParcel.id)}
               verifyState={verifyState}
               onVerify={() => verify(selectedParcel.id)}
-              onPlanMove={() => planMove(selectedParcel)}
               onClose={closeDetail}
+              own={
+                selectedOwn && {
+                  name: selectedOwn.name,
+                  home: selectedOwn.id === home?.id,
+                  failed: own.failed.has(selectedOwn.id),
+                  onHome: () =>
+                    updateAccount((a) => ({ ...a, home_id: selectedOwn.id })),
+                  onRemove: () => {
+                    removeParcel(selectedOwn.id);
+                    select("");
+                  },
+                }
+              }
+              move={
+                !selectedOwn && (
+                  <MoveSummary
+                    parcel={selectedParcel}
+                    card={selectedCard}
+                    hasHome={!!profile}
+                    failed={matches.error}
+                    stay={stayOf(selectedParcel, selectedRow)}
+                    onAdjust={() => setPlanning(true)}
+                  />
+                )
+              }
             />
           )}
         </div>

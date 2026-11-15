@@ -21,6 +21,13 @@ export type CalculatorInput = Schemas["CalculatorInput"];
 export type CalculatorResult = Schemas["CalculatorResult"];
 export type PowerResponse = Schemas["PowerResponse"];
 export type HlsResponse = Schemas["HlsResponse"];
+export type MatchRequest = Schemas["MatchRequest"];
+export type OwnParcelRequest = Schemas["OwnParcelRequest"];
+export type OwnParcelTimeline = Schemas["OwnParcelTimeline"];
+export type CostDefaults = Schemas["CalculatorDefaults"];
+export type CostSettings = Schemas["CostSettings"];
+export type Window = Schemas["Window"];
+export type ServiceType = Parcel["service_type"];
 
 // The real API is the default; `VITE_USE_MOCKS=true` runs the map offline on fixtures.
 export const useMocks = import.meta.env.VITE_USE_MOCKS === "true";
@@ -102,6 +109,41 @@ export const getMatches = (
         `/matches?${new URLSearchParams({ beekeeper_id: beekeeperId, year: String(year), week: String(week) })}`,
         { signal },
       );
+
+/** The signed-in beekeeper's candidates: every listed parcel, from their own home. */
+export const getMyMatches = (
+  profile: MatchRequest,
+  year: Season,
+  week: number,
+  signal: AbortSignal,
+) =>
+  useMocks
+    ? Promise.resolve(mocks.myMatches(profile, year, week))
+    : get<MatchCard[]>(
+        `/matches?year=${year}&week=${week}`,
+        post(profile, signal),
+      );
+
+/** Weekly bloom of a parcel the beekeeper drew, modelled where it lies. */
+export const getOwnTimeline = (
+  parcel: OwnParcelRequest,
+  year: Season,
+  signal: AbortSignal,
+) =>
+  useMocks
+    ? Promise.resolve(mocks.ownTimeline(parcel, year))
+    : get<OwnParcelTimeline>(
+        `/polygon/timeline?year=${year}`,
+        post(parcel, signal),
+      );
+
+/** The illustrative cost defaults a beekeeper's own costs replace. */
+export const getCalculatorDefaults = () =>
+  cached("calculator-defaults", () =>
+    useMocks
+      ? Promise.resolve(mocks.calculatorDefaults)
+      : get<CostDefaults>("/calculator/defaults"),
+  );
 
 /** Low / base / high economics of a move (contribution, benefit vs the alternative). */
 export const calculate = (input: CalculatorInput, signal: AbortSignal) =>

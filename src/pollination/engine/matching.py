@@ -7,7 +7,7 @@ how close the parcel is, and how well the bloom timing is evidenced. The number
 itself is never shown, only the reasons, warnings and what is still missing.
 """
 
-from collections.abc import Mapping, Sequence
+from collections.abc import Collection, Mapping, Sequence
 from dataclasses import dataclass
 from typing import Literal
 
@@ -79,12 +79,14 @@ def _blocks(keeper: m.Beekeeper, parcel: m.Parcel, km: float) -> list[str]:
     return blocks
 
 
-def _assess(
+def _assess(  # noqa: PLR0913  # one pairing and the configs that judge it
     keeper: m.Beekeeper,
     parcel: m.Parcel,
     week: m.ParcelWeek,
     defaults: CalculatorDefaults,
     ranking: Ranking,
+    *,
+    costs: m.CostSettings | None,
 ) -> _Assessment:
     """Filter, explain and score one parcel for one beekeeper and week."""
     distance = travel_distance_km(keeper.home, centroid(parcel.geometry))
@@ -165,21 +167,24 @@ def _assess(
         warnings=warnings,
         confidence=_confidence(evidence),
         distance_km=distance,
-        calculator_input=prefill(keeper, parcel, defaults),
+        calculator_input=prefill(keeper, parcel, defaults, costs),
     )
     return _Assessment(card, score)
 
 
-def match(
+def match(  # noqa: PLR0913  # the pairing inputs plus two optional overrides
     keeper: m.Beekeeper,
     parcels: Sequence[m.Parcel],
     weeks: Mapping[str, m.ParcelWeek],
     defaults: CalculatorDefaults,
     ranking: Ranking,
+    *,
+    costs: m.CostSettings | None = None,
+    services: Collection[m.ServiceType] | None = None,
 ) -> list[m.MatchCard]:
     """Rank the parcels that fit a beekeeper's goal, blocked ones last.
 
-    Parcels of the other service type are not candidates and are left out.
+    Parcels of another service type are not candidates and are left out.
 
     Args:
         keeper: The beekeeper looking for placements.
@@ -188,14 +193,17 @@ def match(
             keyed by parcel id (every candidate parcel must be present).
         defaults: Calculator assumptions for values no actor states.
         ranking: Ranking weights and the evidence value of each provenance kind.
+        costs: The beekeeper's own moving costs for the calculator prefill.
+        services: Service types to consider; the beekeeper's goal when not given.
 
     Returns:
         Open cards rank 1..n best first, then blocked cards without a rank.
     """
+    wanted = {keeper.goal} if services is None else set(services)
     assessed = [
-        _assess(keeper, p, weeks[p.id], defaults, ranking)
+        _assess(keeper, p, weeks[p.id], defaults, ranking, costs=costs)
         for p in parcels
-        if p.service_type == keeper.goal
+        if p.service_type in wanted
     ]
     open_ = sorted(
         (a for a in assessed if not a.card.blocked),
