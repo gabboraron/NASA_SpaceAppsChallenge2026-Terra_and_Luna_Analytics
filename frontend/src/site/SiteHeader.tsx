@@ -150,7 +150,20 @@ export function SiteHeader({ variant = "site", children }: Props) {
         {children && <div className={styles.extra}>{children}</div>}
         {!app && (
           <Link to={ROUTES.app} className={styles.enter}>
-            <span aria-hidden="true" className="hex" />
+            <span aria-hidden="true" className="hex">
+              <svg
+                width="14"
+                height="14"
+                viewBox="0 0 16 16"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="1.5"
+                strokeLinejoin="round"
+              >
+                <path d="M1.5 3.5 5.5 2l5 1.5 4-1.5v10.5l-4 1.5-5-1.5-4 1.5z" />
+                <path d="M5.5 2v10.5M10.5 3.5V14" />
+              </svg>
+            </span>
             <span>Open the explorer</span>
           </Link>
         )}

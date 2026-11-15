@@ -18,6 +18,55 @@
   color: var(--ink);
   pointer-events: none;
 }
+.wing {
+  fill: var(--card);
+  stroke-width: 0.9;
+  transform-box: fill-box;
+  transform-origin: 50% 100%;
+  animation: flap 0.22s ease-in-out infinite alternate;
+}
+.bob {
+  animation: bob-small 1.6s ease-in-out infinite;
+}
+.sway {
+  transform-box: fill-box;
+  transform-origin: 50% 50%;
+  animation: sway 7s ease-in-out infinite;
+}
+.heart {
+  fill: #e9806e;
+  stroke: none;
+}
+@keyframes flap {
+  to {
+    transform: scaleY(0.6);
+  }
+}
+@keyframes bob-small {
+  50% {
+    transform: translateY(-1.5px);
+  }
+}
+@keyframes sway {
+  0%,
+  100% {
+    transform: rotate(-4deg);
+  }
+  50% {
+    transform: rotate(4deg);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .flyer,
+  .heart {
+    display: none;
+  }
+  .wing,
+  .bob,
+  .sway {
+    animation: none;
+  }
+}
 .heroGrid {
   position: relative;
   padding-top: 1.75rem;
