@@ -211,6 +211,8 @@ def _heat(
         return _missing(PHENOLOGY_SOURCE, "No heat-unit model for this crop")
     if isinstance(power, str):
         return _missing(POWER_SOURCE, power)
+    if not power.days:
+        return _missing(POWER_SOURCE, "NASA POWER returned no days for this season")
     if entry.method == "chill_days":
         return _chill_heat(power, entry, entry.base_temp_c, year)
     start = entry.gdd_start_in(year)

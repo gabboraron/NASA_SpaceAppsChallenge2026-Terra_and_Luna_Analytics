@@ -94,5 +94,6 @@ def get(
         else:
             if response.status_code not in TRANSIENT_STATUSES:
                 return response
-        time.sleep(BACKOFF_S * 2**attempt)
+        if attempt < ATTEMPTS - 1:  # no point waiting after the last attempt
+            time.sleep(BACKOFF_S * 2**attempt)
     raise RuntimeError(f"No answer for {purpose} after {ATTEMPTS} attempts: {url}")

@@ -61,6 +61,12 @@ class PhenologyEntry(BaseModel):
             (self.heat_bloom_end is None) == (self.bloom_days is None)
         ):
             raise ValueError("set exactly one of heat_bloom_end and bloom_days")
+        if (
+            self.heat_threshold is not None
+            and self.heat_bloom_end is not None
+            and self.heat_bloom_end < self.heat_threshold
+        ):
+            raise ValueError("heat_bloom_end must not be below heat_threshold")
         return self
 
     def gdd_start_in(self, year: int) -> date | None:
