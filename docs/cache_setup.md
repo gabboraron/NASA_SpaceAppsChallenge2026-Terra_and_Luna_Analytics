@@ -2,7 +2,7 @@
 
 Every NASA response is cached on disk under `.cache/` (gitignored). Fetching it cold
 takes about 17 minutes, so the repository ships a warmed copy as
-`data/nasa-cache.zip` (about 435 KB, 1,014 entries). Import it once and the app
+`data/nasa-cache.zip` (about 500 KB, 1,018 entries). Import it once and the app
 and the demo run without waiting on NASA, even offline.
 
 ## Set up
