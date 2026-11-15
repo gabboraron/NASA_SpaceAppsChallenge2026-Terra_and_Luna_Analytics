@@ -9,7 +9,7 @@ import {
 } from "../../domain/season";
 
 /** One crop-week of the calendar. */
-export type CellState = "none" | "edge" | "full" | "low" | "missing";
+type CellState = "none" | "edge" | "full" | "low" | "missing";
 
 export type CalendarRow = {
   crop: string;
@@ -20,7 +20,7 @@ export type CalendarRow = {
   cells: CellState[];
 };
 
-export const STATE_WORDS: Record<CellState, string> = {
+const STATE_WORDS: Record<CellState, string> = {
   none: "no bloom",
   edge: "starting or ending",
   full: "full bloom",

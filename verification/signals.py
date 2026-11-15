@@ -9,7 +9,6 @@ from datetime import date, datetime, timedelta
 from verification.framework import CropWindow, ModelWeek, SignalSettings, Weather
 
 PEAK_HALF_WIDTH_DAYS = 3  # a peak is the centre of the best 7-day sum
-WEEK_DAYS = 7
 
 
 def date_range(start: date, end: date) -> list[date]:

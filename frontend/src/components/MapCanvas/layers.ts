@@ -10,17 +10,6 @@ import type {
 } from "../../api/client";
 import { WEEKS, isHighBloomLowNectar } from "../../domain/season";
 
-export {
-  CROP_NAMES,
-  WEEKS,
-  cropName,
-  indexWeeks,
-  isHighBloomLowNectar,
-  monthTicks,
-  weekLabel,
-  weekStart,
-} from "../../domain/season";
-
 export type LayerId =
   "parcels" | "natura" | "smap" | "buffers" | "beekeepers" | "imagery";
 
@@ -52,7 +41,7 @@ export const BLOOM_LABELS: Record<ParcelWeek["bloom_state"], string> = {
   blooming: "Blooming",
   post_bloom: "After bloom",
 };
-export const NECTAR_LABELS: Record<ParcelWeek["nectar_state"], string> = {
+const NECTAR_LABELS: Record<ParcelWeek["nectar_state"], string> = {
   normal: "Nectar normal",
   low_nectar: "Low nectar",
   unknown: "Nectar unknown",

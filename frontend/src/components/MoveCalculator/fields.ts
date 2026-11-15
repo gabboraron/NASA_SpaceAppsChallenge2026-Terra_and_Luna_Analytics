@@ -243,7 +243,7 @@ const edited = (field: Field, was: string): Provenance =>
   prov(
     "Reported",
     "You entered",
-    `Prefilled ${was}${field.unit === "%" ? " %" : field.unit ? ` ${field.unit}` : ""}`,
+    `Prefilled ${was}${field.unit ? ` ${field.unit}` : ""}`,
   );
 
 const EUR = new Intl.NumberFormat("en-GB", {

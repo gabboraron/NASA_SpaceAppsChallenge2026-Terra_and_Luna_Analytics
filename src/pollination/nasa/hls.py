@@ -10,7 +10,7 @@ from __future__ import annotations
 import hashlib
 import json
 import re
-from collections.abc import Callable, Mapping, Sequence
+from collections.abc import Callable, Sequence
 from concurrent.futures import ThreadPoolExecutor
 from dataclasses import dataclass
 from datetime import date, timedelta
@@ -303,16 +303,6 @@ def _observe_week(
     return found
 
 
-@dataclass(frozen=True)
-class _Io:
-    """Injectable scene search, scene reader, cache location and weekly cap."""
-
-    search: SearchFn | None
-    read: ReadFn | None
-    cache_dir: Path | None
-    per_week: int | None
-
-
 def _backend(search: SearchFn | None, read: ReadFn | None) -> tuple[SearchFn, ReadFn]:
     """The injected search and read functions, or the live NASA ones."""
     if search is None or read is None:
@@ -321,32 +311,6 @@ def _backend(search: SearchFn | None, read: ReadFn | None) -> tuple[SearchFn, Re
         search = search or hls_live.search_scenes
         read = read or hls_live.read_window
     return search, read
-
-
-def _indices(
-    polygons: Mapping[str, Polygon], days: tuple[date, date], io: _Io
-) -> dict[str, list[Obs]]:
-    """Shared core of :func:`parcel_indices` and :func:`latest_for_polygon`.
-
-    Scenes are searched per parcel (only tiles that cover it); the 7-day blocks are
-    read on a thread pool, because every read is a remote round trip.
-    """
-    search, read = _backend(io.search, io.read)
-    result: dict[str, list[Obs]] = {}
-    for pid, polygon in polygons.items():
-        scenes = _scenes(search, polygon.bounds, days, io.cache_dir)
-        weeks = weeks_of_passes(passes(scenes), days[0])
-        observe = partial(
-            _observe_week,
-            polygon=polygon,
-            read=read,
-            cache_dir=io.cache_dir,
-            per_week=io.per_week,
-        )
-        with ThreadPoolExecutor(max_workers=_WORKERS) as pool:
-            observations = [o for week in pool.map(observe, weeks) for o in week]
-        result[pid] = sorted(observations, key=lambda o: (o.day, o.scene_id))
-    return result
 
 
 def parcel_indices(  # noqa: PLR0913  # injectable search/read/cache keep it testable
@@ -378,9 +342,37 @@ def parcel_indices(  # noqa: PLR0913  # injectable search/read/cache keep it tes
     Returns:
         Observations keyed by parcel id, sorted by date.
     """
-    polygons = {p.id: to_shape(p.geometry) for p in parcels}
-    io = _Io(search, read, cache_dir, per_week)
-    return _indices(polygons, (start, end), io)
+    search_fn, read_fn = _backend(search, read)
+    result: dict[str, list[Obs]] = {}
+    for parcel in parcels:
+        polygon = to_shape(parcel.geometry)
+        scenes = _scenes(search_fn, polygon.bounds, (start, end), cache_dir)
+        weeks = weeks_of_passes(passes(scenes), start)
+        observe = partial(
+            _observe_week,
+            polygon=polygon,
+            read=read_fn,
+            cache_dir=cache_dir,
+            per_week=per_week,
+        )
+        # Every read is a remote round trip, so the 7-day blocks run on a pool.
+        with ThreadPoolExecutor(max_workers=_WORKERS) as pool:
+            observations = [o for week in pool.map(observe, weeks) for o in week]
+        result[parcel.id] = sorted(observations, key=lambda o: (o.day, o.scene_id))
+    return result
+
+
+def missing_response(why: str) -> HlsResponse:
+    """An HLS response that says why there is no observation.
+
+    Args:
+        why: Reason for the gap.
+
+    Returns:
+        A response whose NDVI and NDYI are both ``Missing`` with ``why``.
+    """
+    gap = Measurement.missing(SOURCE, why)
+    return HlsResponse(observed_at=None, ndvi=gap, ndyi=gap)
 
 
 def latest_for_polygon(  # noqa: PLR0913  # injectable search/read/cache keep it testable
@@ -413,12 +405,10 @@ def latest_for_polygon(  # noqa: PLR0913  # injectable search/read/cache keep it
     scenes = _scenes(search_fn, geom.bounds, (start, end), cache_dir)
     latest = _newest(passes(scenes), geom, read_fn, cache_dir)
     if latest is None:
-        gap = Measurement.missing(
-            SOURCE,
+        return missing_response(
             f"No usable observation in the last {days} days: cloud, shadow, "
-            "snow or water masked, or no overpass.",
+            "snow or water masked, or no overpass."
         )
-        return HlsResponse(observed_at=None, ndvi=gap, ndyi=gap)
     provenance = Provenance(
         kind="Observed",
         source=SOURCE,

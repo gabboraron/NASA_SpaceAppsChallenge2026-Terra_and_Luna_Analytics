@@ -46,6 +46,18 @@ def reason(service: str, exc: BaseException) -> str:
     return f"NASA {service} request failed: {detail or type(exc).__name__}"
 
 
+def no_token(service: str) -> str:
+    """Say that a NASA service was skipped because no Earthdata token is set.
+
+    Args:
+        service: Service name, e.g. ``"HLS"`` or ``"SMAP"``.
+
+    Returns:
+        One sentence for a ``Missing`` provenance note.
+    """
+    return f"No Earthdata token configured; {service} not queried"
+
+
 def within[T](seconds: float, read: Callable[[], T]) -> T:
     """Run a NASA read, giving up after ``seconds``.
 

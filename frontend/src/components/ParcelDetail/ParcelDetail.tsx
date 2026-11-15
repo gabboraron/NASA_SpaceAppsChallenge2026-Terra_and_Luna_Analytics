@@ -6,13 +6,8 @@ import type {
   Season,
   SoilMoistureWeek,
 } from "../../api/client";
-import {
-  cropName,
-  isHighBloomLowNectar,
-  isInterpolated,
-  weekLabel,
-  weekStateText,
-} from "../MapCanvas/layers";
+import { isInterpolated, weekStateText } from "../MapCanvas/layers";
+import { cropName, isHighBloomLowNectar, weekLabel } from "../../domain/season";
 import { useEscape } from "../../hooks/useEscape";
 import {
   ProvenanceBadge,

@@ -11,8 +11,6 @@ class Settings(BaseSettings):
 
     model_config = SettingsConfigDict(env_file=".env", extra="ignore")
 
-    earthdata_username: str | None = None
-    earthdata_password: SecretStr | None = None
     earthdata_token: SecretStr | None = None
     cache_dir: Path = Path(".cache")
     data_dir: Path = Path("data")

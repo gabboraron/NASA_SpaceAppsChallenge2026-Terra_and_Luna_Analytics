@@ -33,7 +33,7 @@ from pollination.engine.phenology import (
 from pollination.geo import centroid, smap_cell
 from pollination.nasa import hls
 from pollination.nasa import smap as smap_client
-from pollination.nasa.failure import reason
+from pollination.nasa.failure import no_token, reason
 from pollination.nasa.power import PowerDaily, daily_point, grid_node
 from pollination.nasa.smap import SmapSeason, SmapWeek
 from pollination.weeks import (
@@ -628,6 +628,22 @@ def _needs_token(*_: object) -> NoReturn:
     raise _NoTokenError
 
 
+def _read_nasa[T](service: str, read: Callable[[], T]) -> tuple[T | str, bool]:
+    """Run one NASA read; a failure becomes its reason.
+
+    Returns:
+        The result or why it is missing, and whether NASA itself failed (worth a
+        retry later; a missing token is not).
+    """
+    try:
+        return read(), False
+    except _NoTokenError:
+        return no_token(service), False
+    except Exception as exc:  # any NASA failure becomes Missing
+        log.warning("%s fetch failed: %s", service, exc)
+        return reason(service, exc), True
+
+
 def fetch_inputs(
     year: int,
     parcels: Sequence[m.Parcel],
@@ -686,34 +702,24 @@ def fetch_inputs(
                 power[parcel.id] = series
     # Without a token only the cache answers: a miss raises instead of calling NASA.
     live = None if earthdata else _needs_token
-    observed: Mapping[str, Sequence[hls.Obs]] | str
     targets = [
         p
         for p in parcels
         if (entry := phenology.get(p.crop)) and entry.method == "ndyi"
     ]
-    try:
-        observed = hls.parcel_indices(
+    observed, hls_failed = _read_nasa(
+        "HLS",
+        lambda: hls.parcel_indices(
             targets,
             date(year, *SEASON_START),
             end,
             search=live,
             read=live,
             cache_dir=cache_dir,
-        )
-    except _NoTokenError:
-        observed = "No Earthdata token configured; HLS not queried"
-    except Exception as exc:  # any NASA failure becomes Missing
-        log.warning("HLS fetch failed: %s", exc)
-        observed = reason("HLS", exc)
-        failed = True
-    smap: SmapSeason | str
-    try:
-        smap = smap_client.season(year, read=live, cache_dir=cache_dir)
-    except _NoTokenError:
-        smap = "No Earthdata token configured; SMAP not queried"
-    except Exception as exc:  # any NASA failure becomes Missing
-        log.warning("SMAP fetch failed: %s", exc)
-        smap = reason("SMAP", exc)
-        failed = True
+        ),
+    )
+    smap, smap_failed = _read_nasa(
+        "SMAP", lambda: smap_client.season(year, read=live, cache_dir=cache_dir)
+    )
+    failed = failed or hls_failed or smap_failed
     return SeasonInputs(power=power, hls=observed, smap=smap, failed=failed)

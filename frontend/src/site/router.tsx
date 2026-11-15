@@ -8,7 +8,6 @@ export const ROUTES = {
   data: "/data",
   guide: "/guide",
 } as const;
-export type Route = (typeof ROUTES)[keyof typeof ROUTES];
 
 const subscribe = (notify: () => void) => {
   window.addEventListener("popstate", notify);
@@ -21,7 +20,7 @@ export function usePath(): string {
   return path.length > 1 ? path.replace(/\/+$/, "") : path;
 }
 
-export function navigate(to: string) {
+function navigate(to: string) {
   window.history.pushState(null, "", to);
   window.dispatchEvent(new PopStateEvent("popstate"));
   if (!to.includes("#")) window.scrollTo(0, 0);

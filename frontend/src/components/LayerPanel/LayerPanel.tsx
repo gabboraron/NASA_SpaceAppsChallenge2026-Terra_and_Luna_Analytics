@@ -3,11 +3,11 @@ import {
   BLOOM_COLORS,
   BLOOM_LABELS,
   CROP_COLORS,
-  CROP_NAMES,
   DROUGHT,
   OTHER_CROP,
   type LayerId,
 } from "../MapCanvas/layers";
+import { CROP_NAMES } from "../../domain/season";
 import styles from "./LayerPanel.module.css";
 
 const LAYER_ROWS: { id: LayerId; label: string; caption: string }[] = [

@@ -46,9 +46,7 @@ def _scenario(
         + inputs.other_placement_cost
     )
     revenue = inputs.colonies * inputs.fee_per_colony * price_factor
-    commission = (
-        COMMISSION_RATE * revenue if inputs.service_type == "pollination" else 0
-    )
+    commission = _commission_rate(inputs) * revenue
     contribution = revenue - commission - transport - other + inputs.honey_margin
     return Scenario(
         revenue=revenue,
@@ -94,6 +92,11 @@ def calculate(inputs: CalculatorInput) -> CalculatorResult:
     )
 
 
+def _commission_rate(inputs: CalculatorInput) -> float:
+    """Share of the fee the marketplace keeps: pollination contracts only."""
+    return COMMISSION_RATE if inputs.service_type == "pollination" else 0.0
+
+
 def break_even_fee(inputs: CalculatorInput) -> float:
     """Return the fee per colony at which base benefit vs the alternative is zero.
 
@@ -104,7 +107,7 @@ def break_even_fee(inputs: CalculatorInput) -> float:
         Fee in euros per colony (contribution is linear in the fee).
     """
     at_zero = _scenario(inputs.model_copy(update={"fee_per_colony": 0}), 1, 0)
-    net_rate = 1 - (COMMISSION_RATE if inputs.service_type == "pollination" else 0)
+    net_rate = 1 - _commission_rate(inputs)
     return -at_zero.benefit_vs_alternative / (inputs.colonies * net_rate)
 
 
