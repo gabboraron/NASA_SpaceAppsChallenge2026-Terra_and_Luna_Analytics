@@ -48,7 +48,12 @@ def _token(path: Path) -> str:
         raise FileNotFoundError(f"Earthdata key file not found: {path}")
     text = path.read_text(encoding="utf-8").strip()
     if not text:
-        raise ValueError(f"Earthdata key file is empty: {path}; must contain a bearer token: https://urs.earthdata.nasa.gov/users/username/user_tokens. Befoe that, accept the user agreement at https://urs.earthdata.nasa.gov/terms-of-service.")
+        raise ValueError(
+            f"Earthdata key file is empty: {path}; must contain a bearer token: "
+            "https://urs.earthdata.nasa.gov/users/username/user_tokens. Before that, "
+            "accept the user agreement at "
+            "https://urs.earthdata.nasa.gov/terms-of-service."
+        )
     if text.startswith("{"):
         payload = json.loads(text)
         for key in ("access_token", "token", "earthdata_token"):
