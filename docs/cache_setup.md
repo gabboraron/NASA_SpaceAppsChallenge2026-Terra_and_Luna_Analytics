@@ -5,38 +5,33 @@ takes about 17 minutes, so the repository ships a warmed copy as
 `data/nasa-cache.zip` (about 500 KB, 1,018 entries). Import it once and the app
 and the demo run without waiting on NASA, even offline.
 
-## Set up (every teammate, about one minute)
+## Set up
 
-```sh
-uv sync
-uv run python -m pollination.nasa.cache_share import data/nasa-cache.zip
-```
+Nothing to do. The API imports `data/nasa-cache.zip` into `.cache/` every time it
+starts (locally and in Docker), and reads HLS and SMAP from the cache without an
+Earthdata token. A fresh clone or a fresh `docker compose up --build` therefore
+shows both demo seasons, even offline.
 
-Then put **any non-empty value** in `.env` so the app reads HLS from the cache:
-
-```sh
-EARTHDATA_TOKEN=anything-while-the-cache-covers-it
-```
-
-The API only reads HLS when a token is configured. A real token (a user token from
-<https://urs.earthdata.nasa.gov>) is only needed for cache misses: other years,
-other parcels, or polygons drawn on the map. For the season data, `fetch_inputs`
-turns a failed NASA request into a `Missing` value with a reason; drawn polygons
-were not tested with a fake token.
+A real token in `.env` (`EARTHDATA_TOKEN`, a user token from
+<https://urs.earthdata.nasa.gov>) is only needed for what the cache does not hold:
+other years, other parcels, or the satellite read of a polygon drawn on the map.
+Without a token a cache miss is a `Missing` value with the reason
+"No Earthdata token configured".
 
 Import is safe to repeat: it never overwrites a file you already have, and it only
-accepts `hls/`, `power/` and `smap/` entries named `<sha256>.json`.
+accepts `hls/`, `power/` and `smap/` entries named `<sha256>.json`. To import by
+hand: `uv run python -m pollination.nasa.cache_share import data/nasa-cache.zip`.
 
 ## Check it worked
 
 ```sh
-uv run python scripts/warm_cache.py
+EARTHDATA_TOKEN=cache-only uv run python scripts/warm_cache.py
 ```
 
-With a complete cache this finishes in about 15 seconds and reports
-`new entries {'power': 0, 'hls': 0, 'smap': 0}`. It was tested with an empty cache
-folder, the zip imported, a dummy token and the network cut. If it starts fetching
-(a log line with minutes, not seconds), something is not covered, see below.
+With a complete cache this finishes in about a second and reports
+`new entries {'power': 0, 'hls': 0, 'smap': 0}`; the script wants a token value
+because its real job is fetching. If it starts fetching (a log line with minutes,
+not seconds), something is not covered, see below.
 
 ## What the cache covers
 

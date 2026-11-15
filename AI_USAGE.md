@@ -17,6 +17,6 @@ The team came up with the solution idea; AI was used to assess and build it, not
 
 ## Labelling rules for this repo
 
-- AI-assisted source files start with a header comment: `# AI-assisted: <tool>, reviewed by <name>`.
+- AI assistance was used across the code and documentation; every change was reviewed by a team member in a pull request.
 - AI-generated images and video frames carry a visible "AI-generated" watermark.
 - Generated media contains no NASA logos, flags or mission insignia.

@@ -117,6 +117,14 @@ S5 rests on two colonies at one site, so treat it as a direction with no statist
 - iNaturalist counts follow observer activity, and some photos show leaves or pods. Only weeks inside the bloom
   window are used, and years with fewer than 30 records are skipped.
 - Apple and sour cherry stay unverified unless PEP725 data is supplied.
+- The model's onset is read from the weekly timeline as the first day of the first blooming week, so it can be
+  up to 6 days earlier than the modelled start date. S1 reports black locust 11 days early in 2022 and 2024 and
+  fails its 10-day gate; against the modelled start dates (15 May 2022, 25 April 2024) the difference is 6 and
+  5 days. The gate was not changed.
+- The sunflower bloom in the timeline is the grower's declared window, which is synthetic in the demo, so S4
+  and the sunflower line of B0 compare a declaration with the hives, not a model.
+- S5 is not an independent test: the nectar rule's percentile and crop scope were chosen with these same hive
+  records in view, and each year is part of its own 2015 to 2024 baseline.
 
 ## Sources and licences
 
