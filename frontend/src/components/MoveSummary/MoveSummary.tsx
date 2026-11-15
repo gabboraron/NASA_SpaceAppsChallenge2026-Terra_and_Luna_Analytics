@@ -5,8 +5,7 @@ import {
   type MatchCard,
   type Parcel,
 } from "../../api/client";
-import { eur, rangeText } from "../MoveCalculator/fields";
-import calc from "../MoveCalculator/MoveCalculator.module.css";
+import { Verdict } from "../MoveCalculator/Verdict";
 import { PlacementRequest } from "../PlacementRequest/PlacementRequest";
 import styles from "./MoveSummary.module.css";
 
@@ -48,7 +47,8 @@ export function MoveSummary(props: Props) {
   const done = answer.body === body;
   const result = done ? answer.result : undefined;
   const km = card?.distance_km.value;
-
+  const error = failed || (done && !result);
+  const loading = !card || (!!input && !done);
   return (
     <section className={styles.move} aria-labelledby="move-h">
       <h3 id="move-h">Your move here</h3>
@@ -57,13 +57,7 @@ export function MoveSummary(props: Props) {
           Draw your own parcel on the map first: moves are measured from your
           home apiary.
         </p>
-      ) : failed ? (
-        <p role="alert">
-          Could not calculate your move. Check that the API is running.
-        </p>
-      ) : !card ? (
-        <p role="status">Calculating your move…</p>
-      ) : card.blocked ? (
+      ) : card?.blocked ? (
         <div role="status" className={styles.blocked}>
           <strong>Not possible for you this week</strong>
           <ul>
@@ -72,33 +66,15 @@ export function MoveSummary(props: Props) {
             ))}
           </ul>
         </div>
+      ) : error ? (
+        <p role="alert">
+          Could not calculate your move. Check that the API is running.
+        </p>
+      ) : loading || !result || !card ? (
+        <p role="status">Calculating your move…</p>
       ) : (
         <>
-          {result ? (
-            <div
-              role="status"
-              aria-live="polite"
-              className={calc.verdict}
-              data-verdict={result.verdict}
-            >
-              <span className={calc.kicker}>
-                {result.verdict === "move" ? "Move pays off" : "Do not move"}
-              </span>
-              <strong>{eur(result.base.benefit_vs_alternative, true)}</strong>
-              <span>
-                {result.verdict === "move"
-                  ? "benefit relative to the alternative, base case"
-                  : result.message}
-              </span>
-              <span>{rangeText(result)}</span>
-            </div>
-          ) : done ? (
-            <p role="alert">
-              Could not calculate your move. Check that the API is running.
-            </p>
-          ) : (
-            <p role="status">Calculating your move…</p>
-          )}
+          <Verdict result={result} />
           <p className={styles.facts}>
             {km != null && `${km.toFixed(1)} km from your home apiary · `}
             {input?.colonies} colonies · rank {card.rank} of your placements
@@ -118,7 +94,7 @@ export function MoveSummary(props: Props) {
             parcel={parcel}
             stay={stay}
             colonies={input?.colonies ?? 20}
-            benefit={result?.base.benefit_vs_alternative ?? null}
+            benefit={result.base.benefit_vs_alternative}
           />
         </>
       )}

@@ -77,16 +77,16 @@ export function weekSummary(
 export type ParcelMarks = {
   /** The signed-in beekeeper's own parcels: id → name. */
   own?: ReadonlyMap<string, string>;
-  /** Parcels faded because they do not give the chosen honey. */
-  dim?: ReadonlySet<string>;
+  /** The parcels that give the chosen honey; the others are faded. */
+  keep?: ReadonlySet<string>;
 };
 
-const marks = (p: Parcel, { own, dim }: ParcelMarks) => ({
+const marks = (p: Parcel, { own, keep }: ParcelMarks) => ({
   id: p.id,
   crop: p.crop,
   own: own?.has(p.id) ?? false,
   label: own?.get(p.id) ?? "",
-  dim: dim?.has(p.id) ?? false,
+  dim: keep ? !keep.has(p.id) : false,
 });
 
 export function parcelCollection(

@@ -235,9 +235,10 @@
   opacity: 0.5;
 }
 .actions .quote {
-  border: 1px dashed var(--line-strong);
+  border: 1px solid var(--ink);
   background: white;
-  color: var(--muted);
+  color: var(--ink);
+  font-weight: 600;
 }
 .blocked {
   display: flex;
@@ -347,10 +348,4 @@
   color: var(--link);
   font-weight: 600;
   text-decoration: underline;
-}
-.actions .quote {
-  border-style: solid;
-  border-color: var(--ink);
-  color: var(--ink);
-  font-weight: 600;
 }

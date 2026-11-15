@@ -1,21 +1,10 @@
 import { cancelPlacement, useAccount } from "../../account/session";
 import { eur } from "../../components/MoveCalculator/fields";
-import { cropName } from "../../domain/season";
+import { cropName, formatDay as day } from "../../domain/season";
 import { ReadingPage } from "../../site/ReadingPage";
 import { Link, ROUTES } from "../../site/router";
 import page from "../../site/page.module.css";
 import styles from "./Placements.module.css";
-
-const DAY = new Intl.DateTimeFormat("en-GB", {
-  day: "numeric",
-  month: "short",
-  year: "numeric",
-});
-/** "14 Jul 2024"; the stored text if it is not a date. */
-const day = (iso: string): string => {
-  const date = new Date(iso);
-  return Number.isNaN(date.getTime()) ? iso : DAY.format(date);
-};
 
 const SERVICE = { pollination: "Pollination", forage: "Forage" } as const;
 const MONTHS = ["Mar", "Apr", "May", "Jun", "Jul", "Aug"];

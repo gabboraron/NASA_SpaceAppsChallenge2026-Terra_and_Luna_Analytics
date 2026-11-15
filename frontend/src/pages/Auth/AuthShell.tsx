@@ -5,7 +5,10 @@ import { SiteHeader } from "../../site/SiteHeader";
 import { Link, ROUTES } from "../../site/router";
 import page from "../../site/page.module.css";
 import styles from "./Auth.module.css";
-import { DEMO_NOTE } from "./shared";
+import { useAfterSignIn } from "./shared";
+
+const DEMO_NOTE =
+  "Demo sign-in: accounts live only in this browser, the password is not stored or checked, nothing is sent to a server.";
 
 const STEPS = [
   "Draw your home parcel",
@@ -16,14 +19,13 @@ const STEPS = [
 type Props = {
   mode: "login" | "register";
   heading: string;
-  /** Called once signed in (as the demo beekeeper or with the form). */
-  onDone: () => void;
   /** The form's fields, error and submit button. */
   children: ReactNode;
 };
 
 /** Sign-in and register share one layout: the pitch on the left, the card on the right. */
-export function AuthShell({ mode, heading, onDone, children }: Props) {
+export function AuthShell({ mode, heading, children }: Props) {
+  const done = useAfterSignIn();
   const tab = (to: string, label: string, on: boolean) => (
     <Link to={to} aria-current={on ? "page" : undefined}>
       {label}
@@ -47,7 +49,7 @@ export function AuthShell({ mode, heading, onDone, children }: Props) {
             <ol className={styles.steps}>
               {STEPS.map((s, i) => (
                 <li key={s}>
-                  <span aria-hidden="true" className={`hex ${styles.hex}`}>
+                  <span aria-hidden="true" className={`hex ${page.hexNum}`}>
                     {i + 1}
                   </span>
                   {s}
@@ -69,7 +71,7 @@ export function AuthShell({ mode, heading, onDone, children }: Props) {
               className={styles.demo}
               onClick={() => {
                 signInDemo();
-                onDone();
+                done();
               }}
             >
               <span aria-hidden="true" className="hex" />

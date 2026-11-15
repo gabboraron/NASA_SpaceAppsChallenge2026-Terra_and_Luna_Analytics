@@ -82,6 +82,12 @@ _timelines_lock = Lock()
 _fetching: set[int] = set()
 
 
+def too_large(polygon: m.Polygon) -> bool:
+    """Whether a drawn polygon spans more than a field (``MAX_POLYGON_SPAN_DEG``)."""
+    west, south, east, north = to_shape(polygon).bounds
+    return max(east - west, north - south) > MAX_POLYGON_SPAN_DEG
+
+
 def check_season(year: int) -> None:
     """Refuse a season that is neither in the shipped cache nor the latest one.
 
@@ -326,13 +332,8 @@ def my_matches(
         id="you",
         name="You",
         synthetic=False,
-        home=profile.home,
-        colonies=profile.colonies,
-        max_distance_km=profile.max_distance_km,
         goal="forage",  # not used: both service types are matched
-        availability=profile.availability,
-        vehicle_l_per_100km=profile.vehicle_l_per_100km,
-        alternative_contribution_eur=profile.alternative_contribution_eur,
+        **profile.model_dump(exclude={"costs"}),
     )
     weeks = {w.parcel_id: w for w in timeline.parcel_weeks if w.week == week}
     return match(
@@ -433,10 +434,9 @@ def own_timeline(
     """
     check_season(year)
     shape = to_shape(own.geometry)
-    west, south, east, north = shape.bounds
     if not shape.is_valid or shape.area == 0:
         raise HTTPException(status_code=422, detail="The polygon has no area")
-    if max(east - west, north - south) > MAX_POLYGON_SPAN_DEG:
+    if too_large(own.geometry):
         detail = "Polygon too large; draw one around a single field"
         raise HTTPException(status_code=422, detail=detail)
     parcel = m.Parcel(
@@ -476,8 +476,7 @@ def hls_latest(
     """
     if not Settings().has_earthdata:
         return hls.missing_response(no_token("HLS"))
-    west, south, east, north = to_shape(polygon).bounds
-    if max(east - west, north - south) > MAX_POLYGON_SPAN_DEG:
+    if too_large(polygon):
         return hls.missing_response(
             "Polygon too large for a satellite read; draw one around a single field"
         )

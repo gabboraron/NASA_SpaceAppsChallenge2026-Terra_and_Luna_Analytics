@@ -19,7 +19,7 @@ export function RegisterPage() {
   };
 
   return (
-    <AuthShell mode="register" heading="Create your account" onDone={done}>
+    <AuthShell mode="register" heading="Create your account">
       <form className={styles.form} onSubmit={submit}>
         <label className={styles.field}>
           Name

@@ -103,6 +103,35 @@ const MONTH_SHORT = new Intl.DateTimeFormat("en-GB", {
   timeZone: "UTC",
 });
 
+const DAY = new Intl.DateTimeFormat("en-GB", {
+  day: "numeric",
+  month: "short",
+  year: "numeric",
+  timeZone: "UTC",
+});
+/** "12 Jul 2024" from an ISO date; the text itself when it is not a date. */
+export function formatDay(iso: string): string {
+  const date = new Date(iso);
+  return Number.isNaN(date.getTime()) ? iso : DAY.format(date);
+}
+
+/**
+ * A window moved to `year` by calendar date, 29 Feb becoming 28 Feb: the same
+ * rule as `window_in_year` in the API (`weeks.py`).
+ */
+export function windowInYear(
+  w: { start: string; end: string },
+  year: Season,
+): { start: string; end: string } {
+  const move = (iso: string) => {
+    const [, m, d] = iso.split("-").map(Number);
+    const leap = new Date(Date.UTC(year, 1, 29)).getUTCMonth() === 1;
+    const day = m === 2 && d === 29 && !leap ? 28 : d;
+    return `${year}-${String(m).padStart(2, "0")}-${String(day).padStart(2, "0")}`;
+  };
+  return { start: move(w.start), end: move(w.end) };
+}
+
 /** First day of a timeline week; weeks run 1 to 26 from 1 March. */
 export const weekStart = (year: Season, week: number): Date =>
   new Date(Date.UTC(year, 2, 1 + (week - 1) * 7));

@@ -9,6 +9,7 @@ import {
   type Season,
 } from "../../api/client";
 import { PlacementRequest } from "../PlacementRequest/PlacementRequest";
+import { Verdict } from "./Verdict";
 import { Link, ROUTES } from "../../site/router";
 import { cropName } from "../../domain/season";
 import { loadMatches } from "../../hooks/useMatches";
@@ -19,7 +20,6 @@ import {
   GROUPS,
   eur,
   parseDraft,
-  rangeText,
   toDraft,
   type Draft,
   type Field,
@@ -94,14 +94,10 @@ export function MoveCalculator({
   // The match's calculator input for this beekeeper and parcel.
   const profileKey = JSON.stringify(profile);
   useEffect(() => {
-    const controller = new AbortController();
-    loadMatches(
-      JSON.parse(profileKey) as MatchRequest,
-      year,
-      openWeek,
-      controller.signal,
-    )
+    let stale = false;
+    loadMatches(profile, year, openWeek)
       .then((cards) => {
+        if (stale) return;
         const input = cards.find(
           (c) => c.parcel_id === parcel.id,
         )?.calculator_input;
@@ -123,9 +119,12 @@ export function MoveCalculator({
         }
       })
       .catch(() => {
-        if (!controller.signal.aborted) setPrefill({ status: "error" });
+        if (!stale) setPrefill({ status: "error" });
       });
-    return () => controller.abort();
+    return () => {
+      stale = true;
+    };
+    // `profileKey` holds the profile's content.
   }, [profileKey, parcel.id, year, openWeek, matchAttempt]);
 
   const parsed = useMemo(
@@ -332,27 +331,7 @@ export function MoveCalculator({
             </div>
           )}
 
-          {result && (
-            <section
-              role="status"
-              aria-live="polite"
-              aria-busy={calc.pending}
-              className={styles.verdict}
-              data-verdict={result.verdict}
-              data-pending={calc.pending}
-            >
-              <span className={styles.kicker}>
-                {result.verdict === "move" ? "Move pays off" : "Do not move"}
-              </span>
-              <strong>{eur(result.base.benefit_vs_alternative, true)}</strong>
-              <span>
-                {result.verdict === "move"
-                  ? "benefit relative to the alternative, base case"
-                  : result.message}
-              </span>
-              <span>{calc.pending ? "Updating…" : rangeText(result)}</span>
-            </section>
-          )}
+          {result && <Verdict result={result} pending={calc.pending} />}
 
           {parsed && !parsed.input && (
             <p role="status" className={styles.error}>

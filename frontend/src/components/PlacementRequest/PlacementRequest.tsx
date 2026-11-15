@@ -6,16 +6,9 @@ import {
   newId,
   useAccount,
 } from "../../account/session";
+import { formatDay as day } from "../../domain/season";
 import { Link, ROUTES } from "../../site/router";
 import styles from "./PlacementRequest.module.css";
-
-const DAY_MONTH = new Intl.DateTimeFormat("en-GB", {
-  day: "numeric",
-  month: "short",
-  year: "numeric",
-  timeZone: "UTC",
-});
-const day = (iso: string) => DAY_MONTH.format(new Date(iso));
 
 type Props = {
   parcel: Parcel;

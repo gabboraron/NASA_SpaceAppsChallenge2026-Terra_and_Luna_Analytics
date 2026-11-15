@@ -95,7 +95,10 @@ describe("parcels", () => {
     ]);
   });
   it("mark the beekeeper's own parcels and fade the ones filtered out", () => {
-    const how = { own: new Map([["P2", "Home apiary"]]), dim: new Set(["P3"]) };
+    const how = {
+      own: new Map([["P2", "Home apiary"]]),
+      keep: new Set(["P1", "P2"]),
+    };
     const props = (id: string) =>
       parcelCollection(parcels, how).features.find(
         (f) => f.properties?.id === id,

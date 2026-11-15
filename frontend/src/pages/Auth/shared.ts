@@ -1,8 +1,5 @@
 import { navigate, ROUTES, usePath } from "../../site/router";
 
-export const DEMO_NOTE =
-  "Demo sign-in: accounts live only in this browser, the password is not stored or checked, nothing is sent to a server.";
-
 /** After signing in: a gated page shows by itself; the sign-in pages go to the explorer. */
 export function useAfterSignIn(): () => void {
   const path = usePath();

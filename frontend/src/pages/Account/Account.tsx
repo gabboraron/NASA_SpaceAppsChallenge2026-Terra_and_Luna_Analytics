@@ -91,7 +91,7 @@ function Num(p: NumProps) {
   );
 }
 
-const COSTS: {
+type CostField = {
   key: keyof Costs;
   label: string;
   unit: string;
@@ -100,56 +100,52 @@ const COSTS: {
   positive?: boolean;
   /** Shown under a default value instead of "Default". */
   note?: string;
-}[] = [
-  { key: "fuel_price_per_l", label: "Fuel price", unit: "€/L", step: 0.01 },
-  {
-    key: "vehicle_cost_per_km",
-    label: "Vehicle cost",
-    unit: "€/km",
-    step: 0.01,
-  },
-  { key: "hourly_labor_cost", label: "Labour rate", unit: "€/h", step: 0.5 },
-  {
-    key: "average_speed_kmh",
-    label: "Average speed",
-    unit: "km/h",
-    positive: true,
-  },
-  { key: "loading_hours", label: "Loading time", unit: "h", step: 0.5 },
-  {
-    key: "legs",
-    label: "One-way trips per move",
-    unit: "trips",
-    step: 1,
-    integer: true,
-    note: "Default: deliver and collect",
-  },
-  { key: "extra_feed_cost", label: "Extra feed", unit: "€" },
-  {
-    key: "other_placement_cost",
-    label: "Other placement costs",
-    unit: "€",
-    note: "e.g. site rent",
-  },
-];
+};
 
-const GROUPS: { title: string; keys: (keyof Costs)[] }[] = [
+const GROUPS: { title: string; fields: CostField[] }[] = [
   {
     title: "Transport",
-    keys: [
-      "fuel_price_per_l",
-      "vehicle_cost_per_km",
-      "average_speed_kmh",
-      "legs",
+    fields: [
+      { key: "fuel_price_per_l", label: "Fuel price", unit: "€/L", step: 0.01 },
+      {
+        key: "vehicle_cost_per_km",
+        label: "Vehicle cost",
+        unit: "€/km",
+        step: 0.01,
+      },
+      {
+        key: "average_speed_kmh",
+        label: "Average speed",
+        unit: "km/h",
+        positive: true,
+      },
+      {
+        key: "legs",
+        label: "One-way trips per move",
+        unit: "trips",
+        step: 1,
+        integer: true,
+        note: "Default: deliver and collect",
+      },
     ],
   },
   {
     title: "Labour and placement",
-    keys: [
-      "hourly_labor_cost",
-      "loading_hours",
-      "extra_feed_cost",
-      "other_placement_cost",
+    fields: [
+      {
+        key: "hourly_labor_cost",
+        label: "Labour rate",
+        unit: "€/h",
+        step: 0.5,
+      },
+      { key: "loading_hours", label: "Loading time", unit: "h", step: 0.5 },
+      { key: "extra_feed_cost", label: "Extra feed", unit: "€" },
+      {
+        key: "other_placement_cost",
+        label: "Other placement costs",
+        unit: "€",
+        note: "e.g. site rent",
+      },
     ],
   },
 ];
@@ -315,8 +311,8 @@ function MovingCosts({ account, save }: { account: Account; save: Save }) {
         <fieldset key={g.title} className={styles.group}>
           <legend>{g.title}</legend>
           <div className={styles.grid} key={resets}>
-            {COSTS.filter((c) => g.keys.includes(c.key)).map((c) => {
-              const mine = account.costs[c.key] !== undefined;
+            {g.fields.map((c) => {
+              const mine = account.costs[c.key] != null;
               const fallback = defaults ? String(defaults[c.key]) : "";
               return (
                 <Num
@@ -326,7 +322,7 @@ function MovingCosts({ account, save }: { account: Account; save: Save }) {
                   step={c.step}
                   integer={c.integer}
                   positive={c.positive}
-                  value={account.costs[c.key]}
+                  value={account.costs[c.key] ?? undefined}
                   fallback={fallback}
                   mine={mine}
                   hint={

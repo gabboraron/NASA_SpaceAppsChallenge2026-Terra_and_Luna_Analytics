@@ -5,8 +5,10 @@ import {
   MODELLED_CROPS,
   OWN_CROPS,
   bloomSpan,
+  formatDay,
   indexWeeks,
   latestSeason,
+  windowInYear,
 } from "./season";
 
 describe("latestSeason", () => {
@@ -44,5 +46,23 @@ describe("honey filter helpers", () => {
     expect(new Set(crops).size).toBe(crops.length);
     expect(OWN_CROPS.every((c) => crops.includes(c))).toBe(true);
     expect([...MODELLED_CROPS].every((c) => OWN_CROPS.includes(c))).toBe(true);
+  });
+});
+
+describe("date helpers", () => {
+  it("moves a window to another season by calendar date, as weeks.py does", () => {
+    expect(
+      windowInYear({ start: "2024-04-22", end: "2024-05-08" }, 2022),
+    ).toEqual({ start: "2022-04-22", end: "2022-05-08" });
+    expect(
+      windowInYear({ start: "2024-02-29", end: "2024-03-02" }, 2023),
+    ).toEqual({ start: "2023-02-28", end: "2023-03-02" });
+    expect(
+      windowInYear({ start: "2024-02-29", end: "2024-03-02" }, 2028).start,
+    ).toBe("2028-02-29");
+  });
+  it("formats a day in UTC, and leaves text that is not a date", () => {
+    expect(formatDay("2024-07-12")).toBe("12 Jul 2024");
+    expect(formatDay("soon")).toBe("soon");
   });
 });

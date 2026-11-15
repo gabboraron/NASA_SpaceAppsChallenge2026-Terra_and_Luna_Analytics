@@ -18,7 +18,7 @@ export function LoginPage() {
   };
 
   return (
-    <AuthShell mode="login" heading="Welcome back" onDone={done}>
+    <AuthShell mode="login" heading="Welcome back">
       <form className={styles.form} onSubmit={submit}>
         <label className={styles.field}>
           Email

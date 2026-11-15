@@ -59,6 +59,7 @@ import {
   isSeason,
   cropName,
   indexWeeks,
+  windowInYear,
 } from "./domain/season";
 import { useEscape } from "./hooks/useEscape";
 import { type Answer, useField } from "./hooks/useField";
@@ -107,12 +108,6 @@ type Load<T> = { data?: T; error?: string };
 
 const NO_ROWS = new Map<string, never>();
 const NO_PARCELS: never[] = [];
-
-/** A bloom window's dates in `year`: a declaration is made for one year only. */
-const inYear = (w: { start: string; end: string }, year: Season) => ({
-  start: `${year}${w.start.slice(4)}`,
-  end: `${year}${w.end.slice(4)}`,
-});
 
 export function App() {
   const [base, setBase] = useState<Load<Base>>({});
@@ -257,12 +252,6 @@ export function App() {
       ),
     [honeyCrops, parcels],
   );
-  const dim = useMemo(
-    () =>
-      honeyIds &&
-      new Set(parcels.filter((p) => !honeyIds.has(p.id)).map((p) => p.id)),
-    [honeyIds, parcels],
-  );
   const honeySpan = useMemo(
     () => (honeyIds ? bloomSpan(weeks, honeyIds) : null),
     [weeks, honeyIds],
@@ -280,7 +269,7 @@ export function App() {
   );
 
   const layers = useMemo(() => {
-    const how = { own: ownNames, dim };
+    const how = { own: ownNames, keep: honeyIds };
     return {
       parcels: parcelCollection(parcels, how),
       dots: parcelDots(parcels, how),
@@ -289,7 +278,7 @@ export function App() {
         features: [],
       }) as FeatureCollection<Polygon>,
     };
-  }, [base.data, parcels, ownNames, dim]);
+  }, [base.data, parcels, ownNames, honeyIds]);
   const keeperPins = useMemo(() => homePin(homeAt), [homeAt]);
   const ranks = useMemo(
     () =>
@@ -367,7 +356,7 @@ export function App() {
   // This season's bloom window of a parcel: the suggested stay of a request.
   const stayOf = (parcel: Parcel, row?: ParcelWeek) =>
     row?.estimated_bloom ??
-    (parcel.declared_bloom ? inYear(parcel.declared_bloom, year) : null);
+    (parcel.declared_bloom ? windowInYear(parcel.declared_bloom, year) : null);
   // The server records the photo; refetch this season and drop the other cached one.
   const verify = (id: string) => {
     setVerifyState("pending");
@@ -648,6 +637,7 @@ export function App() {
               matches={matches}
               parcels={listed}
               honey={honey}
+              honeyIds={honeyIds}
               onHoney={setHoney}
               honeySpan={honeySpan}
               onWeek={setWeek}

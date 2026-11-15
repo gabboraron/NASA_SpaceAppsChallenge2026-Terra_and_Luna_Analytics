@@ -25,6 +25,9 @@ export type MatchRequest = Schemas["MatchRequest"];
 export type OwnParcelRequest = Schemas["OwnParcelRequest"];
 export type OwnParcelTimeline = Schemas["OwnParcelTimeline"];
 export type CostDefaults = Schemas["CalculatorDefaults"];
+export type CostSettings = Schemas["CostSettings"];
+export type Window = Schemas["Window"];
+export type ServiceType = Parcel["service_type"];
 
 // The real API is the default; `VITE_USE_MOCKS=true` runs the map offline on fixtures.
 export const useMocks = import.meta.env.VITE_USE_MOCKS === "true";

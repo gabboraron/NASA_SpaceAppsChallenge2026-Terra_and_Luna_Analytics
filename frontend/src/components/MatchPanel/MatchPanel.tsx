@@ -22,6 +22,8 @@ type Props = {
   onPlan: (parcelId: string) => void;
   /** Chosen honey kind (an id of HONEYS), "" for every bloom. */
   honey: string;
+  /** The listed and own parcels that give the chosen honey; all when unset. */
+  honeyIds?: ReadonlySet<string>;
   onHoney: (id: string) => void;
   /** First and last week the chosen honey's parcels bloom this season. */
   honeySpan: [number, number] | null;
@@ -40,10 +42,10 @@ export function MatchPanel(props: Props) {
   const crops = new Set(props.parcels.map((p) => p.crop));
   const honeys = HONEYS.filter((h) => h.crops.some((c) => crops.has(c)));
   const chosen = honeys.find((h) => h.id === honey);
-  const wanted = (c: MatchCard) =>
-    !chosen || chosen.crops.includes(byId.get(c.parcel_id)?.crop ?? "");
   const { open, blocked, shared } = groupCards(
-    (matches.cards ?? []).filter(wanted),
+    (matches.cards ?? []).filter(
+      (c) => !props.honeyIds || props.honeyIds.has(c.parcel_id),
+    ),
   );
 
   // Hover and focus outline the parcel on the map; the title opens its detail.

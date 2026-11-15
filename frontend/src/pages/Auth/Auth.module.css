@@ -30,6 +30,8 @@
   letter-spacing: -0.035em;
 }
 .steps {
+  --hex-w: 34px;
+  --hex-fs: 1rem;
   display: flex;
   flex-direction: column;
   gap: 0.75rem;
@@ -42,16 +44,6 @@
   display: flex;
   align-items: center;
   gap: 0.9rem;
-}
-.hex {
-  display: grid;
-  place-items: center;
-  flex: none;
-  width: 34px;
-  height: 39px;
-  background: var(--honey);
-  font-family: var(--font-mono);
-  font-weight: 500;
 }
 .card {
   flex: 1 1 22rem;

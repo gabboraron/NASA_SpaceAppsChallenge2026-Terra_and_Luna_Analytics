@@ -10,8 +10,11 @@ import type { OwnParcel } from "../account/session";
 
 // One answer per parcel version and season: redrawing or changing the crop asks again.
 const cache = new Map<string, OwnParcelTimeline>();
+// Requests on their way. Not cancelled when the parcel list changes: the server
+// finishes the POWER read anyway, and its answer fills the cache.
+const inflight = new Map<string, Promise<OwnParcelTimeline>>();
 
-const request = (p: OwnParcel) => ({
+const toRequest = (p: OwnParcel) => ({
   id: p.id,
   crop: p.crop,
   geometry: p.geometry,
@@ -19,11 +22,11 @@ const request = (p: OwnParcel) => ({
   declared_bloom: p.declared_bloom,
 });
 const keyOf = (p: OwnParcel, year: Season) =>
-  `${year}|${JSON.stringify(request(p))}`;
+  `${year}|${JSON.stringify(toRequest(p))}`;
 
 /** The parcel as the map draws it before the server has measured and modelled it. */
 const draft = (p: OwnParcel): Parcel => ({
-  ...request(p),
+  ...toRequest(p),
   grower_id: "you",
   area_ha: 0,
   illustrative: false,
@@ -45,30 +48,40 @@ export type OwnParcels = {
 
 /** Bloom of the beekeeper's own parcels, modelled by the API where each one lies. */
 export function useOwnParcels(own: OwnParcel[], year: Season): OwnParcels {
-  const keys = own.map((p) => keyOf(p, year));
+  const keys = useMemo(() => own.map((p) => keyOf(p, year)), [own, year]);
   const signature = keys.join("\n");
   const [loaded, setLoaded] = useState(0);
   const [failedKeys, setFailedKeys] = useState<ReadonlySet<string>>(new Set());
   const [attempt, setAttempt] = useState(0);
 
   useEffect(() => {
-    const controller = new AbortController();
+    let stale = false;
     own.forEach((p, i) => {
       const key = keys[i];
       if (cache.has(key)) return;
-      getOwnTimeline(request(p), year, controller.signal)
-        .then((answer) => {
-          cache.set(key, answer);
-          setLoaded((n) => n + 1);
-        })
-        .catch(() => {
-          if (!controller.signal.aborted)
-            setFailedKeys((f) => new Set(f).add(key));
-        });
+      let request = inflight.get(key);
+      if (!request) {
+        request = getOwnTimeline(
+          toRequest(p),
+          year,
+          new AbortController().signal,
+        )
+          .then((answer) => {
+            cache.set(key, answer);
+            return answer;
+          })
+          .finally(() => inflight.delete(key));
+        inflight.set(key, request);
+      }
+      request
+        .then(() => !stale && setLoaded((n) => n + 1))
+        .catch(() => !stale && setFailedKeys((f) => new Set(f).add(key)));
     });
-    return () => controller.abort();
-    // `own` and `keys` are rebuilt every render; `signature` says when they change.
-  }, [signature, year, attempt]);
+    return () => {
+      stale = true;
+    };
+    // `signature` says when `own` or `year` changed what is asked for.
+  }, [signature, attempt]);
 
   return useMemo(() => {
     const answers = keys.map((k) => cache.get(k));

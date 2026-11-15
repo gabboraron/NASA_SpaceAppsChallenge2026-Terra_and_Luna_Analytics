@@ -1,19 +1,10 @@
 // Mock sign-in: accounts live in this browser's localStorage only. Nothing is
 // sent to a server and no password is kept, so the demo holds no personal data.
 import { useSyncExternalStore } from "react";
-import type { Polygon } from "../api/client";
+import type { CostSettings, Polygon, ServiceType, Window } from "../api/client";
 
 /** The beekeeper's own moving costs; an unset one uses the marketplace default. */
-export type Costs = Partial<{
-  fuel_price_per_l: number;
-  vehicle_cost_per_km: number;
-  hourly_labor_cost: number;
-  average_speed_kmh: number;
-  loading_hours: number;
-  legs: number;
-  extra_feed_cost: number;
-  other_placement_cost: number;
-}>;
+export type Costs = CostSettings;
 
 /** A parcel the beekeeper drew: an apiary site whose bloom is modelled where it lies. */
 export type OwnParcel = {
@@ -22,8 +13,8 @@ export type OwnParcel = {
   crop: string;
   geometry: Polygon;
   irrigated: boolean;
-  /** ISO dates; used where the crop has no bloom model. */
-  declared_bloom: { start: string; end: string } | null;
+  /** Used where the crop has no bloom model. */
+  declared_bloom: Window | null;
 };
 
 /** A request to place hives on a listed parcel for a period (stored locally). */
@@ -31,7 +22,7 @@ export type Placement = {
   id: string;
   parcel_id: string;
   crop: string;
-  service_type: "pollination" | "forage";
+  service_type: ServiceType;
   /** ISO dates of the stay. */
   start: string;
   end: string;
@@ -46,8 +37,8 @@ export type Account = {
   name: string;
   colonies: number;
   max_distance_km: number;
-  /** ISO dates; only month and day count, each season uses the same dates. */
-  availability: { start: string; end: string };
+  /** Only month and day count; each season uses the same dates. */
+  availability: Window;
   vehicle_l_per_100km: number;
   alternative_contribution_eur: number;
   costs: Costs;
@@ -90,18 +81,16 @@ function write(next: Store) {
   for (const notify of listeners) notify();
 }
 
-function subscribe(notify: () => void) {
-  // Another tab signed in or out, or changed the account.
-  const sync = () => {
+// Another tab signed in or out, or changed the account: read the store once.
+if (typeof window !== "undefined")
+  window.addEventListener("storage", () => {
     store = read();
-    notify();
-  };
+    for (const notify of listeners) notify();
+  });
+
+function subscribe(notify: () => void) {
   listeners.add(notify);
-  window.addEventListener("storage", sync);
-  return () => {
-    listeners.delete(notify);
-    window.removeEventListener("storage", sync);
-  };
+  return () => listeners.delete(notify);
 }
 
 /** The signed-in account, or null. */
