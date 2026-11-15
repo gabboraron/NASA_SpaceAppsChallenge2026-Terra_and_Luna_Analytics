@@ -44,9 +44,22 @@
   letter-spacing: 0;
   text-transform: none;
 }
-.tagline {
+.corner {
+  display: flex;
+  align-items: center;
+  gap: 1.25rem;
   font-size: 0.8125rem;
+}
+.corner a {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  min-height: 44px;
   color: var(--muted);
+  text-decoration: none;
+}
+.corner a:hover {
+  color: var(--ink);
 }
 .nav {
   display: flex;
@@ -154,6 +167,7 @@
   width: 26px;
   height: 30px;
   background: var(--honey);
+  color: var(--ink);
 }
 .enter span:last-child {
   border-bottom: 1.5px solid currentColor;
@@ -168,15 +182,15 @@
   color: inherit;
   cursor: pointer;
 }
-/* Signed in, the account pill takes the tagline's room. */
-.bar[data-account="true"] .tagline {
+/* Signed in, the account pill takes the labels' room: the icons stay. */
+.bar[data-account="true"] .corner span {
   display: none;
 }
 .bar[data-account="true"] .nav {
   gap: 1.25rem;
 }
 @media (width < 1280px) {
-  .tagline {
+  .corner span {
     display: none;
   }
 }

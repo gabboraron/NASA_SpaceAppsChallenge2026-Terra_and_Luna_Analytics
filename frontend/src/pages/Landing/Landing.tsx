@@ -7,7 +7,50 @@ import { HoneycombCalendar } from "./HoneycombCalendar";
 import { Receipt } from "./Receipt";
 import styles from "./Landing.module.css";
 
-/** Dashed flight from a hive to a flower, drawn behind the headline. */
+const FLIGHT = "M58 30 C260 4 470 54 700 28 S980 6 1150 46";
+const FLIGHT_SECONDS = 12;
+const BEES = 1;
+
+/** A small bee facing +x, for flying along a path. */
+function FlyingBee({ delay }: { delay: number }) {
+  const dur = `${FLIGHT_SECONDS}s`;
+  return (
+    <g className={styles.flyer} opacity="0">
+      <animateMotion
+        path={FLIGHT}
+        rotate="auto"
+        dur={dur}
+        begin={`${delay}s`}
+        repeatCount="indefinite"
+      />
+      <animate
+        attributeName="opacity"
+        values="0;1;1;0"
+        keyTimes="0;0.05;0.93;1"
+        dur={dur}
+        begin={`${delay}s`}
+        repeatCount="indefinite"
+      />
+      <g transform="scale(1.4)">
+        <g className={styles.bob}>
+          <ellipse
+            className={styles.wing}
+            cx="-1.5"
+            cy="-5"
+            rx="2.6"
+            ry="3.8"
+          />
+          <ellipse className={styles.wing} cx="2" cy="-5" rx="2.6" ry="3.8" />
+          <ellipse cx="0" cy="0" rx="7" ry="4.6" className={styles.fHoney} />
+          <path d="M-2.2-4.3v8.6M1.4-4.5v9M-7 0h-2.4" />
+          <circle cx="4.4" cy="-1" r="0.9" fill="currentColor" stroke="none" />
+        </g>
+      </g>
+    </g>
+  );
+}
+
+/** Dashed flight from a hive to a flower, drawn behind the headline; bees fly it on a loop. */
 function FlightPath() {
   return (
     <svg
@@ -17,7 +60,7 @@ function FlightPath() {
       preserveAspectRatio="xMidYMid meet"
     >
       <path
-        d="M58 30 C260 4 470 54 700 28 S980 6 1150 46"
+        d={FLIGHT}
         fill="none"
         stroke="#c98a12"
         strokeWidth="1.6"
@@ -32,52 +75,71 @@ function FlightPath() {
         fill="none"
       />
       <g transform="translate(1160 30)">
-        <g className={styles.fHoney} stroke="currentColor" strokeWidth="1.1">
-          <ellipse cx="14" cy="5" rx="4" ry="5.5" />
-          <ellipse cx="14" cy="23" rx="4" ry="5.5" />
-          <ellipse cx="5" cy="14" rx="5.5" ry="4" />
-          <ellipse cx="23" cy="14" rx="5.5" ry="4" />
-          <ellipse
-            cx="7.6"
-            cy="7.6"
-            rx="4"
-            ry="5.2"
-            transform="rotate(-45 7.6 7.6)"
-          />
-          <ellipse
-            cx="20.4"
-            cy="20.4"
-            rx="4"
-            ry="5.2"
-            transform="rotate(-45 20.4 20.4)"
-          />
-          <ellipse
-            cx="20.4"
-            cy="7.6"
-            rx="4"
-            ry="5.2"
-            transform="rotate(45 20.4 7.6)"
-          />
-          <ellipse
-            cx="7.6"
-            cy="20.4"
-            rx="4"
-            ry="5.2"
-            transform="rotate(45 7.6 20.4)"
-          />
+        <g className={styles.sway}>
+          <g className={styles.fHoney} stroke="currentColor" strokeWidth="1.1">
+            <ellipse cx="14" cy="5" rx="4" ry="5.5" />
+            <ellipse cx="14" cy="23" rx="4" ry="5.5" />
+            <ellipse cx="5" cy="14" rx="5.5" ry="4" />
+            <ellipse cx="23" cy="14" rx="5.5" ry="4" />
+            <ellipse
+              cx="7.6"
+              cy="7.6"
+              rx="4"
+              ry="5.2"
+              transform="rotate(-45 7.6 7.6)"
+            />
+            <ellipse
+              cx="20.4"
+              cy="20.4"
+              rx="4"
+              ry="5.2"
+              transform="rotate(-45 20.4 20.4)"
+            />
+            <ellipse
+              cx="20.4"
+              cy="7.6"
+              rx="4"
+              ry="5.2"
+              transform="rotate(45 20.4 7.6)"
+            />
+            <ellipse
+              cx="7.6"
+              cy="20.4"
+              rx="4"
+              ry="5.2"
+              transform="rotate(45 7.6 20.4)"
+            />
+          </g>
+          <circle cx="14" cy="14" r="5" fill="#5a3a08" />
         </g>
-        <circle cx="14" cy="14" r="5" fill="#5a3a08" />
       </g>
-      <g
-        transform="translate(1112 30) rotate(20)"
-        stroke="currentColor"
-        strokeWidth="1.2"
+      <g stroke="currentColor" strokeWidth="1.2" strokeLinecap="round">
+        {Array.from({ length: BEES }, (_, i) => (
+          <FlyingBee key={i} delay={(i * FLIGHT_SECONDS) / BEES} />
+        ))}
+      </g>
+      {/* A heart pops from the flower each time a bee arrives. */}
+      <path
+        className={styles.heart}
+        opacity="0"
+        d="M0 2.2C-1.6-.6-6-.2-5.2 3.2-4.6 5.6 0 8.4 0 8.4S4.6 5.6 5.2 3.2C6-.2 1.6-.6 0 2.2Z"
       >
-        <ellipse cx="7" cy="5" rx="4" ry="2.6" className={styles.fCard} />
-        <ellipse cx="15" cy="5" rx="4" ry="2.6" className={styles.fCard} />
-        <ellipse cx="11" cy="12" rx="5" ry="6.5" className={styles.fHoney} />
-        <path d="M6.5 10.5h9M6.5 14h9" />
-      </g>
+        <animateTransform
+          attributeName="transform"
+          type="translate"
+          values="1174 26;1182 2"
+          dur={`${FLIGHT_SECONDS / BEES}s`}
+          begin={`${FLIGHT_SECONDS * 0.93}s`}
+          repeatCount="indefinite"
+        />
+        <animate
+          attributeName="opacity"
+          values="0;1;0"
+          dur={`${FLIGHT_SECONDS / BEES}s`}
+          begin={`${FLIGHT_SECONDS * 0.93}s`}
+          repeatCount="indefinite"
+        />
+      </path>
     </svg>
   );
 }
@@ -126,18 +188,14 @@ export function LandingPage() {
       <section className={`${page.wrap} ${styles.hero}`}>
         <FlightPath />
         <div className={styles.heroGrid}>
-          <div>
-            <p className={styles.slogan}>
-              <BeeMark size={30} />
-              <span>
-                Don&apos;t worry, <mark>bee happy.</mark>
-              </span>
-            </p>
-            <h1 className={styles.headline}>
-              Bloom moves.
-              <br />
-              The hives should follow.
+          <div className={styles.lead}>
+            <BeeMark size={30} />
+            <h1 className={styles.slogan}>
+              Don&apos;t worry, <mark>bee happy.</mark>
             </h1>
+            <p className={styles.headline}>
+              Bloom moves. The hives should follow.
+            </p>
           </div>
           <p className={styles.heroText}>
             Satellites see each field flower, week by week. HappyBee turns that
