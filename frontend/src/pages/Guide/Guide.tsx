@@ -70,7 +70,7 @@ const TOUR = [
   ],
   [
     "Week slider",
-    "Bottom. 26 weeks from 1 March; the strip above it shows how many parcels bloom.",
+    "Bottom. 26 weeks from 1 March; the honeycomb above it shows how many parcels bloom.",
   ],
   [
     "Side panel",
@@ -314,8 +314,8 @@ function SignIn() {
           <Shot
             src="signin.webp"
             w={1400}
-            h={783}
-            alt="The sign-in page: three steps on the left, and a card with Sign in and Register tabs, a Continue as demo beekeeper button, email and password fields and the demo note."
+            h={735}
+            alt="The sign-in page: a bee with a heart and three steps on the left, and a card with Sign in and Register tabs, a Continue as demo beekeeper button, email and password fields and the demo note."
           />
         }
       >
@@ -388,15 +388,15 @@ function Features() {
         <div className={styles.pair}>
           <Shot
             src="map-2022.webp"
-            w={900}
-            h={969}
+            w={944}
+            h={944}
             alt="Map of week 20 in 2022: red soil moisture cells and hatched sunflower parcels."
             caption="2022, week 20: dry soil, nectar at risk."
           />
           <Shot
             src="map-2024.webp"
-            w={900}
-            h={969}
+            w={944}
+            h={944}
             alt="Map of week 20 in 2024: the same parcels with normal bloom."
             caption="2024, week 20: the same fields."
           />
@@ -406,19 +406,21 @@ function Features() {
       <Section id="week" title="Week slider">
         <Shot
           src="timeline.webp"
-          w={1504}
-          h={242}
-          alt="The week slider at week 20, 12 to 18 July 2022, with a strip of bloom counts and month ticks from March to August."
+          w={1864}
+          h={374}
+          alt="The week slider at week 20, 12 to 18 July 2022: a row of honeycomb cells, one per week, with the July weeks hatched red for low nectar; a bee handle on a dashed line under the selected week; month ticks from March to August; and the tags 5 in bloom and 5 low nectar."
         />
         <ul className={styles.points}>
           <li>
-            The season runs 26 weeks from 1 March. Drag the handle, use the
-            arrow keys, or press play to watch the season unfold.
+            The season runs 26 weeks from 1 March. Drag the bee, use the arrow
+            keys, or press play to watch the season unfold.
           </li>
           <li>
-            The strip above the slider shows how many parcels bloom each week.
-            Darker yellow means more parcels; a hatched week has parcels flagged
-            low nectar.
+            The honeycomb above the slider has one cell per week. Deeper honey
+            means more parcels in bloom; a red-hatched cell has parcels flagged
+            low nectar. The selected week&apos;s cell is larger, with a dark
+            centre, and the tags beside the date count its parcels in bloom and
+            on low nectar.
           </li>
           <li>
             Matches, parcel details and the map all follow the selected week.
@@ -612,7 +614,9 @@ function Features() {
               <strong>Go to the first bloom week</strong> moves the slider
               there.
             </li>
-            <li>The week strip counts only the chosen honey&apos;s parcels.</li>
+            <li>
+              The week honeycomb counts only the chosen honey&apos;s parcels.
+            </li>
           </ul>
           <p className={styles.note}>
             The honey kind names the parcel&apos;s bloom. The map does not
@@ -909,7 +913,7 @@ function Features() {
         <Shot
           src="placements.webp"
           w={1400}
-          h={719}
+          h={680}
           alt="My placements: a March to August timeline with the requested stay on P15, black locust, and a table with parcel, crop, service, stay, colonies, benefit relative to the alternative, request date, status Requested · demo and a Cancel button."
         />
         <p className={page.body}>
