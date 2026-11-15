@@ -194,3 +194,6 @@
     padding: 1.25rem;
   }
 }
+.pitch > span:first-child {
+  width: 96px;
+}

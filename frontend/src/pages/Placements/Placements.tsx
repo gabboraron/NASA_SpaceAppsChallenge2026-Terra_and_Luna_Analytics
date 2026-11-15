@@ -1,3 +1,4 @@
+import { CuteBee } from "../../site/CuteBee";
 import { cancelPlacement, useAccount } from "../../account/session";
 import { eur } from "../../components/MoveCalculator/fields";
 import {
@@ -42,17 +43,21 @@ export function PlacementsPage() {
   const { placements } = account;
   return (
     <ReadingPage
+      bee="map"
       kicker="Your season plan"
       title="My placements"
       lead="Parcels you asked to rent for a period. Demo: requests are stored in this browser only; no grower is contacted."
     >
       <div className={`${page.wrap} ${styles.body}`}>
         {placements.length === 0 ? (
-          <p className={page.body}>
-            No placement requests yet.{" "}
-            <Link to={ROUTES.app}>Find a parcel in the explorer</Link> and send
-            a placement request there.
-          </p>
+          <div className={styles.empty}>
+            <CuteBee pose="sleepy" size={88} />
+            <p className={page.body}>
+              No placement requests yet, so your bees are napping.{" "}
+              <Link to={ROUTES.app}>Find a parcel in the explorer</Link> and
+              send a placement request there.
+            </p>
+          </div>
         ) : (
           <>
             <section className={styles.plan} aria-labelledby="plan-h">

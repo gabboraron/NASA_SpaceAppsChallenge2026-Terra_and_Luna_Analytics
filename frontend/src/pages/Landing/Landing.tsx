@@ -1,5 +1,6 @@
 import type { ReactNode } from "react";
 import { BeeMark } from "../../site/BeeMark";
+import { CuteBee, type BeePose } from "../../site/CuteBee";
 import { ReadingPage } from "../../site/ReadingPage";
 import { Link, ROUTES } from "../../site/router";
 import page from "../../site/page.module.css";
@@ -147,6 +148,7 @@ function FlightPath() {
 /** One numbered chapter: hex numeral, source, text, figure. */
 function Chapter({
   mark,
+  pose,
   source,
   title,
   titleId,
@@ -154,6 +156,7 @@ function Chapter({
   figure,
 }: {
   mark: ReactNode;
+  pose?: BeePose;
   source: string;
   title: string;
   titleId: string;
@@ -169,6 +172,11 @@ function Chapter({
         {mark}
       </span>
       <span className={`${styles.source} mono`}>{source}</span>
+      {pose && (
+        <span className={styles.pal}>
+          <CuteBee pose={pose} />
+        </span>
+      )}
       <div className={styles.text}>
         <h2 id={titleId} className={page.h2}>
           {title}
@@ -181,6 +189,43 @@ function Chapter({
 }
 
 const SWATCHES = ["pass", "pass", "pass", "pass", "pass", "interp."];
+/** How far the flower in each Fig. 2 tile has opened (0 bud, 1 full bloom). */
+const OPEN = [0.2, 0.4, 0.62, 0.85, 1, 1];
+
+/** A sunflower head for Fig. 2, opened by `open`. */
+function Bloom({ open }: { open: number }) {
+  if (open < 0.3)
+    return (
+      <svg viewBox="-14 -14 28 28" aria-hidden="true">
+        <path d="M0 12V2" stroke="#1c1912" strokeWidth="1.4" />
+        <ellipse
+          ry="4.5"
+          rx="3.5"
+          fill="#a7c46a"
+          stroke="#1c1912"
+          strokeWidth="1.4"
+        />
+      </svg>
+    );
+  return (
+    <svg viewBox="-14 -14 28 28" aria-hidden="true">
+      <g transform={`scale(${open})`} stroke="#1c1912" strokeWidth={1.4 / open}>
+        {Array.from({ length: 8 }, (_, i) => (
+          <ellipse
+            key={i}
+            cx="0"
+            cy="-7"
+            rx="3.4"
+            ry="5.6"
+            fill="#f3c641"
+            transform={`rotate(${i * 45})`}
+          />
+        ))}
+        <circle r="5" fill="#5a3a08" />
+      </g>
+    </svg>
+  );
+}
 
 export function LandingPage() {
   return (
@@ -210,6 +255,7 @@ export function LandingPage() {
       <div className={`${page.wrap} ${styles.chapters}`}>
         <Chapter
           mark="01"
+          pose="satellite"
           source="NASA HLS · NDYI"
           title="A sunflower field turns yellow from orbit."
           titleId="ch1"
@@ -217,7 +263,9 @@ export function LandingPage() {
             <figure className={styles.fig}>
               <div className={styles.swatches} aria-hidden="true">
                 {SWATCHES.map((_, i) => (
-                  <span key={i} />
+                  <span key={i}>
+                    <Bloom open={OPEN[i]} />
+                  </span>
                 ))}
               </div>
               <div className={`${styles.swatchLabels} mono`} aria-hidden="true">
@@ -247,6 +295,7 @@ export function LandingPage() {
 
         <Chapter
           mark="02"
+          pose="thirsty"
           source="NASA SMAP L4"
           title="A field can flower and still offer little nectar."
           titleId="ch2"
@@ -263,6 +312,7 @@ export function LandingPage() {
                   y="12"
                   width="92"
                   height="148"
+                  rx="12"
                   className={styles.fDrought}
                   fillOpacity=".1"
                 />
@@ -274,19 +324,30 @@ export function LandingPage() {
                   className={styles.sDrought}
                   strokeDasharray="5 4"
                 />
-                <text
-                  x="344"
-                  y="126"
-                  textAnchor="end"
-                  className={styles.fDroughtInk}
-                >
+                <text x="20" y="150" className={styles.fDroughtInk}>
                   10th percentile
                 </text>
                 <path
                   d="M20 60 C70 50 110 72 150 92 S210 150 240 148 S300 120 344 96"
                   fill="none"
                   stroke="currentColor"
-                  strokeWidth="2.5"
+                  strokeWidth="3.5"
+                  strokeLinecap="round"
+                />
+                <g
+                  transform="translate(242 40)"
+                  stroke="currentColor"
+                  strokeWidth="2"
+                  strokeLinecap="round"
+                >
+                  <path d="M0-19v5M0 14v5M-19 0h5M14 0h5M-13-13l3.5 3.5M9.5 9.5l3.5 3.5M-13 13l3.5-3.5M9.5-9.5l3.5-3.5" />
+                  <circle r="9" className={styles.fHoney} />
+                </g>
+                <path
+                  d="M236 100c-5 7-6 10-6 12a6 6 0 0 0 12 0c0-2-1-5-6-12z"
+                  fill="#9cc6e8"
+                  stroke="currentColor"
+                  strokeWidth="2"
                 />
                 <text x="20" y="172" className={styles.fMuted}>
                   Mar
@@ -315,6 +376,7 @@ export function LandingPage() {
 
         <Chapter
           mark="03"
+          pose="stop"
           source="EEA Natura 2000"
           title="Some places are off limits."
           titleId="ch3"
@@ -330,7 +392,7 @@ export function LandingPage() {
                   d="M30 40 q70 -30 130 10 t20 100 q-80 30 -150 -10z"
                   className={`${styles.fNatura} ${styles.sNatura}`}
                   fillOpacity=".16"
-                  strokeWidth="1.5"
+                  strokeWidth="2.5"
                 />
                 <path
                   d="M18 28 q80 -44 158 6 t30 124 q-96 46 -186 -10z"
@@ -343,25 +405,44 @@ export function LandingPage() {
                   y="80"
                   width="40"
                   height="30"
+                  rx="7"
                   className={styles.fNone}
                   stroke="currentColor"
+                  strokeWidth="2.5"
                 />
                 <rect
                   x="196"
                   y="100"
                   width="40"
                   height="30"
+                  rx="7"
                   className={styles.fPre}
                   stroke="currentColor"
+                  strokeWidth="2.5"
                 />
                 <rect
                   x="290"
                   y="40"
                   width="40"
                   height="30"
+                  rx="7"
                   className={styles.fHoney}
                   stroke="currentColor"
+                  strokeWidth="2.5"
                 />
+                <g stroke="currentColor" strokeWidth="2">
+                  <circle cx="110" cy="80" r="9" fill="#c8553d" />
+                  <path d="M105 80h10" stroke="#fcf8ec" strokeWidth="2.5" />
+                  <path
+                    d="m236 86 10 17h-20z"
+                    className={styles.fHoney}
+                    strokeLinejoin="round"
+                  />
+                  <path d="M236 92v5" strokeWidth="1.8" />
+                </g>
+                <g transform="translate(320 6)">
+                  <CuteBee pose="happy" size={36} />
+                </g>
                 <g textAnchor="middle" fill="currentColor">
                   <text x="90" y="128">
                     blocked
@@ -390,6 +471,7 @@ export function LandingPage() {
 
         <Chapter
           mark="04"
+          pose="coin"
           source="Move calculator"
           title="The calculator also shows when staying put pays better."
           titleId="ch4"

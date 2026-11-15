@@ -1,5 +1,6 @@
 import type { ReactNode } from "react";
 import { signInDemo } from "../../account/session";
+import { CuteBee } from "../../site/CuteBee";
 import { SiteFooter } from "../../site/SiteFooter";
 import { SiteHeader } from "../../site/SiteHeader";
 import { Link, ROUTES } from "../../site/router";
@@ -37,6 +38,9 @@ export function AuthShell({ mode, heading, children }: Props) {
       <main className={styles.main}>
         <div className={styles.split}>
           <section className={styles.pitch}>
+            <span className={page.mascot}>
+              <CuteBee pose="heart" />
+            </span>
             <span className={page.kicker}>For migratory beekeepers</span>
             <h1 className={styles.title}>
               Put your apiary on the map. See where the bloom is.

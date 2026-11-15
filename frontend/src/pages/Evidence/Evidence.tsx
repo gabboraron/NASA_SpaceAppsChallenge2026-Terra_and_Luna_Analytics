@@ -184,6 +184,7 @@ function CheckTable() {
 export function EvidencePage() {
   return (
     <ReadingPage
+      bee="magnifier"
       kicker="Evidence"
       title="Checked against beehives on a scale."
       lead="We compare the bloom model with records it never saw: the weight of two bee colonies, measured at least every hour over five seasons. The test, its results and its weak points are below, with the commands to repeat it."

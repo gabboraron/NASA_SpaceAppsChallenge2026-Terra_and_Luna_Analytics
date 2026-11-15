@@ -517,6 +517,7 @@ export function AccountPage() {
   };
   return (
     <ReadingPage
+      bee="coin"
       kicker="Account"
       title={account.name || "Your account"}
       lead="Your profile, moving costs and parcels. Demo account: everything here is stored in this browser only; nothing is sent to a server."

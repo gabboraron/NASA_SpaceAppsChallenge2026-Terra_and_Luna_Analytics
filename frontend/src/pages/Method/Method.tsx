@@ -176,6 +176,7 @@ function CropTable() {
 export function MethodPage() {
   return (
     <ReadingPage
+      bee="satellite"
       kicker="Method"
       title="From a satellite pass to a hive on a truck."
       lead="The same three steps run for every parcel and every week of the season, from 1 March to the end of August. Nothing on the map is typed in by hand except what growers and beekeepers declare, and that is labelled Reported."

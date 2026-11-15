@@ -119,3 +119,11 @@
   font-size: 0.9375rem;
   color: var(--muted);
 }
+.empty {
+  display: flex;
+  align-items: center;
+  gap: 1.25rem;
+}
+.empty svg {
+  flex: none;
+}

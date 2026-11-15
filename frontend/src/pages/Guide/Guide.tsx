@@ -1068,6 +1068,7 @@ function Reference() {
 export function GuidePage() {
   return (
     <ReadingPage
+      bee="book"
       kicker="Guide"
       title="Everything the explorer does, and why."
       lead="Why hive moves depend on timing, which NASA data the map uses, and how to use each part of it."

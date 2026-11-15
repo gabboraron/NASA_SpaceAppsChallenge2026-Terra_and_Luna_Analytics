@@ -1,4 +1,5 @@
 .footer {
+  position: relative;
   width: 100%;
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(15rem, 1fr));
@@ -26,4 +27,11 @@
   .footer {
     padding: 2.5rem 1rem 3rem;
   }
+}
+/* A bee napping on the footer rule after a long season. */
+.footer .napper {
+  position: absolute;
+  top: -55px;
+  right: 2.5rem;
+  line-height: 0;
 }

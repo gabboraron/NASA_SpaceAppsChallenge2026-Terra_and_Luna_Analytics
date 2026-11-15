@@ -189,6 +189,7 @@ function SourceRow({ s }: { s: Source }) {
 export function DataPage() {
   return (
     <ReadingPage
+      bee="chart"
       kicker="Data & sources"
       title="NASA datasets, open maps and cited science."
       lead="All sources are open. NASA data is requested from NASA and cached locally, so a value can be older than today and always shows its date; raw NASA data is never committed; a small cache of the responses for the two demo seasons ships with the code and rebuilds from the same requests. Protected-area and parcel geometry is stored with the code."

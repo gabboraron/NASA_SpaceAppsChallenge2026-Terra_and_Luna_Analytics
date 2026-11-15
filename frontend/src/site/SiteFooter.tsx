@@ -1,3 +1,4 @@
+import { CuteBee } from "./CuteBee";
 import { REPO, TEAM } from "./meta";
 import { Link, ROUTES } from "./router";
 import styles from "./SiteFooter.module.css";
@@ -6,6 +7,9 @@ import styles from "./SiteFooter.module.css";
 export function SiteFooter() {
   return (
     <footer className={styles.footer}>
+      <span className={styles.napper} aria-hidden="true">
+        <CuteBee pose="sleepy" size={64} />
+      </span>
       <div>
         <span className="mono">COLOPHON</span>
         <p>

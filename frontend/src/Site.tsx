@@ -1,3 +1,4 @@
+import { BuzzLoader } from "./site/BuzzLoader";
 import { lazy, Suspense, useEffect, type ReactNode } from "react";
 import { useAccount } from "./account/session";
 import { AccountPage } from "./pages/Account/Account";
@@ -29,7 +30,9 @@ const PAGES: Record<string, Page> = {
     title: "Explorer",
     auth: true,
     render: () => (
-      <Suspense fallback={<p role="status">Loading the explorer…</p>}>
+      <Suspense
+        fallback={<BuzzLoader>Buzzing over to the explorer…</BuzzLoader>}
+      >
         <App />
       </Suspense>
     ),

@@ -444,10 +444,11 @@
 .ch {
   display: grid;
   grid-template-columns: 200px minmax(0, 1fr) minmax(0, 1fr);
-  grid-template-rows: auto 1fr;
+  grid-template-rows: auto auto 1fr;
   grid-template-areas:
     "num text fig"
-    "src text fig";
+    "src text fig"
+    "pal text fig";
   gap: 6px 2.5rem;
   padding: 4.5rem 0;
   border-top: 1px solid var(--ink);
@@ -457,6 +458,30 @@
   --hex-fs: 1.875rem;
   grid-area: num;
   font-weight: 500;
+}
+.pal {
+  grid-area: pal;
+  align-self: start;
+  margin-top: 1rem;
+  animation: float 5s ease-in-out infinite;
+}
+.pal {
+  width: 120px;
+}
+.pal svg {
+  display: block;
+  width: 100%;
+  height: auto;
+}
+@keyframes float {
+  50% {
+    transform: translateY(-4px) rotate(-3deg);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .pal {
+    animation: none;
+  }
 }
 .source {
   grid-area: src;
@@ -501,7 +526,15 @@
   gap: 6px;
 }
 .swatches span {
+  display: grid;
+  place-items: center;
   aspect-ratio: 1;
+  border: 2.5px solid var(--ink);
+  border-radius: 12px;
+}
+.swatches svg {
+  width: 72%;
+  height: 72%;
 }
 .swatches span:nth-child(1) {
   background: #7f9a6a;
@@ -520,8 +553,7 @@
 }
 .swatches span:nth-child(6) {
   background: #b9a35a;
-  outline: 1.5px dashed var(--ink);
-  outline-offset: -4px;
+  border-style: dashed;
 }
 .swatchLabels {
   font-size: 0.6875rem;
@@ -533,7 +565,9 @@
   width: 100%;
   height: auto;
   background: var(--card);
-  border: 1px solid var(--line);
+  border: 2.5px solid var(--ink);
+  border-radius: 18px;
+  box-shadow: 5px 5px 0 var(--honey);
 }
 .diagram text {
   font-family: var(--font-mono);
@@ -545,7 +579,9 @@
   gap: 0.5rem;
   padding: 1.375rem;
   background: var(--card);
-  border: 1px solid var(--line);
+  border: 2.5px solid var(--ink);
+  border-radius: 18px;
+  box-shadow: 5px 5px 0 var(--honey);
   font-size: 0.875rem;
 }
 .receiptHead {
@@ -671,9 +707,12 @@
     grid-template-areas:
       "num src"
       "num text"
-      ". fig";
+      "pal fig";
     gap: 0.625rem 1.5rem;
     padding: 3rem 0;
+  }
+  .pal {
+    width: 84px;
   }
   .numeral {
     --hex-fs: 1.75rem;
@@ -739,14 +778,18 @@
     font-size: 1.25rem;
   }
   .ch {
-    grid-template-columns: 56px minmax(0, 1fr);
+    grid-template-columns: 56px minmax(0, 1fr) 64px;
     grid-template-areas:
-      "num src"
-      "text text"
-      "fig fig";
+      "num src pal"
+      "text text text"
+      "fig fig fig";
     align-items: center;
     column-gap: 0.875rem;
     padding: 2.25rem 0;
+  }
+  .pal {
+    width: 64px;
+    margin-top: 0;
   }
   .numeral {
     --hex-w: 56px;
