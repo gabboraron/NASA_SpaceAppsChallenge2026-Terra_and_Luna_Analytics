@@ -70,6 +70,44 @@ jobs:
         run: |
           docker compose up -d --wait
           curl -fsS http://localhost:8080/api/health
+          curl -fsS -o /dev/null http://localhost:8080/api/parcels
           curl -fsS -o /dev/null http://localhost:8080/
       - if: always()
         run: docker compose down
+
+  # Push to main -> image in Azure Container Registry -> Azure Container Apps.
+  # One-time Azure setup and the repo variables it needs: docs/deploy_azure.md.
+  deploy:
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main' && vars.AZURE_CLIENT_ID != ''
+    needs: [check, frontend, docker]
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      id-token: write # OIDC login to Azure, no stored password
+    concurrency:
+      group: deploy
+      cancel-in-progress: false
+    env:
+      IMAGE: ${{ vars.AZURE_ACR }}.azurecr.io/pollination:${{ github.sha }}
+    steps:
+      - uses: actions/checkout@v7
+      - uses: azure/login@v2
+        with:
+          client-id: ${{ vars.AZURE_CLIENT_ID }}
+          tenant-id: ${{ vars.AZURE_TENANT_ID }}
+          subscription-id: ${{ vars.AZURE_SUBSCRIPTION_ID }}
+      - name: Build and push the image
+        run: |
+          az acr login --name "${{ vars.AZURE_ACR }}"
+          docker build -t "$IMAGE" .
+          docker push "$IMAGE"
+      - name: Roll out
+        run: |
+          az containerapp update -g "${{ vars.AZURE_RESOURCE_GROUP }}" \
+            -n "${{ vars.AZURE_CONTAINERAPP }}" --image "$IMAGE" -o none
+      - name: Smoke test the live app
+        run: |
+          fqdn=$(az containerapp show -g "${{ vars.AZURE_RESOURCE_GROUP }}" \
+            -n "${{ vars.AZURE_CONTAINERAPP }}" --query properties.configuration.ingress.fqdn -o tsv)
+          curl -fsS --retry 10 --retry-delay 10 --retry-all-errors "https://$fqdn/api/health"
+          echo "Live: https://$fqdn" >> "$GITHUB_STEP_SUMMARY"
