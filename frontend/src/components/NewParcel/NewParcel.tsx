@@ -8,18 +8,36 @@ type Props = {
   name: string;
   /** True when this becomes the home apiary (the first own parcel). */
   first: boolean;
+  /** The drawn shape is larger than a field: it cannot be saved. */
+  tooLarge: boolean;
   onSave: (parcel: Pick<OwnParcel, "name" | "crop" | "declared_bloom">) => void;
   onCancel: () => void;
 };
 
 /** Name the polygon just drawn and say what blooms there, then keep it as an own parcel. */
-export function NewParcel({ name, first, onSave, onCancel }: Props) {
+export function NewParcel({ name, first, tooLarge, onSave, onCancel }: Props) {
   const [label, setLabel] = useState(name);
   const [crop, setCrop] = useState(OWN_CROPS[0]);
   const [start, setStart] = useState("");
   const [end, setEnd] = useState("");
   const [error, setError] = useState("");
   const modelled = MODELLED_CROPS.has(crop);
+
+  if (tooLarge)
+    return (
+      <section className={styles.form} aria-labelledby="new-parcel-h">
+        <strong id="new-parcel-h">This shape is larger than a field</strong>
+        <p role="alert" className={styles.error}>
+          A parcel can be at most about 8 km across. Zoom in to your apiary and
+          draw around a single field.
+        </p>
+        <div className={styles.actions}>
+          <button type="button" className={styles.primary} onClick={onCancel}>
+            Discard and draw again
+          </button>
+        </div>
+      </section>
+    );
 
   const save = () => {
     if (!label.trim()) return setError("Give the parcel a name.");

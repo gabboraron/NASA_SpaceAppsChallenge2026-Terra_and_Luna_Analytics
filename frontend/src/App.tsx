@@ -29,6 +29,7 @@ import { DrawnField } from "./components/DrawnField/DrawnField";
 import { LayerPanel } from "./components/LayerPanel/LayerPanel";
 import { MapCanvas } from "./components/MapCanvas/MapCanvas";
 import {
+  MAX_FIELD_SPAN_DEG,
   centroid,
   foragingRings,
   homePin,
@@ -36,6 +37,7 @@ import {
   matchLabels,
   parcelDots,
   smapCollection,
+  spanDeg,
   weekStateText,
   weekSummary,
   type LayerId,
@@ -479,7 +481,9 @@ export function App() {
               <div role="status" className={`${styles.card} ${styles.busy}`}>
                 <strong>Click the corners of your parcel</strong>
                 <span>
-                  Click the first point again, or press Enter, to finish.
+                  Zoom in to your field first: a parcel can be at most about 8
+                  km across. Click the first point again, or press Enter, to
+                  finish.
                 </span>
               </div>
             )}
@@ -501,18 +505,39 @@ export function App() {
                     : "Home apiary"
                 }
                 first={ownList.length === 0}
+                tooLarge={spanDeg(fieldPolygon) > MAX_FIELD_SPAN_DEG}
                 onSave={saveParcel}
                 onCancel={() => setFieldPolygon(null)}
               />
             )}
-            {own.failed.size > 0 && (
-              <div role="alert" className={`${styles.card} ${styles.alert}`}>
-                <strong>Could not model the bloom of your parcel</strong>
-                <button type="button" onClick={own.retry}>
-                  Try again
-                </button>
+            {[...own.failed].slice(0, 1).map(([id, why]) => (
+              <div
+                key={id}
+                role="alert"
+                className={`${styles.card} ${styles.alert}`}
+              >
+                <strong>
+                  Could not model the bloom of{" "}
+                  {ownNames.get(id) ?? "your parcel"}
+                </strong>
+                <span>{why.reason}</span>
+                {why.refused ? (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      removeParcel(id);
+                      if (selected === id) select("");
+                    }}
+                  >
+                    Remove it and draw again
+                  </button>
+                ) : (
+                  <button type="button" onClick={own.retry}>
+                    Try again
+                  </button>
+                )}
               </div>
-            )}
+            ))}
             {weatherPolygon && (
               <DrawnField
                 year={year}
@@ -682,7 +707,7 @@ export function App() {
                 selectedOwn && {
                   name: selectedOwn.name,
                   home: selectedOwn.id === home?.id,
-                  failed: own.failed.has(selectedOwn.id),
+                  failed: own.failed.get(selectedOwn.id)?.reason,
                   onHome: () =>
                     updateAccount((a) => ({ ...a, home_id: selectedOwn.id })),
                   onRemove: () => {

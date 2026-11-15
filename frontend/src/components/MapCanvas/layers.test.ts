@@ -3,6 +3,8 @@ import { matches, parcels, timeline, verify } from "../../api/mocks";
 import type { MatchCard } from "../../api/client";
 import {
   homePin,
+  MAX_FIELD_SPAN_DEG,
+  spanDeg,
   centroid,
   foragingRings,
   hatch,
@@ -244,5 +246,24 @@ describe("matchLabels", () => {
         parcels,
       ).features,
     ).toEqual([]);
+  });
+});
+
+describe("spanDeg", () => {
+  it("measures the larger extent, so a whole-region shape is refused", () => {
+    expect(spanDeg(parcels[0].geometry)).toBeCloseTo(0.01);
+    const region = {
+      type: "Polygon" as const,
+      coordinates: [
+        [
+          [21.6, 47.7],
+          [21.8, 47.7],
+          [21.8, 47.75],
+          [21.6, 47.7],
+        ] as [number, number][],
+      ],
+    };
+    expect(spanDeg(region)).toBeCloseTo(0.2);
+    expect(spanDeg(region) > MAX_FIELD_SPAN_DEG).toBe(true);
   });
 });

@@ -32,11 +32,35 @@ export type ServiceType = Parcel["service_type"];
 // The real API is the default; `VITE_USE_MOCKS=true` runs the map offline on fixtures.
 export const useMocks = import.meta.env.VITE_USE_MOCKS === "true";
 
+/** The API refused a request; `message` is its reason when it gave one. */
+export class ApiError extends Error {
+  constructor(
+    message: string,
+    readonly status: number,
+  ) {
+    super(message);
+  }
+}
+
+/** The API's reason for refusing (a FastAPI `detail` string), if any. */
+async function reasonOf(response: Response): Promise<string | undefined> {
+  try {
+    const body = (await response.json()) as { detail?: unknown };
+    return typeof body.detail === "string" ? body.detail : undefined;
+  } catch {
+    return undefined;
+  }
+}
+
 async function get<T>(path: string, init?: RequestInit): Promise<T> {
   try {
     const response = await fetch("/api" + path, init);
     if (!response.ok)
-      throw new Error(`Request ${path} failed (${response.status}).`);
+      throw new ApiError(
+        (await reasonOf(response)) ??
+          `Request ${path} failed (${response.status}).`,
+        response.status,
+      );
     return (await response.json()) as T;
   } catch (error) {
     // A proxy answers 502/504 and a dead network throws: see whether the API is up.

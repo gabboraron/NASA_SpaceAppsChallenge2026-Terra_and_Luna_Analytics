@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import {
+  ApiError,
   getOwnTimeline,
   type OwnParcelTimeline,
   type Parcel,
@@ -35,14 +36,23 @@ const draft = (p: OwnParcel): Parcel => ({
   natura_status: "clear",
 });
 
+/** Why a parcel's bloom is missing; `refused` means trying again will not help. */
+export type Failure = { reason: string; refused: boolean };
+
+/** The API refused the parcel itself (4xx), or could not be reached. */
+const failure = (error: unknown): Failure =>
+  error instanceof ApiError && error.status < 500
+    ? { reason: error.message, refused: true }
+    : { reason: "Check that the API is running.", refused: false };
+
 export type OwnParcels = {
   /** The beekeeper's parcels in the API's shape (area 0 until modelled). */
   parcels: Parcel[];
   /** Their weekly bloom for the season, for the ones already modelled. */
   weeks: ParcelWeek[];
   pending: boolean;
-  /** Ids of the parcels whose bloom request failed. */
-  failed: ReadonlySet<string>;
+  /** Parcels whose bloom could not be modelled: id → why. */
+  failed: ReadonlyMap<string, Failure>;
   retry: () => void;
 };
 
@@ -51,7 +61,9 @@ export function useOwnParcels(own: OwnParcel[], year: Season): OwnParcels {
   const keys = useMemo(() => own.map((p) => keyOf(p, year)), [own, year]);
   const signature = keys.join("\n");
   const [loaded, setLoaded] = useState(0);
-  const [failedKeys, setFailedKeys] = useState<ReadonlySet<string>>(new Set());
+  const [failedKeys, setFailedKeys] = useState<ReadonlyMap<string, Failure>>(
+    new Map(),
+  );
   const [attempt, setAttempt] = useState(0);
 
   useEffect(() => {
@@ -75,7 +87,10 @@ export function useOwnParcels(own: OwnParcel[], year: Season): OwnParcels {
       }
       request
         .then(() => !stale && setLoaded((n) => n + 1))
-        .catch(() => !stale && setFailedKeys((f) => new Set(f).add(key)));
+        .catch(
+          (error: unknown) =>
+            !stale && setFailedKeys((f) => new Map(f).set(key, failure(error))),
+        );
     });
     return () => {
       stale = true;
@@ -89,13 +104,14 @@ export function useOwnParcels(own: OwnParcel[], year: Season): OwnParcels {
       parcels: own.map((p, i) => answers[i]?.parcel ?? draft(p)),
       weeks: answers.flatMap((a) => a?.weeks ?? []),
       pending: answers.some((a, i) => !a && !failedKeys.has(keys[i])),
-      failed: new Set(
-        own
-          .filter((_, i) => !answers[i] && failedKeys.has(keys[i]))
-          .map((p) => p.id),
+      failed: new Map(
+        own.flatMap((p, i) => {
+          const why = !answers[i] && failedKeys.get(keys[i]);
+          return why ? [[p.id, why] as const] : [];
+        }),
       ),
       retry: () => {
-        setFailedKeys(new Set());
+        setFailedKeys(new Map());
         setAttempt((a) => a + 1);
       },
     };

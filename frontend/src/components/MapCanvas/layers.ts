@@ -161,6 +161,20 @@ export function smapCollection(
   };
 }
 
+/** A drawn parcel may span at most this much (MAX_POLYGON_SPAN_DEG in contract.py). */
+export const MAX_FIELD_SPAN_DEG = 0.1;
+
+/** The larger of a polygon's longitude and latitude extent, in degrees. */
+export function spanDeg(geometry: Parcel["geometry"]): number {
+  const ring = geometry.coordinates[0];
+  const lons = ring.map((c) => c[0]);
+  const lats = ring.map((c) => c[1]);
+  return Math.max(
+    Math.max(...lons) - Math.min(...lons),
+    Math.max(...lats) - Math.min(...lats),
+  );
+}
+
 /** Vertex average of the outer ring (closing point skipped): close enough for small parcels. */
 export function centroid(geometry: Parcel["geometry"]): [number, number] {
   const ring = geometry.coordinates[0].slice(0, -1);

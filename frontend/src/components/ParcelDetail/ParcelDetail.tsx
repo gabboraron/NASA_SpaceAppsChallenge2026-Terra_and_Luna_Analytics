@@ -75,8 +75,8 @@ type Props = {
   own?: {
     name: string;
     home: boolean;
-    /** The API could not model its bloom. */
-    failed: boolean;
+    /** Why the API could not model its bloom, if it could not. */
+    failed?: string;
     onHome: () => void;
     onRemove: () => void;
   };
@@ -161,7 +161,7 @@ export function ParcelDetail({
       {own?.failed && (
         <div role="alert" className={`${styles.natura} ${styles.block}`}>
           <strong>Could not model this parcel&apos;s bloom</strong>
-          <p>Check that the API is running, then try again from the map.</p>
+          <p>{own.failed}</p>
         </div>
       )}
 
