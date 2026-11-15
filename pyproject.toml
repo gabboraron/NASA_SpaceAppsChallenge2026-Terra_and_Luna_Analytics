@@ -53,7 +53,7 @@ dev = [
 line-length = 88
 target-version = "py312"
 src = ["src", "tests"]
-extend-exclude = ["frontend"]
+extend-exclude = ["frontend", "*.ipynb"]  # notebooks are scratch demos, not linted
 
 [tool.ruff.lint]
 select = [
