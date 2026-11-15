@@ -57,6 +57,20 @@ const SOURCES: Source[] = [
     linkText: "power.larc.nasa.gov",
   },
   {
+    badge: "NISAR",
+    tone: "honey",
+    title: "NISAR L-band radar",
+    text: "Dual-polarization radar backscatter (HH, HV), turned into a radar vegetation index (RVI) for a point. An experimental script, not yet shown on the map.",
+    facts: [
+      ["Product", "L2 GCOV"],
+      ["Band", "L-band SAR"],
+      ["Archive", "ASF DAAC"],
+    ],
+    licence: "Earthdata login · NASA open data",
+    href: "https://asf.alaska.edu/datasets/daac/nisar/",
+    linkText: "asf.alaska.edu/datasets/daac/nisar",
+  },
+  {
     badge: "N2K",
     tone: "natura",
     title: "EEA Natura 2000",
@@ -78,6 +92,36 @@ const SOURCES: Source[] = [
     licence: "ODbL",
     href: "https://www.openstreetmap.org/copyright",
     linkText: "openstreetmap.org/copyright",
+  },
+  {
+    badge: "ESRI",
+    tone: "ink",
+    title: "Esri World Imagery",
+    text: "Optional satellite basemap, switched on in the layer panel.",
+    facts: [["Use", "basemap"]],
+    licence: "Esri terms of use · attribution on the map",
+    href: "https://www.arcgis.com/home/item.html?id=10df2279f9684e4a9f6a7f08febac2a9",
+    linkText: "arcgis.com · World Imagery",
+  },
+  {
+    badge: "LIT",
+    tone: "ink",
+    title: "Published phenology models",
+    text: "Chill and forcing parameters for apple, sour cherry and black locust bloom, each value cited to its paper.",
+    facts: [["Use", "bloom model parameters"]],
+    licence: "Scientific literature",
+    href: "/evidence",
+    linkText: "References on the evidence page",
+  },
+  {
+    badge: "CHECK",
+    tone: "ink",
+    title: "Hive scales, iNaturalist and PEP725",
+    text: "Past hive weights, black-locust observations and orchard flowering dates. Used only to check the models, not by the map.",
+    facts: [["Use", "verification only"]],
+    licence: "CC BY 4.0 and the providers' terms",
+    href: "https://doi.org/10.17632/3v3hhkddmz.1",
+    linkText: "doi:10.17632/3v3hhkddmz.1",
   },
 ];
 
@@ -132,7 +176,7 @@ export function DataPage() {
   return (
     <ReadingPage
       kicker="Data & sources"
-      title="Three NASA datasets and two open maps."
+      title="NASA datasets, open maps and cited science."
       lead="All sources are open. NASA data is requested from NASA and cached locally, so a value can be older than today and always shows its date; raw NASA data is never committed; a small cache of the responses for the two demo seasons ships with the code and rebuilds from the same requests. Protected-area and parcel geometry is stored with the code."
     >
       <div className={`${page.wrap} ${styles.list}`}>
