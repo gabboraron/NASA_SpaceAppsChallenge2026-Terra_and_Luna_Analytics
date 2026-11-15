@@ -18,7 +18,6 @@ from contextlib import ExitStack
 from datetime import date
 from typing import Any
 
-import earthaccess
 import numpy as np
 import rasterio
 import shapely
@@ -68,7 +67,7 @@ def search_scenes(bbox: Bbox, start: date, end: date) -> list[Scene]:
     login()
     scenes: list[Scene] = []
     for short_name, suffixes in _PRODUCTS.items():
-        granules = earthaccess.search_data(
+        granules = earthdata.search(
             short_name=short_name,
             version="2.0",
             bounding_box=bbox,

@@ -25,7 +25,6 @@ class Clock:
 def clock(monkeypatch: pytest.MonkeyPatch) -> Iterator[Clock]:
     """Fresh in-memory season state and a hand-driven clock."""
     monkeypatch.setattr(contract, "_inputs_by_year", {})
-    monkeypatch.setattr(contract, "_failed_at", {})
     monkeypatch.setattr(contract, "_timelines", {})
     fake = Clock()
     monkeypatch.setattr(contract, "monotonic", fake)

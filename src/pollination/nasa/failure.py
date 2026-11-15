@@ -14,16 +14,8 @@ from threading import Thread
 import httpx
 
 MAX_DETAIL = 120  # characters of an unknown error's message kept in the note
-_AUTH = (401, 403)
-
-
-def _names(exc: BaseException) -> set[str]:
-    """Class names in the exception's hierarchy.
-
-    Matching by name covers ``requests`` (used inside earthaccess) without
-    importing it here.
-    """
-    return {cls.__name__ for cls in type(exc).__mro__}
+# Answers worth retrying: rate limited or the service is down for now.
+TRANSIENT_STATUSES = (429, 500, 502, 503, 504)
 
 
 def reason(service: str, exc: BaseException) -> str:
@@ -37,12 +29,13 @@ def reason(service: str, exc: BaseException) -> str:
         One sentence for a ``Missing`` provenance note. It never includes request
         headers, so no token can leak into it.
     """
-    names = _names(exc)
+    # Class names cover ``requests`` errors (inside earthaccess) without importing it.
+    names = {cls.__name__ for cls in type(exc).__mro__}
     if isinstance(exc, httpx.HTTPStatusError):
         code = exc.response.status_code
-        if code in _AUTH:
+        if code in (401, 403):
             return f"NASA {service} refused the Earthdata login (HTTP {code})"
-        if code == 429 or code >= 500:  # noqa: PLR2004  # 429 = rate limited
+        if code in TRANSIENT_STATUSES:
             return f"NASA {service} is unavailable right now (HTTP {code})"
         return f"NASA {service} answered HTTP {code}"
     if isinstance(exc, TimeoutError) or any("Timeout" in n for n in names):

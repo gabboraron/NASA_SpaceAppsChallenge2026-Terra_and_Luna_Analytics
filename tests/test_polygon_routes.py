@@ -3,13 +3,11 @@
 import asyncio
 from collections.abc import Callable, Iterator
 from datetime import date, timedelta
-from threading import Event
 from typing import Any
 
 import httpx
 import pytest
 
-from pollination import contract
 from pollination import models as m
 from pollination.api import app
 from pollination.contract import latest_hls, power_daily
@@ -199,26 +197,6 @@ def test_hls_failure_is_a_missing_value(monkeypatch: pytest.MonkeyPatch) -> None
     assert response.status_code == 200
     note = response.json()["ndvi"]["provenance"]["note"]
     assert note == "NASA HLS request failed: CMR down"
-
-
-def test_a_hanging_hls_read_is_missing_after_the_deadline(
-    monkeypatch: pytest.MonkeyPatch,
-) -> None:
-    """earthaccess has no timeout: the route still answers, with the reason."""
-    monkeypatch.setenv("EARTHDATA_TOKEN", "test-token")
-    monkeypatch.setattr(contract, "HLS_DEADLINE_S", 0.05)
-    release = Event()
-
-    def hangs(polygon: m.Polygon) -> m.HlsResponse:
-        release.wait()
-        raise AssertionError("released after the test")
-
-    app.dependency_overrides[latest_hls] = lambda: hangs
-    response = send("POST", "/polygon/hls", json=SQUARE)
-    release.set()
-    assert response.status_code == 200
-    note = response.json()["ndvi"]["provenance"]["note"]
-    assert note == "NASA HLS did not answer in time"
 
 
 def test_hls_refuses_a_polygon_far_bigger_than_a_field(

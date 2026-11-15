@@ -25,7 +25,7 @@ from pollination.engine.polygon import BASELINE_YEARS, power_response
 from pollination.engine.timeline import SeasonInputs, build_timeline, fetch_inputs
 from pollination.geo import centroid, to_shape
 from pollination.nasa import hls
-from pollination.nasa.failure import reason, within
+from pollination.nasa.failure import reason
 from pollination.nasa.power import PowerDaily, daily_point
 from pollination.weeks import SEASON_END
 
@@ -33,7 +33,6 @@ log = logging.getLogger(__name__)
 router = APIRouter()
 
 HLS_LOOKBACK_DAYS = 30
-HLS_DEADLINE_S = 120.0  # a cold read of one field takes well under this
 MAX_POLYGON_SPAN_DEG = 0.1  # about 8 to 11 km: a field, not a region
 # Failed season inputs are reused this long, so with NASA down every slider move
 # does not wait for the same timeouts again.
@@ -49,8 +48,8 @@ def catalog() -> Catalog:
     return load_catalog(Settings())
 
 
-_inputs_by_year: dict[m.Season, SeasonInputs] = {}
-_failed_at: dict[m.Season, float] = {}
+# Each season's inputs with when they were fetched.
+_inputs_by_year: dict[m.Season, tuple[SeasonInputs, float]] = {}
 _inputs_lock = Lock()
 # Each season's timeline with the inputs it was built from.
 _timelines: dict[m.Season, tuple[SeasonInputs, m.TimelineResponse]] = {}
@@ -66,10 +65,8 @@ def season_inputs(year: m.Season) -> SeasonInputs:
     """
     with _inputs_lock:
         kept = _inputs_by_year.get(year)
-        if kept and not kept.failed:
-            return kept
-        if kept and monotonic() - _failed_at[year] < RETRY_FAILED_S:
-            return kept
+        if kept and (not kept[0].failed or monotonic() - kept[1] < RETRY_FAILED_S):
+            return kept[0]
         settings = Settings()
         inputs = fetch_inputs(
             year,
@@ -78,9 +75,8 @@ def season_inputs(year: m.Season) -> SeasonInputs:
             earthdata=settings.has_earthdata,
             phenology=catalog().phenology,
         )
-        _inputs_by_year[year] = inputs
-        if inputs.failed:
-            _failed_at[year] = monotonic()
+        _inputs_by_year[year] = (inputs, monotonic())
+        _timelines.pop(year, None)  # built from the inputs just replaced
         return inputs
 
 
@@ -238,8 +234,7 @@ def hls_latest(
 ) -> m.HlsResponse:
     """Return the latest usable HLS scene of a drawn polygon (last 30 days).
 
-    Slow on a cold cache (remote reads); needs an Earthdata token. A read that
-    takes longer than ``HLS_DEADLINE_S`` is Missing.
+    Slow on a cold cache (remote reads); needs an Earthdata token.
     """
     if not Settings().has_earthdata:
         return _hls_missing("No Earthdata token configured; HLS not queried")
@@ -249,7 +244,7 @@ def hls_latest(
             "Polygon too large for a satellite read; draw one around a single field"
         )
     try:
-        return within(HLS_DEADLINE_S, lambda: latest(polygon))
+        return latest(polygon)
     except Exception as exc:  # any NASA failure becomes Missing
         log.warning("HLS request failed: %s", exc)
         return _hls_missing(reason("HLS", exc))

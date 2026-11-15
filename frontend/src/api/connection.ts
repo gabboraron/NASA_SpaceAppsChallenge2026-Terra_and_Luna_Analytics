@@ -55,11 +55,6 @@ export const useOnline = () => useSyncExternalStore(subscribe, isOnline);
 
 /** Calls `onBack` (keep it stable) each time the API answers again after an outage. */
 export function useBackOnline(onBack: () => void) {
-  useEffect(() => {
-    let was = online;
-    return subscribe(() => {
-      if (online && !was) onBack();
-      was = online;
-    });
-  }, [onBack]);
+  // Listeners only hear changes, so being online here means it just came back.
+  useEffect(() => subscribe(() => online && onBack()), [onBack]);
 }

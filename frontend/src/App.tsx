@@ -104,7 +104,9 @@ export function App() {
   );
 
   // `stale` drops a late failure from an effect that has since been replaced.
+  const baseLoaded = !!base.data;
   useEffect(() => {
+    if (baseLoaded) return;
     let stale = false;
     Promise.all([getParcels(), getNatura(), getActors()])
       .then(([parcels, natura, actors]) =>
@@ -119,7 +121,7 @@ export function App() {
     return () => {
       stale = true;
     };
-  }, [attempt]);
+  }, [attempt, baseLoaded]);
 
   // A polygon drawn on the map gets live POWER and HLS reads (any place, not
   // only the listed parcels).
@@ -272,6 +274,7 @@ export function App() {
   const retry = useCallback(() => {
     setBase((b) => (b.error ? {} : b));
     setTimelines((t) => {
+      if (!SEASONS.some((y) => t[y]?.error)) return t;
       const kept = { ...t };
       for (const y of SEASONS) if (kept[y]?.error) delete kept[y];
       return kept;

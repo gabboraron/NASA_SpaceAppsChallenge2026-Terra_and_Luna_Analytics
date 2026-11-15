@@ -32,7 +32,7 @@ from pollination.engine.phenology import (
 from pollination.geo import centroid, smap_cell
 from pollination.nasa import hls
 from pollination.nasa import smap as smap_client
-from pollination.nasa.failure import reason, within
+from pollination.nasa.failure import reason
 from pollination.nasa.power import PowerDaily, daily_point, grid_node
 from pollination.nasa.smap import SmapSeason, SmapWeek
 from pollination.weeks import (
@@ -55,9 +55,6 @@ log = logging.getLogger(__name__)
 LOW_NECTAR_PERCENTILE = 10.0
 # Gap-filled NDYI/NDVI only between observations at most this far apart (D4).
 MAX_INTERPOLATION_GAP_DAYS = 21
-# A season's HLS or SMAP read on a hanging network returns Missing after this; the
-# read carries on and fills the cache for the next attempt.
-SEASON_READ_DEADLINE_S = 300.0
 # Sunflower only: for black locust, a deep-rooted tree, the flag marked the best
 # flow year of the reference hive scales (2024) as low.
 NECTAR_CROPS = frozenset({"sunflower"})
@@ -90,7 +87,8 @@ class SeasonInputs:
         hls: HLS observations per parcel id, for the parcels it was fetched for.
         smap: SMAP values for the region.
         failed: A request failed (worth retrying), as opposed to a source that is
-            not configured or not built; only inputs without failures are reused.
+            not configured or not built; failed inputs are reused only for a short
+            retry pause.
     """
 
     power: Mapping[str, PowerDaily | str]
@@ -685,11 +683,8 @@ def fetch_inputs(
             if (entry := phenology.get(p.crop)) and entry.method == "ndyi"
         ]
         try:
-            observed = within(
-                SEASON_READ_DEADLINE_S,
-                lambda: hls.parcel_indices(
-                    targets, date(year, *SEASON_START), end, cache_dir=cache_dir
-                ),
+            observed = hls.parcel_indices(
+                targets, date(year, *SEASON_START), end, cache_dir=cache_dir
             )
         except Exception as exc:  # any NASA failure becomes Missing
             log.warning("HLS fetch failed: %s", exc)
@@ -700,10 +695,7 @@ def fetch_inputs(
         smap = "No Earthdata token configured; SMAP not queried"
     else:
         try:
-            smap = within(
-                SEASON_READ_DEADLINE_S,
-                lambda: smap_client.season(year, cache_dir=cache_dir),
-            )
+            smap = smap_client.season(year, cache_dir=cache_dir)
         except Exception as exc:  # any NASA failure becomes Missing
             log.warning("SMAP fetch failed: %s", exc)
             smap = reason("SMAP", exc)
