@@ -11,7 +11,7 @@ Project summary: the `project-context` skill. Build plan: `docs/implementation_p
 - `tests/` pytest; `frontend/` React + Vite + TS + CSS Modules + MapLibre (+ Terra Draw)
 - `data/` committed config/geometry (parcels, Natura 2000, phenology, synthetic actors, ranking); raw NASA data is never committed; the only exception is the small warmed response cache `data/nasa-cache.zip` (set up with `docs/cache_setup.md`)
 - `scripts/` one-off data builders + Earthdata probe; `docs/` plan + `ENGINEERING_GUIDE.md` (git/commit/release, security, testing)
-- `compose.yaml`, `Dockerfile`, `frontend/Dockerfile`, `frontend/nginx.conf`: Docker stack
+- `compose.yaml`, `Dockerfile`: one image; `pollination.web` serves the built map client at `/` and mounts the API at `/api`
 - `pyproject.toml` is the single source of tool config; `uv.lock` is committed
 - `.github/` CI, PR-title check, Dependabot; `.pre-commit-config.yaml` local gate; `.claude/` skills + hooks; `repos/` reference clones (gitignored)
 
@@ -56,14 +56,15 @@ Project summary: the `project-context` skill. Build plan: `docs/implementation_p
 - Pick work from GitHub issues (one per WP); assign yourself before starting; the PR closes the issue.
 
 ## CI/CD
-- GitHub Actions (`.github/workflows/ci.yml`) runs on every push to main and every PR: `check` (`uv sync --locked`, ruff, ruff format check, pyright, pytest with coverage), `frontend` (npm ci, tsc, eslint, prettier, vite build), `docker` (compose build + smoke test). Keep it green; don't merge red.
+- GitHub Actions (`.github/workflows/ci.yml`) runs on every push to main and every PR: `check` (`uv sync --locked`, ruff, ruff format check, pyright, pytest with coverage), `frontend` (npm ci, tsc, eslint, prettier, vite build), `docker` (compose build + smoke test), `deploy` (main only: ACR push + Container Apps rollout + live health check). Keep it green; don't merge red.
 - pre-commit (`.pre-commit-config.yaml`) runs the same Python checks locally. Install once with `uv run pre-commit install`.
 - CI also runs `pip-audit` on the locked deps and a gitleaks secret scan; the PR title must be a Conventional Commit.
 - Dependabot updates uv deps and Actions weekly. Dependency changes go through `uv add` so the lockfile stays in sync (CI fails on a stale lock).
 
 ## Run
-- Docker: `docker compose up --build` → map at http://localhost:8080, API docs at http://127.0.0.1:8000/docs.
-  NASA cache lives in the `nasa-cache` volume. Optional `.env` (Earthdata creds, `WEB_PORT`, `API_PORT`, `VITE_USE_MOCKS`).
+- Docker: `docker compose up --build` → map at http://localhost:8080, API docs at http://localhost:8080/api/docs.
+  NASA cache lives in the `nasa-cache` volume. Optional `.env` (Earthdata creds, `WEB_PORT`, `VITE_USE_MOCKS`).
+- Azure: Container Apps (one replica max: in-memory state), image in ACR; CI `deploy` job rolls out every push to main via OIDC. Setup: `docs/deploy_azure.md`.
 - Local: `uv run uvicorn pollination.api:app --reload` + `cd frontend && npm run dev` (Vite proxies `/api` → :8000).
 - The API image's runtime needs `libexpat1` for rasterio's bundled GDAL; keep it when changing the base image.
 
@@ -78,7 +79,7 @@ npx --yes openapi-typescript@7.13.0 http://127.0.0.1:8000/openapi.json -o fronte
 ```
 
 Backend routes use the paths in issue #8. Strip the browser-facing `/api`
-prefix in the frontend proxy (Vite in dev, nginx in Docker). Timeline weeks are numbered 1–26 from March 1.
+prefix in the frontend proxy (Vite in dev; in Docker `pollination.web` mounts the API at `/api`). Timeline weeks are numbered 1–26 from March 1.
 WP2 responses are synthetic fixtures; live data and verification state belong to WP13.
 
 ## Domain rules (from the plan; don't break them)

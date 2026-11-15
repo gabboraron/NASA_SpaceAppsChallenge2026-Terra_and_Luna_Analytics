@@ -14,6 +14,8 @@ class Settings(BaseSettings):
     earthdata_token: SecretStr | None = None
     cache_dir: Path = Path(".cache")
     data_dir: Path = Path("data")
+    # Built map client served by pollination.web (Docker); unused by the bare API.
+    static_dir: Path = Path("frontend/dist")
     # Geographic bounds are ordered west, south, east, north.
     bbox: tuple[float, float, float, float] = (21.6, 47.7, 22.4, 48.05)
     # Drawn polygons have no crop: a generic heat-unit base (deg C).
