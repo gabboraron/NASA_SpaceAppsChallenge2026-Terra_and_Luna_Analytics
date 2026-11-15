@@ -126,18 +126,14 @@ export function LandingPage() {
       <section className={`${page.wrap} ${styles.hero}`}>
         <FlightPath />
         <div className={styles.heroGrid}>
-          <div>
-            <p className={styles.slogan}>
-              <BeeMark size={30} />
-              <span>
-                Don&apos;t worry, <mark>bee happy.</mark>
-              </span>
-            </p>
-            <h1 className={styles.headline}>
-              Bloom moves.
-              <br />
-              The hives should follow.
+          <div className={styles.lead}>
+            <BeeMark size={30} />
+            <h1 className={styles.slogan}>
+              Don&apos;t worry, <mark>bee happy.</mark>
             </h1>
+            <p className={styles.headline}>
+              Bloom moves. The hives should follow.
+            </p>
           </div>
           <p className={styles.heroText}>
             Satellites see each field flower, week by week. HappyBee turns that
