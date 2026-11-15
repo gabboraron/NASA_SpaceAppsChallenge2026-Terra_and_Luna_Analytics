@@ -16,7 +16,7 @@ services:
     build:
       context: frontend
       args:
-        VITE_USE_MOCKS: ${VITE_USE_MOCKS:-false}
+        VITE_USE_MOCKS: ${VITE_USE_MOCKS:-}
     ports:
       - "${WEB_PORT:-8080}:80"
     depends_on:
