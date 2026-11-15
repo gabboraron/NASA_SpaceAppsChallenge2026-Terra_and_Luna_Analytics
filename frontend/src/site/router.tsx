@@ -5,6 +5,7 @@ export const ROUTES = {
   home: "/",
   app: "/app",
   method: "/how-it-works",
+  evidence: "/evidence",
   data: "/data",
   guide: "/guide",
 } as const;

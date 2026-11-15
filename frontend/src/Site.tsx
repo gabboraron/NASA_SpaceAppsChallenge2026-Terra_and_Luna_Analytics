@@ -1,5 +1,6 @@
 import { lazy, Suspense, useEffect, type ReactNode } from "react";
 import { DataPage } from "./pages/Data/Data";
+import { EvidencePage } from "./pages/Evidence/Evidence";
 import { GuidePage } from "./pages/Guide/Guide";
 import { LandingPage } from "./pages/Landing/Landing";
 import { MethodPage } from "./pages/Method/Method";
@@ -19,6 +20,7 @@ const PAGES: Record<string, { title: string; render: () => ReactNode }> = {
     ),
   },
   [ROUTES.method]: { title: "How it works", render: () => <MethodPage /> },
+  [ROUTES.evidence]: { title: "Evidence", render: () => <EvidencePage /> },
   [ROUTES.data]: { title: "Data & sources", render: () => <DataPage /> },
   [ROUTES.guide]: { title: "Guide", render: () => <GuidePage /> },
 };
