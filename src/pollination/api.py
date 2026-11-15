@@ -8,6 +8,7 @@ from contextlib import asynccontextmanager
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
+from pollination import worker
 from pollination.config import Settings
 from pollination.contract import prefetch_latest_season, router
 from pollination.nasa.cache_share import import_cache
@@ -39,6 +40,7 @@ async def lifespan(_app: FastAPI) -> AsyncGenerator[None]:
     import_shipped_cache(Settings())
     prefetch_latest_season()
     yield
+    worker.shutdown()
 
 
 app = FastAPI(title="Pollination API", lifespan=lifespan)
