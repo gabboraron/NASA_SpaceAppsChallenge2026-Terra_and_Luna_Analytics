@@ -20,7 +20,7 @@ type Position = tuple[
 
 
 class Season(IntEnum):
-    """Seasons supported by the demo timeline."""
+    """Seasons the shipped NASA cache covers; the latest season is read live."""
 
     DROUGHT = 2022
     COMPARISON = 2024
@@ -166,9 +166,13 @@ class SoilMoistureWeek(BaseModel):
 
 
 class TimelineResponse(BaseModel):
-    """Seasonal map data loaded in one request."""
+    """Seasonal map data loaded in one request.
 
-    year: Season
+    ``pending`` means HLS and SMAP are still being fetched: ask again later.
+    """
+
+    year: int
+    pending: bool = False
     parcel_weeks: list[ParcelWeek]
     smap_cells: list[SoilMoistureWeek]
 

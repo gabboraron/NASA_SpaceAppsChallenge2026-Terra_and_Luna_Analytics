@@ -13,6 +13,16 @@ WEEKS = range(1, 27)  # D12: weekly steps from 1 March, March-August
 WEEK_DAYS = 7
 SEASON_START = (3, 1)
 SEASON_END = (8, 31)
+# NASA products trail the calendar by days (HLS, SMAP) to weeks (POWER reanalysis).
+SETTLE_DAYS = 14
+
+
+def latest_season(today: date) -> int:
+    """Latest season whose NASA data is complete: this year from mid-September."""
+    settled = today - timedelta(days=SETTLE_DAYS)
+    # shortcut: complete seasons only; a running season needs a "today" cutoff.
+    past_end = (settled.month, settled.day) > SEASON_END
+    return settled.year if past_end else settled.year - 1
 
 
 def week_start(year: int, week: int) -> date:

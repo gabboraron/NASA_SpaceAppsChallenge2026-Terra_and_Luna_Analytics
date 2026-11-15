@@ -7,7 +7,7 @@ import styles from "./Guide.module.css";
 const STEPS = [
   {
     title: "Pick a season",
-    text: "2022 or 2024, top right. 2022 was a drought year.",
+    text: "2022, 2024 or the latest season, top right. 2022 was a drought year; the latest season is read live from NASA.",
   },
   {
     title: "Move the week",

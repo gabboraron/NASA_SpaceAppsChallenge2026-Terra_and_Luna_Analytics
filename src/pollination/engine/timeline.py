@@ -74,6 +74,7 @@ DECLARED_SOURCE = "Grower declaration"
 PHENOLOGY_SOURCE = "data/phenology.json"
 NECTAR_SOURCE = "Nectar heuristic (plan D13)"
 SMAP_SOURCE = "NASA SMAP L4 (SPL4SMGP) root-zone soil moisture"
+PENDING = "Being fetched from NASA; this can take several minutes"
 
 
 # --- inputs ----------------------------------------------------------------------
@@ -90,12 +91,14 @@ class SeasonInputs:
         failed: A request failed (worth retrying), as opposed to a source that is
             not configured or not built; failed inputs are reused only for a short
             retry pause.
+        pending: HLS and SMAP were left out and are being fetched separately.
     """
 
     power: Mapping[str, PowerDaily | str]
     hls: Mapping[str, Sequence[hls.Obs]] | str
     smap: SmapSeason | str
     failed: bool = False
+    pending: bool = False
 
 
 # --- per-week pieces -------------------------------------------------------------
@@ -535,7 +538,7 @@ def apply_verifications(
 
 
 def build_timeline(
-    year: m.Season,
+    year: int,
     parcels: Sequence[m.Parcel],
     phenology: Mapping[str, PhenologyEntry],
     inputs: SeasonInputs,
@@ -572,6 +575,7 @@ def build_timeline(
         )
     return m.TimelineResponse(
         year=year,
+        pending=inputs.pending,
         parcel_weeks=apply_verifications(weeks, verifications),
         smap_cells=smap_cells(inputs.smap),
     )
@@ -646,6 +650,67 @@ def _read_nasa[T](service: str, read: Callable[[], T]) -> tuple[T | str, bool]:
         return reason(service, exc), True
 
 
+def _fetch_power(
+    year: int,
+    parcels: Sequence[m.Parcel],
+    cache_dir: Path,
+    phenology: Mapping[str, PhenologyEntry],
+) -> tuple[dict[str, PowerDaily | str], bool]:
+    """Fetch POWER per parcel id, and say whether a request failed."""
+    end = date(year, *SEASON_END)
+    failed = False
+    at_node: dict[tuple[float, float], list[m.Parcel]] = {}
+    for parcel in parcels:
+        lon, lat = centroid(parcel.geometry)
+        node = grid_node(lat, lon)
+        at_node.setdefault(node, []).append(parcel)
+    power: dict[str, PowerDaily | str] = {}
+    with httpx.Client() as client:  # one connection for every grid node
+        for node, here in at_node.items():
+            series: PowerDaily | str
+            try:
+                series = daily_point(
+                    *node, date(year, 1, 1), end, client=client, cache_dir=cache_dir
+                )
+            except Exception as exc:  # any NASA failure becomes Missing
+                log.warning("POWER request for %s failed: %s", node, exc)
+                series = reason("POWER", exc)
+                failed = True
+            history = _history_start(here, phenology, year)
+            if history is not None and not isinstance(series, str):
+                try:
+                    series = _with_history(series, node, history, client, cache_dir)
+                except Exception as exc:  # season data stays; chilling is Missing
+                    log.warning("POWER autumn request for %s failed: %s", node, exc)
+                    failed = True
+            for parcel in here:
+                power[parcel.id] = series
+    return power, failed
+
+
+def pending_inputs(
+    year: int,
+    parcels: Sequence[m.Parcel],
+    cache_dir: Path,
+    phenology: Mapping[str, PhenologyEntry],
+) -> SeasonInputs:
+    """POWER only, which takes seconds; HLS and SMAP are marked as being fetched.
+
+    Args:
+        year: Season.
+        parcels: All listed parcels.
+        cache_dir: NASA response cache root.
+        phenology: Phenology entries by crop.
+
+    Returns:
+        Inputs with ``pending`` set, to show until :func:`fetch_inputs` finishes.
+    """
+    power, failed = _fetch_power(year, parcels, cache_dir, phenology)
+    return SeasonInputs(
+        power=power, hls=PENDING, smap=PENDING, failed=failed, pending=True
+    )
+
+
 def fetch_inputs(
     year: int,
     parcels: Sequence[m.Parcel],
@@ -675,33 +740,7 @@ def fetch_inputs(
         The inputs for :func:`build_timeline`.
     """
     end = date(year, *SEASON_END)
-    failed = False
-    at_node: dict[tuple[float, float], list[m.Parcel]] = {}
-    for parcel in parcels:
-        lon, lat = centroid(parcel.geometry)
-        node = grid_node(lat, lon)
-        at_node.setdefault(node, []).append(parcel)
-    power: dict[str, PowerDaily | str] = {}
-    with httpx.Client() as client:  # one connection for every grid node
-        for node, here in at_node.items():
-            series: PowerDaily | str
-            try:
-                series = daily_point(
-                    *node, date(year, 1, 1), end, client=client, cache_dir=cache_dir
-                )
-            except Exception as exc:  # any NASA failure becomes Missing
-                log.warning("POWER request for %s failed: %s", node, exc)
-                series = reason("POWER", exc)
-                failed = True
-            history = _history_start(here, phenology, year)
-            if history is not None and not isinstance(series, str):
-                try:
-                    series = _with_history(series, node, history, client, cache_dir)
-                except Exception as exc:  # season data stays; chilling is Missing
-                    log.warning("POWER autumn request for %s failed: %s", node, exc)
-                    failed = True
-            for parcel in here:
-                power[parcel.id] = series
+    power, failed = _fetch_power(year, parcels, cache_dir, phenology)
     # Without a token only the cache answers: a miss raises instead of calling NASA.
     live = None if earthdata else _needs_token
     targets = [

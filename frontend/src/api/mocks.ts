@@ -202,6 +202,7 @@ export function timeline(year: Season): Timeline {
   const weeks = Array.from({ length: WEEKS }, (_, i) => i + 1);
   return {
     year,
+    pending: false,
     parcel_weeks: parcels.flatMap((p) => weeks.map((w) => week(p, w, year))),
     smap_cells: weeks.map((w) => ({
       cell_id: "C1",

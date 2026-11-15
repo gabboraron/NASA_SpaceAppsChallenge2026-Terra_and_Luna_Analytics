@@ -7,7 +7,8 @@ export type Parcel = Schemas["Parcel"];
 export type Natura = Schemas["NaturaCollection"];
 export type Actors = Schemas["Actors"];
 export type Beekeeper = Schemas["Beekeeper"];
-export type Season = Schemas["Season"];
+/** A season year: one the shipped cache covers, or the latest one read live. */
+export type Season = number;
 export type Timeline = Schemas["TimelineResponse"];
 export type ParcelWeek = Schemas["ParcelWeek"];
 export type Polygon = Schemas["Polygon"];
@@ -69,7 +70,11 @@ export const getTimeline = (year: Season) =>
   cached(`timeline:${year}`, () =>
     useMocks
       ? Promise.resolve(mocks.timeline(year))
-      : get<Timeline>(`/timeline?year=${year}`),
+      : get<Timeline>(`/timeline?year=${year}`).then((timeline) => {
+          // HLS and SMAP are still being fetched: the next call asks again.
+          if (timeline.pending) cache.delete(`timeline:${year}`);
+          return timeline;
+        }),
   );
 
 /** Simulated grower field photo (D16): the parcel's blooming weeks become Observed. */

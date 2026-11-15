@@ -38,7 +38,8 @@ import { MatchPanel } from "./components/MatchPanel/MatchPanel";
 import { MoveCalculator } from "./components/MoveCalculator/MoveCalculator";
 import { TimeSlider } from "./components/TimeSlider/TimeSlider";
 import {
-  SEASONS,
+  LIVE_SEASON,
+  MAP_SEASONS,
   SEASON_LABELS,
   WEEKS,
   isSeason,
@@ -53,6 +54,7 @@ import styles from "./App.module.css";
 
 // Week 20 = mid-July, sunflower bloom: the demo's opening view.
 const START_WEEK = 20;
+const PENDING_POLL_MS = 20_000;
 const ALL_ON: Record<LayerId, boolean> = {
   parcels: true,
   natura: true,
@@ -69,7 +71,7 @@ const SHEETS: { id: Sheet; label: string }[] = [
   { id: "layers", label: "Layers" },
 ];
 
-/** Optional deep link `?year=2022|2024&week=1..26`; bad values are ignored. */
+/** Optional deep link `?year=<a map season>&week=1..26`; bad values are ignored. */
 function linkedView(): { year: Season; week: number } {
   const query = new URLSearchParams(window.location.search);
   const y = Number(query.get("year"));
@@ -148,22 +150,28 @@ export function App() {
 
   const current = timelines[year];
   useEffect(() => {
-    if (current?.data) return;
+    if (current?.data && !current.data.pending) return;
     let stale = false;
-    getTimeline(year)
-      .then((data) => setTimelines((t) => ({ ...t, [year]: { data } })))
-      .catch(() => {
-        if (!stale)
-          setTimelines((t) => ({
-            ...t,
-            [year]: {
-              error:
-                "Could not load the timeline. Check that the API is running.",
-            },
-          }));
-      });
+    const load = () =>
+      getTimeline(year)
+        .then((data) => {
+          if (!stale) setTimelines((t) => ({ ...t, [year]: { data } }));
+        })
+        .catch(() => {
+          if (!stale)
+            setTimelines((t) => ({
+              ...t,
+              [year]: {
+                error:
+                  "Could not load the timeline. Check that the API is running.",
+              },
+            }));
+        });
+    // A pending season (satellite data still being fetched) is asked for again.
+    const timer = setTimeout(load, current?.data ? PENDING_POLL_MS : 0);
     return () => {
       stale = true;
+      clearTimeout(timer);
     };
   }, [year, attempt, current?.data]);
 
@@ -277,9 +285,9 @@ export function App() {
   const retry = useCallback(() => {
     setBase((b) => (b.error ? {} : b));
     setTimelines((t) => {
-      if (!SEASONS.some((y) => t[y]?.error)) return t;
+      if (!MAP_SEASONS.some((y) => t[y]?.error)) return t;
       const kept = { ...t };
-      for (const y of SEASONS) if (kept[y]?.error) delete kept[y];
+      for (const y of MAP_SEASONS) if (kept[y]?.error) delete kept[y];
       return kept;
     });
     setAttempt((a) => a + 1);
@@ -316,7 +324,7 @@ export function App() {
             Layers
           </button>
           <div role="group" aria-label="Season" className={styles.season}>
-            {SEASONS.map((y) => (
+            {MAP_SEASONS.map((y) => (
               <button
                 key={y}
                 type="button"
@@ -325,6 +333,7 @@ export function App() {
                 onClick={() => setYear(y)}
               >
                 {y}
+                {y === LIVE_SEASON && " · live"}
                 <span className="sr-only">
                   {`, ${SEASON_LABELS[y].toLowerCase()}`}
                 </span>
@@ -410,16 +419,27 @@ export function App() {
                   cache can take a minute.
                 </span>
               </div>
-            ) : null}
-            {timeline && visible.smap && timeline.smap_cells.length === 0 && (
-              <div role="status" className={`${styles.card} ${styles.warn}`}>
-                <strong>Soil moisture not available</strong>
+            ) : current.data.pending ? (
+              <div role="status" className={`${styles.card} ${styles.busy}`}>
+                <strong>Fetching {year} satellite data from NASA…</strong>
                 <span>
-                  No SMAP cells for {year} yet, so nectar shows as unknown on
-                  the drought-sensitive crops.
+                  Bloom from weather is shown already; satellite bloom and soil
+                  moisture follow, which can take several minutes.
                 </span>
               </div>
-            )}
+            ) : null}
+            {timeline &&
+              !timeline.pending &&
+              visible.smap &&
+              timeline.smap_cells.length === 0 && (
+                <div role="status" className={`${styles.card} ${styles.warn}`}>
+                  <strong>Soil moisture not available</strong>
+                  <span>
+                    No SMAP cells for {year} yet, so nectar shows as unknown on
+                    the drought-sensitive crops.
+                  </span>
+                </div>
+              )}
             {info && visible.parcels && (
               <div className={styles.card} aria-live="polite">
                 <strong>

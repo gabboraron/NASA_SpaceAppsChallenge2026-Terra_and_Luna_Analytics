@@ -556,12 +556,6 @@ export interface components {
             /** Benefit Vs Alternative */
             benefit_vs_alternative: number;
         };
-        /**
-         * Season
-         * @description Seasons supported by the demo timeline.
-         * @enum {integer}
-         */
-        Season: 2022 | 2024;
         /** @enum {string} */
         ServiceType: "pollination" | "forage";
         /**
@@ -579,9 +573,17 @@ export interface components {
         /**
          * TimelineResponse
          * @description Seasonal map data loaded in one request.
+         *
+         *     ``pending`` means HLS and SMAP are still being fetched: ask again later.
          */
         TimelineResponse: {
-            year: components["schemas"]["Season"];
+            /** Year */
+            year: number;
+            /**
+             * Pending
+             * @default false
+             */
+            pending: boolean;
             /** Parcel Weeks */
             parcel_weeks: components["schemas"]["ParcelWeek"][];
             /** Smap Cells */
@@ -689,7 +691,7 @@ export interface operations {
     timeline_timeline_get: {
         parameters: {
             query: {
-                year: components["schemas"]["Season"];
+                year: number;
             };
             header?: never;
             path?: never;
@@ -722,7 +724,7 @@ export interface operations {
             query: {
                 beekeeper_id: string;
                 week: number;
-                year: components["schemas"]["Season"];
+                year: number;
             };
             header?: never;
             path?: never;
@@ -817,7 +819,7 @@ export interface operations {
     power_polygon_power_post: {
         parameters: {
             query?: {
-                year?: components["schemas"]["Season"];
+                year?: number;
             };
             header?: never;
             path?: never;

@@ -14,7 +14,10 @@ shows both demo seasons, even offline.
 
 A real token in `.env` (`EARTHDATA_TOKEN`, a user token from
 <https://urs.earthdata.nasa.gov>) is only needed for what the cache does not hold:
-other years, other parcels, or the satellite read of a polygon drawn on the map.
+the latest season (the third season button on the map), other parcels, or the
+satellite read of a polygon drawn on the map. For the latest season the API answers
+at once with the POWER-based bloom and fetches HLS and SMAP in the background; the
+map asks again every 20 seconds until they arrive.
 Without a token a cache miss is a `Missing` value with the reason
 "No Earthdata token configured".
 
