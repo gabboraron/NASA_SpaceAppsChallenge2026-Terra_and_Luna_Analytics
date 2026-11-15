@@ -1,0 +1,77 @@
+.box {
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+  padding: 0.9rem;
+  border: 1.5px solid var(--line-strong);
+  border-radius: 10px;
+  background: var(--card);
+}
+.box[data-done="true"] {
+  border-color: var(--natura);
+  background: var(--good-wash);
+  color: var(--good-ink);
+}
+.box h3 {
+  margin: 0;
+  font-size: 0.9375rem;
+  font-weight: 600;
+}
+.box small {
+  color: var(--muted);
+  font-size: 0.8125rem;
+}
+.fields {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(7.5rem, 1fr));
+  gap: 0.6rem;
+}
+.fields label {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  font-size: 0.8125rem;
+  font-weight: 600;
+}
+.fields input {
+  min-height: 44px;
+  width: 100%;
+  padding: 0 0.6rem;
+  border: 1px solid var(--line-strong);
+  border-radius: 8px;
+  background: white;
+  color: var(--ink);
+  font: inherit;
+}
+.row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.75rem;
+}
+.row a {
+  color: var(--link);
+  font-weight: 600;
+}
+.box button {
+  min-height: 44px;
+  padding: 0 1rem;
+  border: 1.5px solid var(--ink);
+  border-radius: 8px;
+  background: white;
+  color: var(--ink);
+  font: inherit;
+  font-weight: 600;
+  cursor: pointer;
+}
+.box .primary {
+  background: var(--ink);
+  color: white;
+}
+.box .primary:hover {
+  background: var(--ink-raised);
+}
+.box .error {
+  color: var(--drought-ink);
+  font-weight: 600;
+}

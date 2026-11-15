@@ -136,7 +136,7 @@ const RULES = [
   },
   {
     title: "Synthetic people",
-    text: "Demo beekeepers and growers are synthetic and labelled; no personal data is stored.",
+    text: "Growers are synthetic and labelled. A beekeeper account lives only in your browser; no personal data reaches the server.",
   },
 ];
 

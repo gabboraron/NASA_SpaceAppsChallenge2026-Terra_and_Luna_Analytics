@@ -1,0 +1,41 @@
+.move {
+  display: flex;
+  flex-direction: column;
+  gap: 0.7rem;
+}
+.move p {
+  margin: 0;
+  font-size: 0.875rem;
+  color: var(--body-ink);
+}
+.facts {
+  font-size: 0.8125rem;
+}
+.blocked {
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+  padding: 0.75rem 0.9rem;
+  border-radius: 8px;
+  background: var(--missing-wash);
+  color: var(--drought-ink);
+  font-size: 0.875rem;
+}
+.blocked ul {
+  margin: 0;
+  padding-left: 1.1rem;
+}
+.move .adjust {
+  min-height: 44px;
+  padding: 0 1rem;
+  border: 1.5px solid var(--ink);
+  border-radius: 8px;
+  background: white;
+  color: var(--ink);
+  font: inherit;
+  font-weight: 600;
+  cursor: pointer;
+}
+.move .adjust:hover {
+  background: var(--wash);
+}

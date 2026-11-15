@@ -8,6 +8,10 @@ export const ROUTES = {
   evidence: "/evidence",
   data: "/data",
   guide: "/guide",
+  login: "/login",
+  register: "/register",
+  account: "/account",
+  placements: "/placements",
 } as const;
 
 const subscribe = (notify: () => void) => {
@@ -21,7 +25,8 @@ export function usePath(): string {
   return path.length > 1 ? path.replace(/\/+$/, "") : path;
 }
 
-function navigate(to: string) {
+/** Go to an in-app path without a page reload. */
+export function navigate(to: string) {
   window.history.pushState(null, "", to);
   window.dispatchEvent(new PopStateEvent("popstate"));
   if (!to.includes("#")) window.scrollTo(0, 0);

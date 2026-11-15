@@ -1,3 +1,4 @@
+import type { ReactNode } from "react";
 import type {
   Grower,
   Parcel,
@@ -9,6 +10,7 @@ import type {
 import { isInterpolated, weekStateText } from "../MapCanvas/layers";
 import { cropName, isHighBloomLowNectar, weekLabel } from "../../domain/season";
 import { useEscape } from "../../hooks/useEscape";
+import { Link, ROUTES } from "../../site/router";
 import {
   ProvenanceBadge,
   prov,
@@ -66,8 +68,18 @@ type Props = {
   verified: boolean;
   verifyState: VerifyState;
   onVerify: () => void;
-  onPlanMove: () => void;
   onClose: () => void;
+  /** A listed parcel: the signed-in beekeeper's move here, priced at once. */
+  move?: ReactNode;
+  /** Set when the parcel is the signed-in beekeeper's own. */
+  own?: {
+    name: string;
+    home: boolean;
+    /** The API could not model its bloom. */
+    failed: boolean;
+    onHome: () => void;
+    onRemove: () => void;
+  };
 };
 
 /** Everything known about one parcel this week; every value carries its provenance. */
@@ -82,8 +94,9 @@ export function ParcelDetail({
   verified,
   verifyState,
   onVerify,
-  onPlanMove,
   onClose,
+  move,
+  own,
 }: Props) {
   useEscape(onClose);
 
@@ -118,8 +131,15 @@ export function ParcelDetail({
     <aside className={styles.panel} aria-labelledby="parcel-h">
       <div className={styles.head}>
         <div>
-          <small>Parcel {parcel.id} · Illustrative parcel</small>
-          <h2 id="parcel-h">{cropName(parcel.crop)}</h2>
+          <small>
+            {own
+              ? `Your parcel${own.home ? " · Home apiary" : ""}`
+              : `Parcel ${parcel.id} · Illustrative parcel`}
+          </small>
+          <h2 id="parcel-h">
+            {own ? `${own.name} · ` : ""}
+            {cropName(parcel.crop)}
+          </h2>
         </div>
         <button
           type="button"
@@ -138,7 +158,14 @@ export function ParcelDetail({
         </button>
       </div>
 
-      {natura && (
+      {own?.failed && (
+        <div role="alert" className={`${styles.natura} ${styles.block}`}>
+          <strong>Could not model this parcel&apos;s bloom</strong>
+          <p>Check that the API is running, then try again from the map.</p>
+        </div>
+      )}
+
+      {natura && !own && (
         <div role={natura.role} className={`${styles.natura} ${natura.tone}`}>
           <strong>{natura.title}</strong>
           <p>{natura.text}</p>
@@ -170,6 +197,8 @@ export function ParcelDetail({
         )}
       </section>
 
+      {move}
+
       {row && (
         <section>
           <h3>Satellite and weather</h3>
@@ -192,7 +221,7 @@ export function ParcelDetail({
         <h3>Bloom window</h3>
         <dl className={styles.metrics}>
           <div>
-            <dt>Declared by grower</dt>
+            <dt>{own ? "Declared by you" : "Declared by grower"}</dt>
             <dd className={styles.value}>{range(parcel.declared_bloom)}</dd>
             <dd>
               <ProvenanceBadge
@@ -214,44 +243,69 @@ export function ParcelDetail({
         </dl>
       </section>
 
-      <section>
-        <h3>Listing</h3>
-        <dl className={styles.listing}>
-          <dt>Grower</dt>
-          <dd>
-            {grower?.name ?? parcel.grower_id}
-            {(grower?.synthetic ?? true) && (
-              <span className={styles.tag}>Synthetic</span>
+      {own ? (
+        <section className={styles.plan}>
+          <h3>Your parcel</h3>
+          <dl className={styles.listing}>
+            {parcel.area_ha > 0 && (
+              <>
+                <dt>Area</dt>
+                <dd>{parcel.area_ha.toFixed(1)} ha</dd>
+              </>
             )}
-          </dd>
-          <dt>Area</dt>
-          <dd>{parcel.area_ha.toFixed(1)} ha</dd>
-          <dt>Service</dt>
-          <dd>{parcel.service_type === "forage" ? "Forage" : "Pollination"}</dd>
-          {parcel.requested_colonies !== null && (
-            <>
-              <dt>Colonies requested</dt>
-              <dd>{parcel.requested_colonies}</dd>
-            </>
-          )}
-          <dt>Irrigated</dt>
-          <dd>{parcel.irrigated ? "Yes" : "No"}</dd>
-        </dl>
-        <ProvenanceBadge provenance={LISTING} />
-      </section>
-
-      {parcel.natura_status !== "inside" && (
-        <>
-          <section className={styles.plan}>
-            <h3>Plan a move</h3>
-            <button type="button" onClick={onPlanMove}>
-              Calculate a move here
+            <dt>Role</dt>
+            <dd>
+              {own.home
+                ? "Home apiary: your moves start here"
+                : "Another site of yours"}
+            </dd>
+          </dl>
+          <small>
+            Drawn by you and kept in this browser only. Its bloom is computed at
+            this spot, not taken from a listing.
+          </small>
+          {!own.home && (
+            <button type="button" onClick={own.onHome}>
+              Use as my home apiary
             </button>
-            <small>
-              Compares bringing hives here with keeping them at the home apiary.
-              Prefilled from the listing and a synthetic beekeeper.
-            </small>
-          </section>
+          )}
+          <Link to={ROUTES.account}>Rename or change the crop in Account</Link>
+          <button type="button" onClick={own.onRemove}>
+            Remove this parcel
+          </button>
+        </section>
+      ) : (
+        <section>
+          <h3>Listing</h3>
+          <dl className={styles.listing}>
+            <dt>Grower</dt>
+            <dd>
+              {grower?.name ?? parcel.grower_id}
+              {(grower?.synthetic ?? true) && (
+                <span className={styles.tag}>Synthetic</span>
+              )}
+            </dd>
+            <dt>Area</dt>
+            <dd>{parcel.area_ha.toFixed(1)} ha</dd>
+            <dt>Service</dt>
+            <dd>
+              {parcel.service_type === "forage" ? "Forage" : "Pollination"}
+            </dd>
+            {parcel.requested_colonies !== null && (
+              <>
+                <dt>Colonies requested</dt>
+                <dd>{parcel.requested_colonies}</dd>
+              </>
+            )}
+            <dt>Irrigated</dt>
+            <dd>{parcel.irrigated ? "Yes" : "No"}</dd>
+          </dl>
+          <ProvenanceBadge provenance={LISTING} />
+        </section>
+      )}
+
+      {!own && parcel.natura_status !== "inside" && (
+        <>
           <section className={styles.verify}>
             {verified ? (
               <div role="status" className={styles.done}>

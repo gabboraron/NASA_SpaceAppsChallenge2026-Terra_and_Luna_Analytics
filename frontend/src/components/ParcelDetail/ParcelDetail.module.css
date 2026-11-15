@@ -191,3 +191,8 @@
 .panel .error {
   color: var(--drought-ink);
 }
+.plan a {
+  color: var(--link);
+  font-size: 0.875rem;
+  font-weight: 600;
+}

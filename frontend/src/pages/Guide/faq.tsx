@@ -29,7 +29,7 @@ export const GLOSSARY = [
   },
   {
     term: "Foraging radius",
-    def: "Rings at 1, 2 and 3 km around the beekeeper's home and the selected parcel: a visual guide to how far bees from there may fly.",
+    def: "Rings at 1, 2 and 3 km around your home parcel and the selected parcel: a visual guide to how far bees from there may fly.",
   },
   {
     term: "Natura 2000",
@@ -53,7 +53,7 @@ export const GLOSSARY = [
   },
   {
     term: "Synthetic · illustrative",
-    def: "Synthetic beekeepers and growers are made-up profiles; illustrative parcels are real field shapes with made-up listings.",
+    def: "Synthetic growers are made-up profiles; illustrative parcels are real field shapes with made-up listings.",
   },
 ];
 
@@ -64,11 +64,11 @@ export const FAQ: { q: string; a: ReactNode }[] = [
   },
   {
     q: "Is this a real marketplace?",
-    a: "Not yet. It is a working demo: the NASA data is real (each value shows the date it describes), the beekeepers are synthetic, the parcels are illustrative and booking is switched off.",
+    a: "Not yet. It is a working demo: the NASA data is real (each value shows the date it describes), the sign-in is a mock, the growers are synthetic, the listed parcels are illustrative, and a placement request is stored in your browser only: no grower is contacted.",
   },
   {
     q: "Do I need an account?",
-    a: "No. There is no login and the site stores no personal data. A simulated field photo is kept in memory only and is gone when the server restarts.",
+    a: "Not a real one. The explorer works as a signed-in beekeeper, and one click on Continue as demo beekeeper is enough. You can also register: the account, its parcels and placement requests live only in your browser, the password is not stored or checked, and nothing personal is sent to a server. A simulated field photo is kept in memory only and is gone when the server restarts.",
   },
   {
     q: "Does it work outside the pilot region?",

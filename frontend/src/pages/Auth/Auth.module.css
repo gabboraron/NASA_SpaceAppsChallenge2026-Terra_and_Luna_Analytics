@@ -1,0 +1,204 @@
+/* Sign-in and register: pitch + card, stacked on a phone. */
+.main {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 3.5rem 1.5rem;
+}
+.split {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: stretch;
+  gap: 3rem;
+  width: 100%;
+  max-width: 68rem;
+}
+.pitch {
+  flex: 1 1 24rem;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 1.4rem;
+}
+.title {
+  margin: 0;
+  font-family: var(--font-display);
+  font-weight: 500;
+  font-size: clamp(2.5rem, 5vw, 4rem);
+  line-height: 1;
+  letter-spacing: -0.035em;
+}
+.steps {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  font-size: 0.9375rem;
+}
+.steps li {
+  display: flex;
+  align-items: center;
+  gap: 0.9rem;
+}
+.hex {
+  display: grid;
+  place-items: center;
+  flex: none;
+  width: 34px;
+  height: 39px;
+  background: var(--honey);
+  font-family: var(--font-mono);
+  font-weight: 500;
+}
+.card {
+  flex: 1 1 22rem;
+  max-width: 29rem;
+  display: flex;
+  flex-direction: column;
+  gap: 1.1rem;
+  padding: 2rem;
+  border: 1.5px solid var(--line);
+  border-radius: 16px;
+  background: var(--card);
+}
+.tabs {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 4px;
+  padding: 4px;
+  border-radius: 10px;
+  background: var(--wash);
+}
+.tabs a {
+  display: grid;
+  place-items: center;
+  min-height: 44px;
+  border-radius: 8px;
+  color: var(--body-ink);
+  font-size: 0.9375rem;
+  font-weight: 500;
+  text-decoration: none;
+}
+.tabs a[aria-current="page"] {
+  background: white;
+  color: var(--ink);
+  font-weight: 600;
+  box-shadow: 0 1px 3px rgb(28 25 18 / 15%);
+}
+.heading {
+  margin: 0;
+  font-family: var(--font-display);
+  font-weight: 600;
+  font-size: 1.625rem;
+}
+.demo,
+.submit {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.75rem;
+  border-radius: 10px;
+  font: inherit;
+  font-weight: 600;
+  cursor: pointer;
+}
+.demo {
+  min-height: 56px;
+  border: 0;
+  background: var(--ink);
+  color: white;
+  font-size: 1rem;
+}
+.demo:hover {
+  background: var(--ink-raised);
+}
+.demo :global(.hex) {
+  width: 16px;
+  height: 18px;
+  background: var(--honey);
+}
+.hint {
+  margin: -0.5rem 0 0;
+  font-size: 0.8125rem;
+  color: var(--muted);
+  text-align: center;
+}
+.or {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  margin: 0;
+  font-size: 0.8125rem;
+  color: var(--muted);
+}
+.or::before,
+.or::after {
+  content: "";
+  flex: 1;
+  height: 1px;
+  background: var(--line);
+}
+.form {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: 0.375rem;
+  font-size: 0.875rem;
+  font-weight: 600;
+}
+.field input {
+  min-height: 48px;
+  padding: 0 0.875rem;
+  border: 1.5px solid var(--line-strong);
+  border-radius: 8px;
+  background: white;
+  color: var(--ink);
+  font: inherit;
+  font-size: 1rem;
+  font-weight: 400;
+}
+.field input[aria-invalid="true"] {
+  border-color: var(--drought);
+}
+.submit {
+  min-height: 48px;
+  border: 1.5px solid var(--ink);
+  background: white;
+  color: var(--ink);
+  font-size: 1rem;
+}
+.submit:hover {
+  background: var(--wash);
+}
+.error {
+  margin: 0;
+  padding: 0.625rem 0.875rem;
+  border-radius: 8px;
+  background: var(--alert-wash);
+  color: var(--drought-ink);
+  font-size: 0.875rem;
+}
+.note {
+  margin: 0;
+  padding: 0.75rem 0.875rem;
+  border-radius: 10px;
+  background: var(--warn-wash);
+  color: var(--warn-ink);
+  font-size: 0.8125rem;
+  line-height: 1.5;
+}
+@media (width < 760px) {
+  .main {
+    padding: 2rem 1rem;
+  }
+  .card {
+    padding: 1.25rem;
+  }
+}

@@ -1,22 +1,16 @@
-import type {
-  Beekeeper,
-  MatchCard,
-  Parcel,
-  ParcelWeek,
-  Season,
-} from "../../api/client";
+import type { MatchCard, Parcel, ParcelWeek, Season } from "../../api/client";
 import type { Matches } from "../../hooks/useMatches";
-import { BeekeeperPicker } from "../BeekeeperPicker/BeekeeperPicker";
 import { BLOOM_COLORS, weekStateText } from "../MapCanvas/layers";
-import { cropName, weekLabel } from "../../domain/season";
+import { HONEYS, cropName, weekLabel } from "../../domain/season";
 import { ProvenanceBadge } from "../ProvenanceBadge/ProvenanceBadge";
 import { countText, groupCards, ownWarnings } from "./cards";
 import styles from "./MatchPanel.module.css";
 
 type Props = {
-  beekeepers: Beekeeper[];
-  keeperId: string;
-  onKeeper: (id: string) => void;
+  /** The signed-in beekeeper's name. */
+  name: string;
+  /** False until the beekeeper has drawn a home parcel. */
+  hasHome: boolean;
   year: Season;
   week: number;
   matches: Matches;
@@ -26,16 +20,31 @@ type Props = {
   onHover: (parcelId: string) => void;
   onSelect: (parcelId: string) => void;
   onPlan: (parcelId: string) => void;
+  /** Chosen honey kind (an id of HONEYS), "" for every bloom. */
+  honey: string;
+  onHoney: (id: string) => void;
+  /** First and last week the chosen honey's parcels bloom this season. */
+  honeySpan: [number, number] | null;
+  onWeek: (week: number) => void;
+  /** Parcel ids the beekeeper has already requested. */
+  requested: ReadonlySet<string>;
 };
 
 const CONFIDENCE = { low: "Low", medium: "Medium", high: "High" } as const;
 
-/** Ranked placements for the selected beekeeper, from GET /matches (WP18). */
+/** Ranked placements for the signed-in beekeeper, from POST /matches (WP18). */
 export function MatchPanel(props: Props) {
-  const { beekeepers, keeperId, year, week, matches } = props;
-  const keeper = beekeepers.find((b) => b.id === keeperId);
+  const { year, week, matches, honey } = props;
   const byId = new Map(props.parcels.map((p) => [p.id, p]));
-  const { open, blocked, shared } = groupCards(matches.cards ?? []);
+  // Honey kinds some listed parcel can give.
+  const crops = new Set(props.parcels.map((p) => p.crop));
+  const honeys = HONEYS.filter((h) => h.crops.some((c) => crops.has(c)));
+  const chosen = honeys.find((h) => h.id === honey);
+  const wanted = (c: MatchCard) =>
+    !chosen || chosen.crops.includes(byId.get(c.parcel_id)?.crop ?? "");
+  const { open, blocked, shared } = groupCards(
+    (matches.cards ?? []).filter(wanted),
+  );
 
   // Hover and focus outline the parcel on the map; the title opens its detail.
   const hover = (id: string) => ({
@@ -122,8 +131,14 @@ export function MatchPanel(props: Props) {
           >
             Calculate this move
           </button>
-          <button type="button" className={styles.quote} disabled>
-            Request quote
+          <button
+            type="button"
+            className={styles.quote}
+            onClick={() => props.onSelect(c.parcel_id)}
+          >
+            {props.requested.has(c.parcel_id)
+              ? "Requested ✓"
+              : "Request placement"}
           </button>
         </div>
       </li>
@@ -136,14 +151,66 @@ export function MatchPanel(props: Props) {
         <small>
           {year} · week {week} · {weekLabel(year, week)}
         </small>
-        <h2 id="match-h">Where to place hives</h2>
+        <h2 id="match-h">Where to place your hives</h2>
+        <small>
+          For {props.name || "you"}, from your home apiary, with your own costs.
+        </small>
       </div>
 
-      <BeekeeperPicker
-        beekeepers={beekeepers}
-        value={keeperId}
-        onChange={props.onKeeper}
-      />
+      {honeys.length > 0 && (
+        <fieldset className={styles.honey}>
+          <legend>Honey I want to make</legend>
+          <div>
+            <button
+              type="button"
+              aria-pressed={!chosen}
+              onClick={() => props.onHoney("")}
+            >
+              Any bloom
+            </button>
+            {honeys.map((h) => (
+              <button
+                key={h.id}
+                type="button"
+                aria-pressed={chosen?.id === h.id}
+                onClick={() => props.onHoney(h.id)}
+              >
+                {h.label}
+              </button>
+            ))}
+          </div>
+          {chosen && (
+            <p role="status">
+              {chosen.crops.map(cropName).join(" and ")} parcels are kept on the
+              map; the rest are faded.{" "}
+              {props.honeySpan ? (
+                <>
+                  They bloom in weeks {props.honeySpan[0]}–{props.honeySpan[1]}{" "}
+                  of {year} (from {weekLabel(year, props.honeySpan[0])}).{" "}
+                  <button
+                    type="button"
+                    onClick={() => props.onWeek(props.honeySpan![0])}
+                  >
+                    Go to the first bloom week
+                  </button>
+                </>
+              ) : (
+                `No bloom is modelled or declared for them in ${year}.`
+              )}
+            </p>
+          )}
+        </fieldset>
+      )}
+
+      {!props.hasHome && (
+        <p role="status" className={styles.empty}>
+          <strong>Draw your own parcel first</strong>
+          <span>
+            Use “Add my parcel” on the map. Placements are ranked by distance
+            from your home apiary, so they appear once it is on the map.
+          </span>
+        </p>
+      )}
 
       {matches.error && (
         <div role="alert" className={styles.alert}>
@@ -156,9 +223,9 @@ export function MatchPanel(props: Props) {
         </div>
       )}
 
-      {!matches.cards && !matches.error && (
+      {props.hasHome && !matches.cards && !matches.error && (
         <div role="status" aria-busy="true" className={styles.loading}>
-          <span>Finding placements for {keeperId}…</span>
+          <span>Finding placements for you…</span>
           <span className={styles.skeleton} />
           <span className={styles.skeleton} />
         </div>
@@ -172,14 +239,10 @@ export function MatchPanel(props: Props) {
             </p>
           ))}
 
-          {matches.cards.length === 0 ? (
+          {open.length + blocked.length === 0 ? (
             <p role="status" className={styles.empty}>
-              <strong>No parcels match {keeperId}'s goal yet</strong>
-              <span>
-                No grower lists{" "}
-                {keeper?.goal === "forage" ? "forage" : "pollination"} here. Try
-                another beekeeper.
-              </span>
+              <strong>No listed parcel gives this honey</strong>
+              <span>Choose another honey, or any bloom.</span>
             </p>
           ) : (
             <section
@@ -193,7 +256,7 @@ export function MatchPanel(props: Props) {
                 <span role="status">
                   {matches.pending
                     ? `Updating for week ${week}…`
-                    : "Nearest first"}
+                    : "Best fit first"}
                 </span>
               </div>
               <ol>{open.map(card)}</ol>
@@ -202,7 +265,7 @@ export function MatchPanel(props: Props) {
 
           {blocked.length > 0 && (
             <section aria-labelledby="blocked-h" className={styles.list}>
-              <h3 id="blocked-h">Not possible ({blocked.length})</h3>
+              <h3 id="blocked-h">Not possible this week ({blocked.length})</h3>
               <ul>
                 {blocked.map((c) => (
                   <li
@@ -226,8 +289,8 @@ export function MatchPanel(props: Props) {
           )}
 
           <p className={styles.note}>
-            Request quote is off: this demo has no booking.
-            {keeper?.synthetic && ` ${keeper.id} is a synthetic beekeeper.`}
+            Placement requests are a demo: they are stored in this browser only
+            and no grower is contacted. Listed parcels are illustrative.
           </p>
         </>
       )}

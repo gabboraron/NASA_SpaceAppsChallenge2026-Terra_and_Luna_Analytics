@@ -1,8 +1,12 @@
 import { useEffect, useState } from "react";
-import { calculate, getParcels, type CalculatorResult } from "../../api/client";
+import {
+  calculate,
+  getMatches,
+  getParcels,
+  type CalculatorResult,
+} from "../../api/client";
 import { cropName } from "../../domain/season";
 import { eur } from "../../components/MoveCalculator/fields";
-import { loadMatches } from "../../hooks/useMatches";
 import styles from "./Landing.module.css";
 
 const BEEKEEPER = "B1";
@@ -32,7 +36,7 @@ export function Receipt() {
     const ctrl = new AbortController();
     (async () => {
       const [cards, parcels] = await Promise.all([
-        loadMatches(BEEKEEPER, YEAR, WEEK, ctrl.signal),
+        getMatches(BEEKEEPER, YEAR, WEEK, ctrl.signal),
         getParcels(),
       ]);
       // P03 in the real data; the offline mocks use other ids, so fall back to the top card.

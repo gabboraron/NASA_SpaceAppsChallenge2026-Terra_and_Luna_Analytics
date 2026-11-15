@@ -4,10 +4,14 @@ import type {
   Beekeeper,
   CalculatorInput,
   CalculatorResult,
+  CostDefaults,
   HlsResponse,
+  MatchRequest,
   MatchCard,
   Measurement,
   Natura,
+  OwnParcelRequest,
+  OwnParcelTimeline,
   Parcel,
   ParcelWeek,
   Polygon,
@@ -232,7 +236,29 @@ function roadKm([lon1, lat1]: number[], [lon2, lat2]: number[]): number {
   return 2 * 6371.0088 * Math.asin(Math.sqrt(h)) * 1.3;
 }
 
-function prefill(b: Beekeeper, p: Parcel): CalculatorInput {
+export const calculatorDefaults: CostDefaults = {
+  source: "Illustrative default; edit to your case",
+  legs: 4,
+  fuel_price_per_l: 1.65,
+  vehicle_cost_per_km: 0.3,
+  hourly_labor_cost: 15,
+  average_speed_kmh: 60,
+  loading_hours: 4,
+  extra_feed_cost: 0,
+  other_placement_cost: 0,
+  price_uncertainty: 0.2,
+  extra_trips_low: 1,
+};
+
+function prefill(
+  b: Beekeeper,
+  p: Parcel,
+  costs: MatchRequest["costs"] = {},
+): CalculatorInput {
+  const own = Object.fromEntries(
+    Object.entries(costs ?? {}).filter(([, v]) => v != null),
+  ) as Partial<CostDefaults>;
+  const d = { ...calculatorDefaults, ...own };
   const km = roadKm(b.home, centroid(p.geometry));
   const forage = p.service_type === "forage";
   const wanted = p.requested_colonies ?? b.colonies;
@@ -241,15 +267,15 @@ function prefill(b: Beekeeper, p: Parcel): CalculatorInput {
     colonies: Math.max(20, Math.min(100, wanted, b.colonies)),
     distance_km: km,
     fee_per_colony: forage ? 0 : (p.fee_eur_per_colony ?? 0),
-    legs: 4,
+    legs: d.legs,
     fuel_l_per_100km: b.vehicle_l_per_100km,
-    fuel_price_per_l: 1.65,
-    vehicle_cost_per_km: 0.3,
-    driving_hours: (4 * km) / 60,
-    loading_hours: 4,
-    hourly_labor_cost: 15,
-    extra_feed_cost: 0,
-    other_placement_cost: 0,
+    fuel_price_per_l: d.fuel_price_per_l,
+    vehicle_cost_per_km: d.vehicle_cost_per_km,
+    driving_hours: (d.legs * km) / d.average_speed_kmh,
+    loading_hours: d.loading_hours,
+    hourly_labor_cost: d.hourly_labor_cost,
+    extra_feed_cost: d.extra_feed_cost,
+    other_placement_cost: d.other_placement_cost,
     honey_margin: 0,
     alternative_contribution: b.alternative_contribution_eur,
     price_uncertainty: 0.2,
@@ -258,8 +284,14 @@ function prefill(b: Beekeeper, p: Parcel): CalculatorInput {
   const provenance = Object.fromEntries(
     Object.keys(input).map((k) => [k, assumed]),
   );
+  for (const k of Object.keys(own))
+    if (k in provenance)
+      provenance[k] = { ...prov("Reported"), source: "Your cost settings" };
   provenance.distance_km = prov("Estimated", "Straight line x 1.3 detour");
-  provenance.driving_hours = prov("Estimated", "Trips x distance at 60 km/h");
+  provenance.driving_hours = prov(
+    "Estimated",
+    `Trips x distance at ${d.average_speed_kmh} km/h`,
+  );
   if (forage)
     provenance.honey_margin = prov(
       "Missing",
@@ -275,11 +307,60 @@ export function matches(
   week: number,
 ): MatchCard[] {
   const b = actors.beekeepers.find((k) => k.id === beekeeperId);
-  if (!b) return [];
+  return b ? cards(b, [b.goal], year, week) : [];
+}
+
+/** Mirrors POST /matches: the signed-in beekeeper against every listed parcel. */
+export function myMatches(
+  profile: MatchRequest,
+  year: Season,
+  week: number,
+): MatchCard[] {
+  const you: Beekeeper = {
+    id: "you",
+    name: "You",
+    synthetic: false,
+    goal: "forage",
+    home: profile.home,
+    colonies: profile.colonies,
+    max_distance_km: profile.max_distance_km,
+    availability: profile.availability,
+    vehicle_l_per_100km: profile.vehicle_l_per_100km,
+    alternative_contribution_eur: profile.alternative_contribution_eur,
+  };
+  return cards(you, ["pollination", "forage"], year, week, profile.costs);
+}
+
+/** Mirrors POST /polygon/timeline with the mock bloom weeks of the crop. */
+export function ownTimeline(
+  own: OwnParcelRequest,
+  year: Season,
+): OwnParcelTimeline {
+  const p = parcel(own.id, own.crop, 0, 0, {
+    grower_id: "you",
+    geometry: own.geometry,
+    illustrative: false,
+    service_type: "forage",
+    requested_colonies: null,
+    fee_eur_per_colony: null,
+    irrigated: own.irrigated ?? false,
+    declared_bloom: own.declared_bloom ?? null,
+  });
+  const weeks = Array.from({ length: WEEKS }, (_, i) => week(p, i + 1, year));
+  return { parcel: p, weeks };
+}
+
+function cards(
+  b: Beekeeper,
+  services: Parcel["service_type"][],
+  year: Season,
+  week: number,
+  costs?: MatchRequest["costs"],
+): MatchCard[] {
   let rank = 0;
   return parcels
-    .filter((p) => p.service_type === b.goal)
-    .map((p) => ({ p, input: prefill(b, p) }))
+    .filter((p) => services.includes(p.service_type))
+    .map((p) => ({ p, input: prefill(b, p, costs) }))
     .sort((x, y) => x.input.distance_km - y.input.distance_km)
     .map(({ p, input }) => {
       const blocked = p.natura_status === "inside";

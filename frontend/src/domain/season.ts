@@ -34,15 +34,57 @@ export const CROP_NAMES: Record<string, string> = {
   sour_cherry: "Sour cherry",
   grassland: "Grassland",
 };
+/** Crops a beekeeper can give an own parcel; the first three have a heat-unit bloom model. */
+export const OWN_CROPS: readonly string[] = [
+  "black_locust",
+  "apple",
+  "sour_cherry",
+  "sunflower",
+  "grassland",
+];
+/** Own-parcel crops whose bloom is modelled from NASA POWER anywhere on Earth. */
+export const MODELLED_CROPS: ReadonlySet<string> = new Set([
+  "black_locust",
+  "apple",
+  "sour_cherry",
+]);
+
+/** Honey kinds by the bloom they come from, for filtering the map and matches. */
+export const HONEYS: readonly { id: string; label: string; crops: string[] }[] =
+  [
+    { id: "acacia", label: "Acacia (black locust)", crops: ["black_locust"] },
+    { id: "sunflower", label: "Sunflower", crops: ["sunflower"] },
+    { id: "fruit", label: "Fruit blossom", crops: ["apple", "sour_cherry"] },
+    { id: "meadow", label: "Meadow", crops: ["grassland"] },
+  ];
+
+/** First and last week in which any of the given parcels blooms, or null. */
+export function bloomSpan(
+  weeks: Map<number, Map<string, ParcelWeek>>,
+  parcelIds: ReadonlySet<string>,
+): [number, number] | null {
+  const blooming = [...weeks.entries()]
+    .filter(([, rows]) =>
+      [...rows.values()].some(
+        (r) => r.bloom_state === "blooming" && parcelIds.has(r.parcel_id),
+      ),
+    )
+    .map(([week]) => week);
+  return blooming.length
+    ? [Math.min(...blooming), Math.max(...blooming)]
+    : null;
+}
+
 /** Display name of a parcel's crop, falling back to the raw code. */
 export const cropName = (crop: string): string => CROP_NAMES[crop] ?? crop;
 
 /** Index a season once: week → parcel id → row, so a week change is a lookup. */
 export function indexWeeks(
   timeline: Timeline | null,
+  extra: ParcelWeek[] = [],
 ): Map<number, Map<string, ParcelWeek>> {
   const index = new Map<number, Map<string, ParcelWeek>>();
-  for (const row of timeline?.parcel_weeks ?? []) {
+  for (const row of [...(timeline?.parcel_weeks ?? []), ...extra]) {
     const week = index.get(row.week) ?? new Map<string, ParcelWeek>();
     week.set(row.parcel_id, row);
     index.set(row.week, week);

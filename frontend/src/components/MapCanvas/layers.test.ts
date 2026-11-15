@@ -1,8 +1,8 @@
 import { describe, expect, it } from "vitest";
-import { actors, matches, parcels, timeline, verify } from "../../api/mocks";
+import { matches, parcels, timeline, verify } from "../../api/mocks";
 import type { MatchCard } from "../../api/client";
 import {
-  beekeeperCollection,
+  homePin,
   centroid,
   foragingRings,
   hatch,
@@ -83,14 +83,30 @@ describe("SMAP cells", () => {
   });
 });
 
+const plain = { own: false, label: "", dim: false };
+
 describe("parcels", () => {
   it("carry id and crop for paint expressions", () => {
     const fc = parcelCollection(parcels);
     expect(fc.features.map((f) => f.properties)).toEqual([
-      { id: "P1", crop: "sunflower" },
-      { id: "P2", crop: "apple" },
-      { id: "P3", crop: "black_locust" },
+      { id: "P1", crop: "sunflower", ...plain },
+      { id: "P2", crop: "apple", ...plain },
+      { id: "P3", crop: "black_locust", ...plain },
     ]);
+  });
+  it("mark the beekeeper's own parcels and fade the ones filtered out", () => {
+    const how = { own: new Map([["P2", "Home apiary"]]), dim: new Set(["P3"]) };
+    const props = (id: string) =>
+      parcelCollection(parcels, how).features.find(
+        (f) => f.properties?.id === id,
+      )?.properties;
+    expect(props("P1")).toMatchObject(plain);
+    expect(props("P2")).toMatchObject({ own: true, label: "Home apiary" });
+    expect(props("P3")).toMatchObject({ own: false, dim: true });
+    expect(parcelDots(parcels, how).features[1].properties).toMatchObject({
+      own: true,
+      label: "Home apiary",
+    });
   });
   it("get one dot each at the centroid for low zoom", () => {
     const dots = parcelDots(parcels);
@@ -98,6 +114,7 @@ describe("parcels", () => {
     expect(dots.features[0].properties).toEqual({
       id: "P1",
       crop: "sunflower",
+      ...plain,
     });
     expect(dots.features[0].geometry.coordinates[0]).toBeCloseTo(22.125);
   });
@@ -199,12 +216,11 @@ describe("mock verification", () => {
 });
 
 describe("beekeeper layers", () => {
-  const b1 = actors.beekeepers[0];
-  it("marks only the selected beekeeper's pin", () => {
-    const fc = beekeeperCollection(actors.beekeepers, b1.id);
-    expect(fc.features.map((f) => f.properties?.selected)).toEqual(
-      actors.beekeepers.map((b) => b.id === b1.id),
-    );
+  it("pins the signed-in beekeeper's home, and nothing before one is drawn", () => {
+    expect(homePin().features).toEqual([]);
+    const [pin] = homePin([21.75, 47.79]).features;
+    expect(pin.geometry.coordinates).toEqual([21.75, 47.79]);
+    expect(pin.properties).toMatchObject({ label: "Your apiary" });
   });
 });
 

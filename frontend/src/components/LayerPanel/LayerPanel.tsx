@@ -5,6 +5,7 @@ import {
   CROP_COLORS,
   DROUGHT,
   OTHER_CROP,
+  OWN,
   type LayerId,
 } from "../MapCanvas/layers";
 import { CROP_NAMES } from "../../domain/season";
@@ -29,8 +30,8 @@ const LAYER_ROWS: { id: LayerId; label: string; caption: string }[] = [
   },
   {
     id: "beekeepers",
-    label: "Beekeepers",
-    caption: "Home apiaries (synthetic profiles)",
+    label: "My apiary and ranks",
+    caption: "Your home pin and your ranked placements",
   },
   {
     id: "imagery",
@@ -122,6 +123,13 @@ export function LayerPanel({ visible, onToggle }: Props) {
               </li>
             ),
           )}
+          <li>
+            <span
+              className={styles.chip}
+              style={{ border: `3px solid ${OWN}` }}
+            />
+            Your own parcel
+          </li>
         </ul>
       </section>
 
@@ -131,7 +139,8 @@ export function LayerPanel({ visible, onToggle }: Props) {
           A dashed outline marks a gap-filled week between satellite passes,
           never an observation. Low nectar is a labelled heuristic: sunflower
           blooming while root-zone soil moisture is the driest on record for
-          that week. Parcels are illustrative; beekeepers are synthetic.
+          that week. Listed parcels are illustrative; the blue-outlined ones are
+          yours.
         </p>
         <Link to={ROUTES.guide}>Open the guide</Link>
       </div>
