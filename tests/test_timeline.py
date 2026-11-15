@@ -122,7 +122,7 @@ def test_sigmoid_forcing_drives_apple_bloom() -> None:
     )
     weeks = weeks_of(parcel("apple"), daily=daily)
     window = weeks[0].estimated_bloom
-    assert window == m.Window(start=date(2024, 3, 23), end=date(2024, 4, 7))
+    assert window == m.Window(start=date(2024, 3, 23), end=date(2024, 4, 6))
     assert "Forcing units (Chmielewski" in (weeks[5].gdd.provenance.note or "")
 
 
@@ -139,8 +139,8 @@ def locust_weather(first: date) -> PowerDaily:
 def test_chill_days_model_drives_locust_full_bloom() -> None:
     weeks = weeks_of(parcel(), daily=locust_weather(date(2023, 10, 1)))
     window = weeks[0].estimated_bloom
-    # Full bloom on 23 March; 10 bloom days centred on it.
-    assert window == m.Window(start=date(2024, 3, 18), end=date(2024, 3, 28))
+    # Full bloom on 23 March; 10 bloom days (18 to 27 March) centred on it.
+    assert window == m.Window(start=date(2024, 3, 18), end=date(2024, 3, 27))
     assert weeks[2].bloom_state == "blooming"
     assert "full bloom" in weeks[2].bloom_provenance.note
     # Chilling met on 4 November; week 1 (to 7 March) holds 7 forcing days.

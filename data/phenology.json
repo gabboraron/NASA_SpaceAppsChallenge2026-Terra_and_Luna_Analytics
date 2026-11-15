@@ -32,15 +32,15 @@
     "method": "ndyi",
     "base_temp_c": null,
     "gdd_start": null,
-    "uncertainty_days": 7,
+    "uncertainty_days": null,
     "ndyi_bloom_threshold": null,
-    "source": "AI estimate, unverified",
-    "status": "approximate: NDYI threshold still to be calibrated on the HLS series (WP7)",
+    "source": null,
+    "status": "no bloom model: the grower's declared window is used, NDYI is shown as evidence",
     "leads": [
       "NDSU sunflower GDD model quoted at base 6.7 C, R1 569 / R5.1 883 GDD, in a Manitoba sheet that is now a 404 (https://residents.manitoba.ca/agriculture/crops/crop-management/pubs/frost-sunflowers.pdf); unverified, start point (sowing or emergence) unknown",
       "https://nuseed.com/us/growing-degree-days-gdd-for-sunflower/ (not read)"
     ],
-    "note": "Bloom comes from HLS NDYI (plan D6). The threshold stays null until it can be read off the real 2024 series; uncertainty_days is an AI estimate. Bloom is detected from HLS NDYI (plan D6); the NDYI threshold must be calibrated or cited.",
+    "note": "No NDYI bloom threshold is set, on purpose. On the cached HLS series of the five demo parcels (2022 and 2024) the weekly NDYI rises with the green canopy as well as with the flowers: a peak-and-half-height rule gave a 2 to 3 week bloom around the turn of June and July on four parcels in 2024, but 5 to 10 week plateaus on the others, and two parcels carried a spring crop in 2022. A threshold needs fields with a known crop and observed bloom dates; until then the bloom state is the declared window (Reported) and NDYI is displayed next to it.",
     "heat_threshold": null
   },
   "black_locust": {

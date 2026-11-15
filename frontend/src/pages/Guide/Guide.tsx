@@ -68,8 +68,8 @@ const FAQ: { q: string; a: ReactNode }[] = [
     a: "Clouds, a failed request or no satellite pass that week. The badge gives the reason.",
   },
   {
-    q: "Why are all matches low confidence?",
-    a: "The current ranking uses distance only. Confidence rises once bloom fit and nectar are scored.",
+    q: "Why is a match low confidence?",
+    a: "Confidence follows the evidence for the bloom timing: low for a grower's declaration alone, medium for a model estimate, high once the bloom is observed.",
   },
   {
     q: "Can I trust the calculator?",
