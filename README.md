@@ -48,8 +48,8 @@ The build follows the [48-hour MVP plan (v3)](docs/implementation_plans/nasa_spa
 ### With Docker (any machine)
 
 ```bash
-git clone https://github.com/gabboraron/NASA_SpaceAppsChallange2026-Terra_and_Luna_Analytics.git
-cd NASA_SpaceAppsChallange2026-Terra_and_Luna_Analytics
+git clone https://github.com/gabboraron/NASA_SpaceAppsChallenge2026-Terra_and_Luna_Analytics.git
+cd NASA_SpaceAppsChallenge2026-Terra_and_Luna_Analytics
 docker compose up --build        # then open http://localhost:8080
 ```
 

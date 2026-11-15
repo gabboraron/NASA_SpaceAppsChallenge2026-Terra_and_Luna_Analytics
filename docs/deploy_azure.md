@@ -59,7 +59,7 @@ APPID=$(az ad app create --display-name gh-pollination-deploy --query appId -o t
 az ad sp create --id $APPID
 az ad app federated-credential create --id $APPID --parameters '{"name":"main",
   "issuer":"https://token.actions.githubusercontent.com",
-  "subject":"repo:gabboraron/NASA_SpaceAppsChallange2026-Terra_and_Luna_Analytics:ref:refs/heads/main",
+  "subject":"repo:gabboraron/NASA_SpaceAppsChallenge2026-Terra_and_Luna_Analytics:ref:refs/heads/main",
   "audiences":["api://AzureADTokenExchange"]}'
 az role assignment create --assignee $APPID --role Contributor \
   --scope $(az group show -n $RG --query id -o tsv)
