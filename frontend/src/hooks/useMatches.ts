@@ -1,5 +1,6 @@
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { getMatches, type MatchCard, type Season } from "../api/client";
+import { useBackOnline } from "../api/connection";
 
 /** Let a scrubbed slider settle before asking. */
 const DEBOUNCE_MS = 250;
@@ -62,14 +63,18 @@ export function useMatches(
     };
   }, [key, keeperId, year, week, attempt]);
 
+  const retry = useCallback(() => {
+    setDone({ key: "", error: false });
+    setAttempt((a) => a + 1);
+  }, []);
+  // A week that failed while the API was away loads once it is back.
+  useBackOnline(retry);
+
   const error = !cached && done.key === key && done.error;
   return {
     cards: cached ?? latest.get(keeperId),
     pending: !cached && !error,
     error,
-    retry: () => {
-      setDone({ key: "", error: false });
-      setAttempt((a) => a + 1);
-    },
+    retry,
   };
 }

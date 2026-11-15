@@ -129,7 +129,18 @@ def test_power_failure_is_a_missing_value_not_a_server_error() -> None:
     body = response.json()
     assert body["gdd_series"] == []
     assert body["precipitation_total_mm"]["provenance"]["kind"] == "Missing"
-    assert "ConnectError" in body["precipitation_total_mm"]["provenance"]["note"]
+    assert body["precipitation_total_mm"]["provenance"]["note"] == (
+        "Could not reach NASA POWER (no network?)"
+    )
+
+
+def test_a_malformed_power_answer_is_missing_not_a_server_error() -> None:
+    """Any POWER failure, not only HTTP ones, becomes a reason (a broken JSON body)."""
+    use_power(PowerCalls(fail=ValueError("Expecting value: line 1 column 1")))
+    response = send("POST", "/polygon/power", json=SQUARE)
+    assert response.status_code == 200
+    note = response.json()["bee_flight_weather_days"]["provenance"]["note"]
+    assert note == "NASA POWER request failed: Expecting value: line 1 column 1"
 
 
 def test_hls_route_without_a_token_says_why(no_token: None) -> None:
@@ -184,7 +195,8 @@ def test_hls_failure_is_a_missing_value(monkeypatch: pytest.MonkeyPatch) -> None
     app.dependency_overrides[latest_hls] = lambda: broken
     response = send("POST", "/polygon/hls", json=SQUARE)
     assert response.status_code == 200
-    assert "RuntimeError" in response.json()["ndvi"]["provenance"]["note"]
+    note = response.json()["ndvi"]["provenance"]["note"]
+    assert note == "NASA HLS request failed: CMR down"
 
 
 def test_hls_refuses_a_polygon_far_bigger_than_a_field(

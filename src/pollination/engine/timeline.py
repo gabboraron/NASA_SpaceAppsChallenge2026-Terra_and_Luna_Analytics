@@ -32,6 +32,7 @@ from pollination.engine.phenology import (
 from pollination.geo import centroid, smap_cell
 from pollination.nasa import hls
 from pollination.nasa import smap as smap_client
+from pollination.nasa.failure import reason
 from pollination.nasa.power import PowerDaily, daily_point, grid_node
 from pollination.nasa.smap import SmapSeason, SmapWeek
 from pollination.weeks import (
@@ -86,7 +87,8 @@ class SeasonInputs:
         hls: HLS observations per parcel id, for the parcels it was fetched for.
         smap: SMAP values for the region.
         failed: A request failed (worth retrying), as opposed to a source that is
-            not configured or not built; only inputs without failures are reused.
+            not configured or not built; failed inputs are reused only for a short
+            retry pause.
     """
 
     power: Mapping[str, PowerDaily | str]
@@ -658,15 +660,15 @@ def fetch_inputs(
                 series = daily_point(
                     *node, date(year, 1, 1), end, client=client, cache_dir=cache_dir
                 )
-            except httpx.HTTPError as exc:
+            except Exception as exc:  # any NASA failure becomes Missing
                 log.warning("POWER request for %s failed: %s", node, exc)
-                series = f"NASA POWER request failed ({type(exc).__name__})"
+                series = reason("POWER", exc)
                 failed = True
             history = _history_start(here, phenology, year)
             if history is not None and not isinstance(series, str):
                 try:
                     series = _with_history(series, node, history, client, cache_dir)
-                except httpx.HTTPError as exc:  # season data stays; chilling is Missing
+                except Exception as exc:  # season data stays; chilling is Missing
                     log.warning("POWER autumn request for %s failed: %s", node, exc)
                     failed = True
             for parcel in here:
@@ -686,7 +688,7 @@ def fetch_inputs(
             )
         except Exception as exc:  # any NASA failure becomes Missing
             log.warning("HLS fetch failed: %s", exc)
-            observed = f"NASA HLS request failed ({type(exc).__name__})"
+            observed = reason("HLS", exc)
             failed = True
     smap: SmapSeason | str
     if not earthdata:
@@ -696,6 +698,6 @@ def fetch_inputs(
             smap = smap_client.season(year, cache_dir=cache_dir)
         except Exception as exc:  # any NASA failure becomes Missing
             log.warning("SMAP fetch failed: %s", exc)
-            smap = f"NASA SMAP request failed ({type(exc).__name__})"
+            smap = reason("SMAP", exc)
             failed = True
     return SeasonInputs(power=power, hls=observed, smap=smap, failed=failed)

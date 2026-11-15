@@ -18,7 +18,6 @@ from __future__ import annotations
 from collections.abc import Sequence
 from datetime import date
 
-import earthaccess
 import httpx
 
 from pollination.geo import SmapCell
@@ -65,7 +64,7 @@ def read_day(day: date, cells: Sequence[SmapCell]) -> DayValues | None:
         RuntimeError: If the OPeNDAP answer does not have the requested shape.
     """
     login()
-    granules = earthaccess.search_data(
+    granules = earthdata.search(
         short_name=PRODUCT,
         temporal=(f"{day}T{SAMPLE_WINDOW[0]}", f"{day}T{SAMPLE_WINDOW[1]}"),
         count=3,

@@ -10,9 +10,9 @@ from collections.abc import Callable
 from datetime import date
 from functools import cache
 from threading import Lock
+from time import monotonic
 from typing import Annotated
 
-import httpx
 from fastapi import APIRouter, Depends, HTTPException
 
 from pollination import models as m
@@ -25,6 +25,7 @@ from pollination.engine.polygon import BASELINE_YEARS, power_response
 from pollination.engine.timeline import SeasonInputs, build_timeline, fetch_inputs
 from pollination.geo import centroid, to_shape
 from pollination.nasa import hls
+from pollination.nasa.failure import reason
 from pollination.nasa.power import PowerDaily, daily_point
 from pollination.weeks import SEASON_END
 
@@ -33,6 +34,9 @@ router = APIRouter()
 
 HLS_LOOKBACK_DAYS = 30
 MAX_POLYGON_SPAN_DEG = 0.1  # about 8 to 11 km: a field, not a region
+# Failed season inputs are reused this long, so with NASA down every slider move
+# does not wait for the same timeouts again.
+RETRY_FAILED_S = 120.0
 
 type PowerFetch = Callable[[float, float, date, date], PowerDaily]
 type HlsLatest = Callable[[m.Polygon], m.HlsResponse]
@@ -44,21 +48,25 @@ def catalog() -> Catalog:
     return load_catalog(Settings())
 
 
-_inputs_by_year: dict[m.Season, SeasonInputs] = {}
+# Each season's inputs with when they were fetched.
+_inputs_by_year: dict[m.Season, tuple[SeasonInputs, float]] = {}
 _inputs_lock = Lock()
-_timelines: dict[m.Season, m.TimelineResponse] = {}
+# Each season's timeline with the inputs it was built from.
+_timelines: dict[m.Season, tuple[SeasonInputs, m.TimelineResponse]] = {}
 _timelines_lock = Lock()
 
 
 def season_inputs(year: m.Season) -> SeasonInputs:
     """Dependency: the season's NASA inputs (tests override it to stay offline).
 
-    Inputs are kept in memory unless a request failed, so a later call retries.
-    Concurrent first requests wait for one fetch instead of each starting one.
+    Inputs are kept in memory; inputs with a failed request only for
+    ``RETRY_FAILED_S``, after which a call fetches again. Concurrent first requests
+    wait for one fetch instead of each starting one.
     """
     with _inputs_lock:
-        if year in _inputs_by_year:
-            return _inputs_by_year[year]
+        kept = _inputs_by_year.get(year)
+        if kept and (not kept[0].failed or monotonic() - kept[1] < RETRY_FAILED_S):
+            return kept[0]
         settings = Settings()
         inputs = fetch_inputs(
             year,
@@ -67,8 +75,8 @@ def season_inputs(year: m.Season) -> SeasonInputs:
             earthdata=settings.has_earthdata,
             phenology=catalog().phenology,
         )
-        if not inputs.failed:
-            _inputs_by_year[year] = inputs
+        _inputs_by_year[year] = (inputs, monotonic())
+        _timelines.pop(year, None)  # built from the inputs just replaced
         return inputs
 
 
@@ -77,19 +85,18 @@ def season_timeline(
 ) -> m.TimelineResponse:
     """Dependency: the season's timeline.
 
-    It is kept in memory while it was built from the kept inputs, until the next
-    grower verification.
+    It is kept in memory until the inputs are fetched again or the next grower
+    verification.
     """
     with _timelines_lock:
-        kept = _inputs_by_year.get(year) is inputs
-        if kept and year in _timelines:
-            return _timelines[year]
+        built = _timelines.get(year)
+        if built and built[0] is inputs:
+            return built[1]
         data = catalog()
         timeline = build_timeline(
             year, data.parcels, data.phenology, inputs, state.verifications
         )
-        if kept:
-            _timelines[year] = timeline
+        _timelines[year] = (inputs, timeline)
         return timeline
 
 
@@ -198,9 +205,9 @@ def power(
     def get(start: date, end: date) -> PowerDaily | str:
         try:
             return fetch(lat, lon, start, end)
-        except httpx.HTTPError as exc:
+        except Exception as exc:  # any NASA failure becomes Missing
             log.warning("POWER request for %s failed: %s", (lat, lon), exc)
-            return f"NASA POWER request failed ({type(exc).__name__})"
+            return reason("POWER", exc)
 
     season = get(date(year, 1, 1), date(year, *SEASON_END))
     history = get(date(BASELINE_YEARS[0], 1, 1), date(BASELINE_YEARS[-1], 12, 31))
@@ -215,9 +222,9 @@ def power(
     )
 
 
-def _hls_missing(reason: str) -> m.HlsResponse:
+def _hls_missing(why: str) -> m.HlsResponse:
     """An HLS response that says why there is no observation."""
-    gap = m.Measurement.missing(hls.SOURCE, reason)
+    gap = m.Measurement.missing(hls.SOURCE, why)
     return m.HlsResponse(observed_at=None, ndvi=gap, ndyi=gap)
 
 
@@ -240,4 +247,4 @@ def hls_latest(
         return latest(polygon)
     except Exception as exc:  # any NASA failure becomes Missing
         log.warning("HLS request failed: %s", exc)
-        return _hls_missing(f"NASA HLS request failed ({type(exc).__name__})")
+        return _hls_missing(reason("HLS", exc))

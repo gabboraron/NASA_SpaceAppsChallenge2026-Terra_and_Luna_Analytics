@@ -343,12 +343,23 @@ def test_fetch_inputs_turns_failures_into_reasons(
 ) -> None:
     httpx_mock.add_response(status_code=503)
     inputs = tl.fetch_inputs(2024, [parcel()], tmp_path, earthdata=False, phenology={})
-    assert inputs.power["P1"] == "NASA POWER request failed (HTTPStatusError)"
-    assert inputs.failed  # a failed request is retried, not kept
+    assert inputs.power["P1"] == "NASA POWER is unavailable right now (HTTP 503)"
+    assert inputs.failed
     assert isinstance(inputs.hls, str)
     assert "token" in inputs.hls
     assert isinstance(inputs.smap, str)
     assert "token" in inputs.smap
+
+
+def test_fetch_inputs_survives_a_malformed_power_answer(
+    httpx_mock: HTTPXMock, tmp_path: Path
+) -> None:
+    """A 200 with a broken body is a Missing reason, not a crashed timeline."""
+    httpx_mock.add_response(text="<html>maintenance</html>")
+    inputs = tl.fetch_inputs(2024, [parcel()], tmp_path, earthdata=False, phenology={})
+    assert isinstance(inputs.power["P1"], str)
+    assert inputs.power["P1"].startswith("NASA POWER request failed: ")
+    assert inputs.failed
 
 
 def with_token(monkeypatch: pytest.MonkeyPatch) -> None:
@@ -395,7 +406,7 @@ def test_fetch_inputs_turns_a_smap_failure_into_a_reason(
 
     monkeypatch.setattr(smap_client, "season", broken)
     inputs = tl.fetch_inputs(2022, [parcel()], tmp_path, earthdata=True, phenology={})
-    assert inputs.smap == "NASA SMAP request failed (RuntimeError)"
+    assert inputs.smap == "NASA SMAP request failed: OPeNDAP down"
     assert inputs.failed
 
 
