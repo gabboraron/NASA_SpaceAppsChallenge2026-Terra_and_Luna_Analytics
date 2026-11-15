@@ -47,10 +47,8 @@ cd NASA_SpaceAppsChallange2026-Terra_and_Luna_Analytics
 docker compose up --build        # then open http://localhost:8080
 ```
 
-| Service | URL | What |
-|---|---|---|
-| `web` | http://localhost:8080 | Map client (nginx), proxies `/api/*` to the API |
-| `api` | http://127.0.0.1:8000/docs | FastAPI + OpenAPI docs (bound to localhost) |
+One container serves the map client at http://localhost:8080 and the API under `/api`
+(OpenAPI docs at http://localhost:8080/api/docs).
 
 No login is needed for the demo: the repository ships a small warmed cache of the NASA responses for both demo
 seasons (`data/nasa-cache.zip`, see [`docs/cache_setup.md`](docs/cache_setup.md)), which the API imports when it starts.
@@ -61,7 +59,7 @@ Optional settings go in a `.env` file next to `compose.yaml`. It is gitignored, 
 | Variable | Purpose |
 |---|---|
 | `EARTHDATA_USERNAME`, `EARTHDATA_PASSWORD` or `EARTHDATA_TOKEN` | [NASA Earthdata login](https://urs.earthdata.nasa.gov), needed only for HLS and SMAP reads the shipped cache does not hold (for example a field drawn on the map). POWER needs no login |
-| `WEB_PORT` / `API_PORT` | Host ports (default 8080 / 8000) |
+| `WEB_PORT` | Host port (default 8080) |
 | `VITE_USE_MOCKS` | `true` builds the map client against built-in mock data instead of the API |
 
 ### Local development
@@ -87,7 +85,7 @@ Checks (same as CI): `uv run ruff check . && uv run ruff format --check . && uv 
 ├── data/                parcels, Natura 2000, phenology, synthetic actors, ranking weights
 ├── scripts/             one-off data builders and the Earthdata access probe
 ├── docs/                implementation plan, engineering guide
-├── compose.yaml         Docker stack (api + web); Dockerfile, frontend/Dockerfile
+├── compose.yaml         Docker stack (one image: API + built map client); Dockerfile
 └── AI_USAGE.md          AI use disclosure required by Space Apps
 ```
 

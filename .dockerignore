@@ -1,7 +1,11 @@
-# API image needs only pyproject.toml, uv.lock, src/ and data/.
+# The image needs only pyproject.toml, uv.lock, src/, data/ and the frontend sources.
 **
 !pyproject.toml
 !uv.lock
 !src/
 !data/
+!frontend/
 **/__pycache__
+frontend/node_modules
+frontend/dist
+**/.env*
