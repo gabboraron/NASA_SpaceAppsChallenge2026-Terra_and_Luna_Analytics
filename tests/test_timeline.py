@@ -3,6 +3,7 @@
 from collections.abc import Callable
 from datetime import date, timedelta
 from pathlib import Path
+from threading import Event
 
 import pytest
 from pytest_httpx import HTTPXMock
@@ -343,12 +344,23 @@ def test_fetch_inputs_turns_failures_into_reasons(
 ) -> None:
     httpx_mock.add_response(status_code=503)
     inputs = tl.fetch_inputs(2024, [parcel()], tmp_path, earthdata=False, phenology={})
-    assert inputs.power["P1"] == "NASA POWER request failed (HTTPStatusError)"
+    assert inputs.power["P1"] == "NASA POWER is unavailable right now (HTTP 503)"
     assert inputs.failed  # a failed request is retried, not kept
     assert isinstance(inputs.hls, str)
     assert "token" in inputs.hls
     assert isinstance(inputs.smap, str)
     assert "token" in inputs.smap
+
+
+def test_fetch_inputs_survives_a_malformed_power_answer(
+    httpx_mock: HTTPXMock, tmp_path: Path
+) -> None:
+    """A 200 with a broken body is a Missing reason, not a crashed timeline."""
+    httpx_mock.add_response(text="<html>maintenance</html>")
+    inputs = tl.fetch_inputs(2024, [parcel()], tmp_path, earthdata=False, phenology={})
+    assert isinstance(inputs.power["P1"], str)
+    assert inputs.power["P1"].startswith("NASA POWER request failed: ")
+    assert inputs.failed
 
 
 def with_token(monkeypatch: pytest.MonkeyPatch) -> None:
@@ -395,7 +407,7 @@ def test_fetch_inputs_turns_a_smap_failure_into_a_reason(
 
     monkeypatch.setattr(smap_client, "season", broken)
     inputs = tl.fetch_inputs(2022, [parcel()], tmp_path, earthdata=True, phenology={})
-    assert inputs.smap == "NASA SMAP request failed (RuntimeError)"
+    assert inputs.smap == "NASA SMAP request failed: OPeNDAP down"
     assert inputs.failed
 
 
@@ -444,3 +456,22 @@ def test_orchards_need_no_autumn_request(httpx_mock: HTTPXMock, tmp_path: Path) 
         2024, [parcel("apple")], tmp_path, earthdata=False, phenology=PHENOLOGY
     )
     assert len(httpx_mock.get_requests()) == 1
+
+
+def test_fetch_inputs_gives_up_on_a_hanging_smap_read(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+) -> None:
+    """A hanging read cannot hold the season (and its lock) forever."""
+    with_token(monkeypatch)
+    monkeypatch.setattr(tl, "SEASON_READ_DEADLINE_S", 0.05)
+    release = Event()
+
+    def hangs(year: int, **kwargs: object) -> tl.SmapSeason:
+        release.wait()
+        return tl.SmapSeason({}, "2015-2024")
+
+    monkeypatch.setattr(smap_client, "season", hangs)
+    inputs = tl.fetch_inputs(2022, [parcel()], tmp_path, earthdata=True, phenology={})
+    release.set()
+    assert inputs.smap == "NASA SMAP did not answer in time"
+    assert inputs.failed

@@ -32,6 +32,7 @@ from pollination.engine.phenology import (
 from pollination.geo import centroid, smap_cell
 from pollination.nasa import hls
 from pollination.nasa import smap as smap_client
+from pollination.nasa.failure import reason, within
 from pollination.nasa.power import PowerDaily, daily_point, grid_node
 from pollination.nasa.smap import SmapSeason, SmapWeek
 from pollination.weeks import (
@@ -54,6 +55,9 @@ log = logging.getLogger(__name__)
 LOW_NECTAR_PERCENTILE = 10.0
 # Gap-filled NDYI/NDVI only between observations at most this far apart (D4).
 MAX_INTERPOLATION_GAP_DAYS = 21
+# A season's HLS or SMAP read on a hanging network returns Missing after this; the
+# read carries on and fills the cache for the next attempt.
+SEASON_READ_DEADLINE_S = 300.0
 # Sunflower only: for black locust, a deep-rooted tree, the flag marked the best
 # flow year of the reference hive scales (2024) as low.
 NECTAR_CROPS = frozenset({"sunflower"})
@@ -658,15 +662,15 @@ def fetch_inputs(
                 series = daily_point(
                     *node, date(year, 1, 1), end, client=client, cache_dir=cache_dir
                 )
-            except httpx.HTTPError as exc:
+            except Exception as exc:  # any NASA failure becomes Missing
                 log.warning("POWER request for %s failed: %s", node, exc)
-                series = f"NASA POWER request failed ({type(exc).__name__})"
+                series = reason("POWER", exc)
                 failed = True
             history = _history_start(here, phenology, year)
             if history is not None and not isinstance(series, str):
                 try:
                     series = _with_history(series, node, history, client, cache_dir)
-                except httpx.HTTPError as exc:  # season data stays; chilling is Missing
+                except Exception as exc:  # season data stays; chilling is Missing
                     log.warning("POWER autumn request for %s failed: %s", node, exc)
                     failed = True
             for parcel in here:
@@ -681,21 +685,27 @@ def fetch_inputs(
             if (entry := phenology.get(p.crop)) and entry.method == "ndyi"
         ]
         try:
-            observed = hls.parcel_indices(
-                targets, date(year, *SEASON_START), end, cache_dir=cache_dir
+            observed = within(
+                SEASON_READ_DEADLINE_S,
+                lambda: hls.parcel_indices(
+                    targets, date(year, *SEASON_START), end, cache_dir=cache_dir
+                ),
             )
         except Exception as exc:  # any NASA failure becomes Missing
             log.warning("HLS fetch failed: %s", exc)
-            observed = f"NASA HLS request failed ({type(exc).__name__})"
+            observed = reason("HLS", exc)
             failed = True
     smap: SmapSeason | str
     if not earthdata:
         smap = "No Earthdata token configured; SMAP not queried"
     else:
         try:
-            smap = smap_client.season(year, cache_dir=cache_dir)
+            smap = within(
+                SEASON_READ_DEADLINE_S,
+                lambda: smap_client.season(year, cache_dir=cache_dir),
+            )
         except Exception as exc:  # any NASA failure becomes Missing
             log.warning("SMAP fetch failed: %s", exc)
-            smap = f"NASA SMAP request failed ({type(exc).__name__})"
+            smap = reason("SMAP", exc)
             failed = True
     return SeasonInputs(power=power, hls=observed, smap=smap, failed=failed)
