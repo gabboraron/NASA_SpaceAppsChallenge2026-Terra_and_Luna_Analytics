@@ -9,6 +9,11 @@ The warmed NASA cache (`data/nasa-cache.zip`) is part of the image and is import
 every start, so both demo seasons work without Earthdata credentials. The credentials
 are only needed for the latest season and for fields drawn on the map.
 
+The cache directory (`/app/.cache`) is an Azure Files share, so what the app fetches
+from NASA (the latest season, drawn fields) survives restarts and every rollout from
+CI. The data does not change once fetched; without the share, each deploy would read
+the latest season from NASA again, which takes about 20 minutes on a cold cache.
+
 ## Resources
 
 | Resource | Name | Notes |
@@ -17,6 +22,7 @@ are only needed for the latest season and for fields drawn on the map.
 | Container registry | see repo variable `AZURE_ACR` | Basic SKU; the app pulls with its managed identity |
 | Container Apps environment | `cae-pollination` | Consumption plan, North Europe, Log Analytics workspace |
 | Container App | `pollination` | 0.5 vCPU, 1 GiB, external HTTPS ingress on port 8000, 1 replica |
+| Storage account | `stpollination627b46` | Standard LRS; file share `nasa-cache` (5 GiB) mounted at `/app/.cache` |
 | Entra app | `gh-pollination-deploy` | federated credential for `main`, Contributor on the resource group |
 
 `max-replicas` must stay 1: grower verifications and the latest-season fetch live in
@@ -66,6 +72,42 @@ gh variable set AZURE_CONTAINERAPP -b pollination
 gh variable set AZURE_ACR -b $ACR
 ```
 
+## Persistent NASA cache
+
+The Microsoft.Storage provider has to be registered once per subscription. The share
+is linked to the environment, then mounted into the app owned by the image's `app`
+user (uid 10001). The CI rollout (`az containerapp update --image`) keeps the mount.
+
+```sh
+RG=rg-pollination ST=stpollination627b46
+az provider register -n Microsoft.Storage --wait
+az storage account create -g $RG -n $ST -l northeurope --sku Standard_LRS \
+  --kind StorageV2 --https-only true --min-tls-version TLS1_2 \
+  --allow-blob-public-access false
+az storage share-rm create -g $RG --storage-account $ST -n nasa-cache --quota 5
+az containerapp env storage set -g $RG -n cae-pollination --storage-name nasacache \
+  --azure-file-account-name $ST --azure-file-share-name nasa-cache --access-mode ReadWrite \
+  --azure-file-account-key "$(az storage account keys list -g $RG -n $ST --query '[0].value' -o tsv)"
+```
+
+Then add the volume and mount to the app's YAML (`az containerapp show -g $RG -n pollination -o yaml`)
+and apply it with `az containerapp update -g $RG -n pollination --yaml app.yaml`:
+
+```yaml
+properties:
+  template:
+    containers:
+      - name: pollination
+        volumeMounts:
+          - volumeName: nasa-cache
+            mountPath: /app/.cache
+    volumes:
+      - name: nasa-cache
+        storageType: AzureFile
+        storageName: nasacache
+        mountOptions: uid=10001,gid=10001,dir_mode=0750,file_mode=0640
+```
+
 ## Earthdata credentials
 
 Stored as Container App secrets, never in git or GitHub. From a shell that has the
@@ -91,4 +133,4 @@ with a free managed certificate.
 
 The trial credit runs out after 30 days. Upgrade the subscription to pay-as-you-go before
 then or Azure disables it and the demo goes offline. After that, the registry is about
-5 USD a month, and the app stays within the Container Apps free grant with `--min-replicas 0`.
+5 USD a month, the cache share a few cents, and the app stays within the Container Apps free grant with `--min-replicas 0`.
