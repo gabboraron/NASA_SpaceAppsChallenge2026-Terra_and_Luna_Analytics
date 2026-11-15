@@ -86,6 +86,44 @@
   overflow: hidden;
   background: #e6e2cf;
 }
+/* A bar that keeps moving along the top of the map while NASA data is on its way. */
+.loading {
+  position: absolute;
+  inset: 0 0 auto;
+  z-index: 3;
+  height: 4px;
+  overflow: hidden;
+  pointer-events: none;
+}
+.loading::before {
+  content: "";
+  position: absolute;
+  inset: 0 auto 0 0;
+  width: 40%;
+  background: linear-gradient(
+    90deg,
+    transparent,
+    var(--honey) 40%,
+    var(--honey) 60%,
+    transparent
+  );
+  animation: loading 1.4s linear infinite;
+}
+@keyframes loading {
+  from {
+    transform: translateX(-100%);
+  }
+  to {
+    transform: translateX(250%);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .loading::before {
+    width: 100%;
+    background: var(--honey);
+    animation: none;
+  }
+}
 /* Floats over the bottom of the map, clear of the scale bar and attribution. */
 .week {
   grid-area: map;

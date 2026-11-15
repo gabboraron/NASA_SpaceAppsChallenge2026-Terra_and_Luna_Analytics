@@ -57,12 +57,6 @@ def clean_overrides() -> Iterator[None]:
     app.dependency_overrides.clear()
 
 
-@pytest.fixture
-def no_token(monkeypatch: pytest.MonkeyPatch) -> None:
-    """No usable Earthdata token, whatever the developer's .env says."""
-    monkeypatch.setenv("EARTHDATA_TOKEN", "")
-
-
 def send(
     method: str, path: str, **kwargs: Any
 ) -> httpx.Response:  # httpx request options pass straight through
@@ -143,7 +137,7 @@ def test_a_malformed_power_answer_is_missing_not_a_server_error() -> None:
     assert note == "NASA POWER request failed: Expecting value: line 1 column 1"
 
 
-def test_hls_route_without_a_token_says_why(no_token: None) -> None:
+def test_hls_route_without_a_token_says_why() -> None:
     """No Earthdata token: Missing with the reason, and no NASA call."""
     calls: list[m.Polygon] = []
 

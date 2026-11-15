@@ -9,7 +9,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from pollination.config import Settings
-from pollination.contract import router
+from pollination.contract import prefetch_latest_season, router
 from pollination.nasa.cache_share import import_cache
 
 log = logging.getLogger(__name__)
@@ -35,8 +35,9 @@ def import_shipped_cache(settings: Settings) -> None:
 
 @asynccontextmanager
 async def lifespan(_app: FastAPI) -> AsyncGenerator[None]:
-    """Import the shipped NASA cache before the first request."""
+    """Import the shipped NASA cache, then prefetch the latest season if possible."""
     import_shipped_cache(Settings())
+    prefetch_latest_season()
     yield
 
 

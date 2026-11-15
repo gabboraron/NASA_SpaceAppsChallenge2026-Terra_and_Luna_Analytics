@@ -137,6 +137,17 @@ def season_inputs(year: int) -> SeasonInputs:
         return inputs
 
 
+def prefetch_latest_season() -> None:
+    """Start fetching the latest season in the background, if there is a token.
+
+    Its HLS and SMAP reads take minutes on a cold cache, so they are under way
+    before the first visitor asks for the season.
+    """
+    if Settings().has_earthdata:
+        year = latest_season(date.today())
+        Thread(target=season_inputs, args=(year,), daemon=True).start()
+
+
 def season_timeline(
     year: int, inputs: Annotated[SeasonInputs, Depends(season_inputs)]
 ) -> m.TimelineResponse:

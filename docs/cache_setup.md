@@ -17,7 +17,8 @@ A real token in `.env` (`EARTHDATA_TOKEN`, a user token from
 the latest season (the third season button on the map), other parcels, or the
 satellite read of a polygon drawn on the map. For the latest season the API answers
 at once with the POWER-based bloom and fetches HLS and SMAP in the background; the
-map asks again every 20 seconds until they arrive.
+map asks again every 20 seconds until they arrive. With a token the API starts this
+fetch when it boots, so it is usually under way before the first visitor.
 Without a token a cache miss is a `Missing` value with the reason
 "No Earthdata token configured".
 

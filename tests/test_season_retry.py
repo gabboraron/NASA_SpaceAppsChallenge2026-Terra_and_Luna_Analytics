@@ -149,7 +149,6 @@ def test_without_a_token_the_latest_season_is_fetched_in_one_go(
     monkeypatch: pytest.MonkeyPatch, clock: Clock
 ) -> None:
     """HLS and SMAP then only read the cache, which is quick."""
-    monkeypatch.setenv("EARTHDATA_TOKEN", "")
     made = fetches(monkeypatch, False)
     inputs = contract.season_inputs(latest_season(date.today()))
     assert inputs is made[0]
