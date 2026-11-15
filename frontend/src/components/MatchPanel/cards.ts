@@ -21,7 +21,13 @@ export function groupCards(cards: MatchCard[]): Grouped {
   const open = cards
     .filter((c) => !c.blocked)
     .sort((a, b) => (a.rank ?? Infinity) - (b.rank ?? Infinity));
-  return { open, blocked: cards.filter((c) => c.blocked), shared };
+  const blocked = cards
+    .filter((c) => c.blocked)
+    .sort(
+      (a, b) =>
+        (a.distance_km.value ?? Infinity) - (b.distance_km.value ?? Infinity),
+    );
+  return { open, blocked, shared };
 }
 
 /** The card's own warnings, without the ones shown above the list. */
