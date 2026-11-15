@@ -9,8 +9,9 @@ export function SiteFooter() {
       <div>
         <span className="mono">COLOPHON</span>
         <p>
-          Built by Terra &amp; Luna Analytics for the NASA Space Apps Challenge
-          2026. Code under MPL 2.0 on <a href={REPO}>GitHub</a>.
+          HappyBee: don&apos;t worry, bee happy. Built by Terra &amp; Luna
+          Analytics for the NASA Space Apps Challenge 2026. Code under MPL 2.0
+          on <a href={REPO}>GitHub</a>.
         </p>
       </div>
       <div>

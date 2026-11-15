@@ -1,5 +1,5 @@
 version = 1
-revision = 3
+revision = 5
 requires-python = ">=3.12"
 resolution-markers = [
     "python_full_version >= '3.14' and sys_platform == 'win32'",
@@ -909,6 +909,73 @@ wheels = [
 ]
 
 [[package]]
+name = "happybee"
+version = "0.1.0"
+source = { editable = "." }
+dependencies = [
+    { name = "asf-search" },
+    { name = "earthaccess" },
+    { name = "fastapi" },
+    { name = "h5py" },
+    { name = "httpx" },
+    { name = "numpy" },
+    { name = "pydantic" },
+    { name = "pydantic-settings" },
+    { name = "pyproj" },
+    { name = "rasterio" },
+    { name = "shapely" },
+    { name = "uvicorn" },
+]
+
+[package.dev-dependencies]
+dev = [
+    { name = "commitizen" },
+    { name = "h5py" },
+    { name = "openpyxl" },
+    { name = "pip-audit" },
+    { name = "pre-commit" },
+    { name = "pyright" },
+    { name = "pytest" },
+    { name = "pytest-cov" },
+    { name = "pytest-httpx" },
+    { name = "ruff" },
+    { name = "types-openpyxl" },
+    { name = "types-shapely" },
+]
+
+[package.metadata]
+requires-dist = [
+    { name = "asf-search", specifier = ">=14.1.0" },
+    { name = "earthaccess", specifier = ">=0.19.0" },
+    { name = "fastapi" },
+    { name = "h5py", specifier = ">=3.16.0" },
+    { name = "httpx" },
+    { name = "numpy" },
+    { name = "pydantic" },
+    { name = "pydantic-settings" },
+    { name = "pyproj" },
+    { name = "rasterio", specifier = ">=1.5.2" },
+    { name = "shapely" },
+    { name = "uvicorn" },
+]
+
+[package.metadata.requires-dev]
+dev = [
+    { name = "commitizen", specifier = ">=4.19.3" },
+    { name = "h5py", specifier = ">=3.16.0" },
+    { name = "openpyxl", specifier = ">=3.1.5" },
+    { name = "pip-audit", specifier = ">=2.10.1" },
+    { name = "pre-commit" },
+    { name = "pyright" },
+    { name = "pytest" },
+    { name = "pytest-cov" },
+    { name = "pytest-httpx" },
+    { name = "ruff" },
+    { name = "types-openpyxl", specifier = ">=3.1.5.20261017" },
+    { name = "types-shapely", specifier = ">=2.1.0.20261030" },
+]
+
+[[package]]
 name = "httpcore"
 version = "1.0.9"
 source = { registry = "https://pypi.org/simple" }
@@ -1361,73 +1428,6 @@ source = { registry = "https://pypi.org/simple" }
 sdist = { url = "https://files.pythonhosted.org/packages/cb/5c/556c53f25a75c7ec1b467a5871a22461615139dab72578166df7f8ad1104/multimethod-2.1.tar.gz", hash = "sha256:c59e75fbe51516ed632d3df4b56df0876747be001c068d3ee1e83e9f65c2846f", size = 16016, upload-time = "2026-07-29T00:31:35.523Z" }
 wheels = [
     { url = "https://files.pythonhosted.org/packages/a7/9e/3538af4267d2e29d871e7a1ae390e8ff32122b3c560fe718569c4cd7624a/multimethod-2.1-py3-none-any.whl", hash = "sha256:54b5256562351762a275dd65571b5d6db750848f1eb6bb21c61cb5ff2748b663", size = 9529, upload-time = "2026-07-29T00:31:34.367Z" },
-]
-
-[[package]]
-name = "nasa-spaceapps-2026"
-version = "0.1.0"
-source = { editable = "." }
-dependencies = [
-    { name = "asf-search" },
-    { name = "earthaccess" },
-    { name = "fastapi" },
-    { name = "h5py" },
-    { name = "httpx" },
-    { name = "numpy" },
-    { name = "pydantic" },
-    { name = "pydantic-settings" },
-    { name = "pyproj" },
-    { name = "rasterio" },
-    { name = "shapely" },
-    { name = "uvicorn" },
-]
-
-[package.dev-dependencies]
-dev = [
-    { name = "commitizen" },
-    { name = "h5py" },
-    { name = "openpyxl" },
-    { name = "pip-audit" },
-    { name = "pre-commit" },
-    { name = "pyright" },
-    { name = "pytest" },
-    { name = "pytest-cov" },
-    { name = "pytest-httpx" },
-    { name = "ruff" },
-    { name = "types-openpyxl" },
-    { name = "types-shapely" },
-]
-
-[package.metadata]
-requires-dist = [
-    { name = "asf-search", specifier = ">=14.1.0" },
-    { name = "earthaccess", specifier = ">=0.19.0" },
-    { name = "fastapi" },
-    { name = "h5py", specifier = ">=3.16.0" },
-    { name = "httpx" },
-    { name = "numpy" },
-    { name = "pydantic" },
-    { name = "pydantic-settings" },
-    { name = "pyproj" },
-    { name = "rasterio", specifier = ">=1.5.2" },
-    { name = "shapely" },
-    { name = "uvicorn" },
-]
-
-[package.metadata.requires-dev]
-dev = [
-    { name = "commitizen", specifier = ">=4.19.3" },
-    { name = "h5py", specifier = ">=3.16.0" },
-    { name = "openpyxl", specifier = ">=3.1.5" },
-    { name = "pip-audit", specifier = ">=2.10.1" },
-    { name = "pre-commit" },
-    { name = "pyright" },
-    { name = "pytest" },
-    { name = "pytest-cov" },
-    { name = "pytest-httpx" },
-    { name = "ruff" },
-    { name = "types-openpyxl", specifier = ">=3.1.5.20261017" },
-    { name = "types-shapely", specifier = ">=2.1.0.20261030" },
 ]
 
 [[package]]

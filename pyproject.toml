@@ -1,7 +1,7 @@
 [project]
-name = "nasa-spaceapps-2026"
+name = "happybee"
 version = "0.1.0"
-description = "NASA Space Apps Challenge 2026"
+description = "HappyBee: NASA Earth observations for beekeepers and growers (NASA Space Apps Challenge 2026)"
 requires-python = ">=3.12"
 dependencies = [
     "fastapi",

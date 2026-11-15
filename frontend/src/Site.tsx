@@ -60,9 +60,7 @@ export function Site() {
   // The address stays, so the requested page shows right after signing in.
   const page = wanted.auth && !signedIn ? LOGIN : wanted;
   useEffect(() => {
-    document.title = page.title
-      ? `${page.title} · Pollination Marketplace`
-      : "Pollination Marketplace";
+    document.title = page.title ? `${page.title} · HappyBee` : "HappyBee";
   }, [page]);
   return page.render();
 }

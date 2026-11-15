@@ -46,10 +46,10 @@ az containerapp env create -g $RG -n cae-pollination -l $LOC
 
 # First image (later ones come from CI)
 az acr login -n $ACR
-docker buildx build --platform linux/amd64 -t $ACR.azurecr.io/pollination:initial --push .
+docker buildx build --platform linux/amd64 -t $ACR.azurecr.io/happybee:initial --push .
 
 az containerapp create -g $RG -n pollination --environment cae-pollination \
-  --image $ACR.azurecr.io/pollination:initial \
+  --image $ACR.azurecr.io/happybee:initial \
   --registry-server $ACR.azurecr.io --registry-identity system \
   --ingress external --target-port 8000 \
   --cpu 0.5 --memory 1.0Gi --min-replicas 1 --max-replicas 1

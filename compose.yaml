@@ -1,5 +1,5 @@
 # Whole system: `docker compose up --build`, then open http://localhost:8080
-name: pollination
+name: happybee
 services:
   app:
     build:

@@ -43,7 +43,7 @@ async def lifespan(_app: FastAPI) -> AsyncGenerator[None]:
     worker.shutdown()
 
 
-app = FastAPI(title="Pollination API", lifespan=lifespan)
+app = FastAPI(title="HappyBee API", lifespan=lifespan)
 # The Vite dev server may call the API directly; in Docker nginx proxies /api.
 app.add_middleware(
     CORSMiddleware,

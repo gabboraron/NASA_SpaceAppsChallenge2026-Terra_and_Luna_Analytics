@@ -126,15 +126,24 @@ export function LandingPage() {
       <section className={`${page.wrap} ${styles.hero}`}>
         <FlightPath />
         <div className={styles.heroGrid}>
-          <h1 className={styles.headline}>
-            Bloom moves.
-            <br />
-            The hives should follow.
-          </h1>
+          <div>
+            <p className={styles.slogan}>
+              <BeeMark size={30} />
+              <span>
+                Don&apos;t worry, <mark>bee happy.</mark>
+              </span>
+            </p>
+            <h1 className={styles.headline}>
+              Bloom moves.
+              <br />
+              The hives should follow.
+            </h1>
+          </div>
           <p className={styles.heroText}>
-            Satellites see each field flower, week by week. We turn that into
-            where a beekeeper should put colonies next, and whether the trip
-            pays. <Link to={ROUTES.method}>How it works</Link>
+            Satellites see each field flower, week by week. HappyBee turns that
+            into where a beekeeper should put colonies next, and whether the
+            trip pays. We do the worrying, you keep the bees happy.{" "}
+            <Link to={ROUTES.method}>How it works</Link>
           </p>
         </div>
         <HoneycombCalendar />
@@ -373,6 +382,11 @@ export function LandingPage() {
           </p>
         </Chapter>
 
+        <p className={styles.signoff}>
+          Happy bees, happy fields, happy keepers.
+          <br />
+          <mark>Bee happy.</mark>
+        </p>
         <Link to={ROUTES.app} className={styles.cta}>
           <span aria-hidden="true" className="hex" />
           Open the explorer

@@ -1,1 +1,1 @@
-"""Pollination marketplace decision support."""
+"""HappyBee: pollination marketplace decision support."""

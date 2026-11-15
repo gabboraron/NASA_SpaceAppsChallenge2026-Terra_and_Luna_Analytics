@@ -3,7 +3,7 @@ name: project-context
 description: Background on the NASA Space Apps Challenge 2026 project (goals, challenge chosen, team conventions). Use when starting work or when unsure about project scope.
 ---
 
-# NASA Space Apps Challenge 2026: Pollination Marketplace
+# NASA Space Apps Challenge 2026: HappyBee
 
 - **Challenge:** to be confirmed by the team (not recorded yet; ask before writing it anywhere).
 - **Goal / deliverable:** a worldwide-applicable web map (demo on one pilot region) that matches migratory

@@ -8,7 +8,7 @@ watermark, and AI-generated code, data and audio must be acknowledged in text an
 
 | Tool | Used for |
 |---|---|
-| Claude Code (Anthropic) | Research-phase analysis of candidate ideas; code, tests and docs for the pollination marketplace (each change reviewed by a team member) |
+| Claude Code (Anthropic) | Research-phase analysis of candidate ideas; code, tests and docs for HappyBee (each change reviewed by a team member) |
 | GitHub Copilot | Code completion during the build |
 
 ## Where the ideas came from

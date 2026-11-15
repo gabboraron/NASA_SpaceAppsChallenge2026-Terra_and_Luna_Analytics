@@ -1,4 +1,4 @@
-# NASA Space Apps Challenge 2026: Pollination Marketplace
+# NASA Space Apps Challenge 2026: HappyBee
 
 Python backend + TypeScript frontend. The repo contains only this project; earlier candidate ideas live in git history only.
 Project summary: the `project-context` skill. Build plan: `docs/implementation_plans/nasa_space_apps_48_hour_hackathon_mvp_planv3.md`

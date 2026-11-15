@@ -48,7 +48,7 @@ export function SiteHeader({ variant = "site", children }: Props) {
       <div className={styles.inner}>
         <Link to={ROUTES.home} className={styles.brand}>
           <BeeMark size={app ? 26 : 30} inverse={app} />
-          <span>Pollination Marketplace</span>
+          <span>HappyBee</span>
         </Link>
         {!app && (
           <span className={`${styles.tagline} mono`}>

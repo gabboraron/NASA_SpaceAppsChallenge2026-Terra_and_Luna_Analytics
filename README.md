@@ -1,6 +1,10 @@
 <div align="center">
 
-# Pollination Marketplace
+<img src="docs/happybee-logo.svg" alt="HappyBee logo: a smiling bee on a honeycomb cell" width="150">
+
+# HappyBee
+
+### *Don't worry, bee happy.* 🐝
 
 **by Terra & Luna Analytics · NASA Space Apps Challenge 2026**
 

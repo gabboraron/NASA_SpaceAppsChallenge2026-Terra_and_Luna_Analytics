@@ -231,8 +231,8 @@ function Solution() {
   return (
     <Section id="solution" title="Our solution">
       <p className={page.body}>
-        Pollination Marketplace puts three NASA datasets on one weekly map, so a
-        beekeeper and a grower can see the same picture and decide together.
+        HappyBee puts three NASA datasets on one weekly map, so a beekeeper and
+        a grower can see the same picture and decide together.
       </p>
       <div className={`${page.cardGrid} ${styles.pillars}`}>
         <div>
